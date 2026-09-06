@@ -6664,14 +6664,31 @@ function dispAbrir(id){
 
 /* ---- ligações ---- */
 function dispLigaCampos(){
+  /* Espelhos: numDispensa→numETP/numAviso/numTR, omNormal→omMaiusculo,
+     assunto→descricaoSucinta. Antes, o campo com espelho redesenhava a seção
+     inteira a cada tecla (dispRenderCampos()) — isso recriava o próprio
+     <textarea>/<input> que a pessoa estava digitando, o foco se perdia e a
+     página rolava sozinha pro topo. Agora só o(s) campo(s)-espelho no DOM
+     são atualizados, sem tocar em quem está com o foco. */
+  const DISP_ESPELHOS={
+    numDispensa:()=>DISP_DERIVADOS,
+    omNormal:()=>['omMaiusculo'],
+    assunto:()=>['descricaoSucinta']
+  };
   $$('[data-dp]').forEach(el=>{
     const k=el.dataset.dp;
     const ev=el.tagName==='SELECT'?'change':'input';
     el.addEventListener(ev,()=>{
       dispMuda(k,el.value,true);
-      /* campo com derivados redesenha para o espelho acompanhar na hora */
-      if(['numDispensa','omNormal','assunto'].indexOf(k)>=0)dispRenderCampos();
-      else dispAtualizaBarra();
+      const espelhos=DISP_ESPELHOS[k];
+      if(espelhos){
+        espelhos().forEach(a=>{
+          if(DISP.manuais.indexOf(a)>=0)return;   /* usuário já assumiu este campo manualmente */
+          const campo=$('[data-dp="'+a+'"]');
+          if(campo&&campo!==document.activeElement)campo.value=DISP.dados[a]||'';
+        });
+      }
+      dispAtualizaBarra();
     });
   });
   $$('[data-dpdias]').forEach(el=>{
