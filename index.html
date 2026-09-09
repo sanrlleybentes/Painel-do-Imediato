@@ -1696,8 +1696,8 @@ body.semvideo .sp-foto{display:block}
     <div class="card reveal">
       <h2>Gerar papeleta de troca de serviço</h2>
       <div class="row">
-        <div><label>Dia anterior (quem sai)</label><input type="hidden" id="trDiaAnt"><input type="text" id="trDiaAntBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
-        <div><label>Dia posterior (quem entra)</label><input type="hidden" id="trDiaPos"><input type="text" id="trDiaPosBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+        <div><label>Dia anterior (quem sai)</label><input type="hidden" id="trDiaAnt" data-hifen="1"><input type="text" id="trDiaAntBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+        <div><label>Dia posterior (quem entra)</label><input type="hidden" id="trDiaPos" data-hifen="1"><input type="text" id="trDiaPosBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
       </div>
       <div class="row" style="margin-top:12px">
         <div style="flex:1 1 240px"><label>Militar solicitante</label><select id="trSolic"></select></div>
@@ -2855,7 +2855,7 @@ const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const ym=d=>ymd(d).slice(0,7);
 const hhmm=ts=>{const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes());};
-const brDate=s=>{if(!s)return '';const p=String(s).split('-');return p[2]+'/'+p[1]+'/'+p[0];};
+const brDate=s=>{if(!s)return '';if(s==='-')return '-';const p=String(s).split('-');return p[2]+'/'+p[1]+'/'+p[0];};
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9);
 const chave=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -2887,7 +2887,7 @@ const dias=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/8
 const hoje=()=>ymd(new Date());
 function mondayOf(iso){const d=new Date(iso+'T12:00:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return ymd(d);}
 function addDias(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d);}
-function ddmmmCurto(iso){const d=new Date(iso+'T12:00:00');return pad(d.getDate())+MESES_ABREV[d.getMonth()];}
+function ddmmmCurto(iso){if(iso==='-')return '-';const d=new Date(iso+'T12:00:00');return pad(d.getDate())+MESES_ABREV[d.getMonth()];}
 function ausenciasSemana(ref,modo){
   const fimJanela=(modo&&MODO_CFG[modo]&&!MODO_CFG[modo].temPorDoSolRotina)?ref:addDias(ref,6);
   return FER.periodos.filter(p=>p.tipo==='ferias'&&p.status!=='cancelada'&&!(p.fim<ref||p.ini>fimJanela))
@@ -2964,7 +2964,8 @@ function abrirCalDia(idIso){
   calIdAlvo=idIso;calTipoAlvo='dia';
   const el=$('#'+idIso);
   calAniversario=el.dataset.aniv==='1';
-  const atual=el.value;
+  calPermiteHifen=el.dataset.hifen==='1';
+  const atual=el.value==='-'?'':el.value;
   const base=atual?new Date(atual+'T12:00:00'):new Date();
   calAnoAtual=base.getFullYear();calMesAtual=base.getMonth();
   /* aniversário em branco: começa pela grade de anos, que é o que trava quem
@@ -2978,7 +2979,7 @@ function abrirCalDia(idIso){
    rótulo, são dois botões — tocar no mês abre a grade de meses, tocar no ano
    abre a grade de anos, doze por página. Assim ninguém precisa avançar mês a
    mês para chegar a 1995: são dois toques. */
-let calVista='dia', calAniversario=false;
+let calVista='dia', calAniversario=false, calPermiteHifen=false;
 function calBlocoAnos(){ return calAnoAtual-((calAnoAtual%12)+12)%12; }
 function calCabecalho(titulo,idPrev,idNext){
   return '<div class="calhead">'+
@@ -3020,6 +3021,7 @@ function desenhaCalDia(){
 
   const rodape='<div class="calfoot">'+
     (calAniversario?'':'<button type="button" id="calHoje">Hoje</button>')+
+    (calPermiteHifen?'<button type="button" id="calHifen">Sem data (-)</button>':'')+
     '<button type="button" id="calFecha">Fechar</button></div>';
   host.innerHTML='<div class="calpop">'+calCabecalho(titulo,'calPrev','calNext')+corpo+rodape+'</div>';
   posicionaCal(host.querySelector('.calpop'),$('#'+calIdAlvo+'Br'));
@@ -3043,6 +3045,7 @@ function desenhaCalDia(){
   host.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{
     calMesAtual=+b.dataset.mes; calVista='dia'; desenhaCalDia();});
   if($('#calHoje'))$('#calHoje').onclick=()=>{setDataDia(calIdAlvo,hoje());$('#'+calIdAlvo).dispatchEvent(new Event('change'));fechaCal();};
+  if($('#calHifen'))$('#calHifen').onclick=()=>{setDataDia(calIdAlvo,'-');$('#'+calIdAlvo).dispatchEvent(new Event('change'));fechaCal();};
   $('#calFecha').onclick=fechaCal;
   host.querySelectorAll('[data-diso]').forEach(b=>b.onclick=()=>{
     setDataDia(calIdAlvo,b.dataset.diso);$('#'+calIdAlvo).dispatchEvent(new Event('change'));fechaCal();});
