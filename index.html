@@ -2172,13 +2172,20 @@ body.semvideo .sp-foto{display:block}
   <div class="subtabs" id="subObt">
     <button data-sub="radar" aria-selected="true">Radar</button>
     <button data-sub="processos" aria-selected="false">Processos</button>
-    <button data-sub="dispensa" aria-selected="false">Dispensa Eletrônica</button>
-    <button data-sub="julgamento" aria-selected="false">Julgamento e Habilitação</button>
+    <button data-sub="controleh12" aria-selected="false">Controle H12</button>
     <button data-sub="config" aria-selected="false">Configuração</button>
   </div>
 
+  <!-- ---------- CONTROLE H12 ---------- -->
+  <div id="obt-controleh12" class="hidden">
+    <div class="subtabs" id="subObtCh12">
+      <button data-ch12="dispensa" aria-selected="true">Dispensa Eletrônica</button>
+      <button data-ch12="solemp" aria-selected="false">Controle SOLEMP</button>
+      <button data-ch12="materiais" aria-selected="false">Controle de Materiais e Serviços</button>
+    </div>
+
   <!-- ---------- DISPENSA ELETRÔNICA ---------- -->
-  <div id="obt-dispensa" class="hidden">
+  <div id="obtch12-dispensa">
 
     <div class="dpcred">
       <b>Gerador de Dispensa Eletrônica</b>
@@ -2288,45 +2295,10 @@ body.semvideo .sp-foto{display:block}
       <div class="scroller" id="dpLista"></div>
     </div>
 
-  </div>
+  </div><!-- fim de #obtch12-dispensa -->
 
-
-  <!-- ---------- RADAR ---------- -->
-  <div id="obt-radar">
-    <div class="kpis" id="obtKpis"></div>
-    <div class="row" style="align-items:flex-end;margin:0 0 16px">
-      <div style="flex:1 1 380px"><p class="hint" id="obtRadarEscopo" style="margin:0"></p></div>
-      <div style="flex:0 1 auto"><button class="btn" id="obtRadarAtualiza">Atualizar do governo</button></div>
-    </div>
-    <div id="obtRadarEstado" class="obtmeta" style="margin:-8px 0 16px"></div>
-    <div class="card reveal">
-      <h2>Dispensas em trâmite <span class="n" id="nObtTramite">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Publicadas no PNCP e ainda sem homologação, na UASG configurada. <b>A fase é você quem marca</b> — a base aberta do governo não informa em qual das seis etapas cada dispensa está, ela devolve "Divulgada no PNCP" para todas. O que você marcar aqui fica gravado e sobrevive às sincronizações. Dispensa que na verdade já terminou: use <b>tirar daqui</b>.</p>
-      <div class="scroller" id="obtTramite"></div>
-      <div id="obtPorFase" class="obtfases"></div>
-    </div>
-    <div class="card reveal">
-      <h2>Exige atenção <span class="n" id="nObtAtencao">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Dispensa parada há mais de 30 dias sem resultado, e nota de empenho emitida há mais de 45 dias sem entrega confirmada.</p>
-      <div class="scroller" id="obtAtencao"></div>
-    </div>
-    <div class="card reveal">
-      <h2>Últimos processos <span class="n" id="nObtRecentes">0</span></h2>
-      <div class="scroller" id="obtRecentes"></div>
-    </div>
-  </div>
-
-  <!-- ---------- PROCESSOS ---------- -->
-  <div id="obt-processos" class="hidden">
-    <div class="subtabs" id="subObtProc">
-      <button data-pr="h12" aria-selected="true">H12</button>
-      <button data-pr="outras" aria-selected="false">Outras UASGs</button>
-      <button data-pr="atas" aria-selected="false">Atas e pregões</button>
-      <button data-pr="empenhos" aria-selected="false">Notas de empenho</button>
-    </div>
-
-  <!-- ======= H12: o que é do navio ======= -->
-  <div id="obtproc-h12">
+  <!-- ---------- CONTROLE SOLEMP (antiga aba H12 de Processos) ---------- -->
+  <div id="obtch12-solemp" class="hidden">
     <div class="kpis" id="obtSolKpis"></div>
 
     <div class="card reveal">
@@ -2373,10 +2345,54 @@ body.semvideo .sp-foto{display:block}
       </div>
       <div class="scroller" id="obtListaProc" style="margin-top:14px"></div>
     </div>
+  </div><!-- fim de #obtch12-solemp -->
+
+  <!-- ---------- CONTROLE DE MATERIAIS E SERVIÇOS ---------- -->
+  <div id="obtch12-materiais" class="hidden">
+    <div class="card reveal">
+      <h2>Controle de Materiais e Serviços</h2>
+      <p class="hint" style="margin:0">Módulo ainda por construir — vamos desenhar com calma, junto com o Controle SOLEMP.</p>
+    </div>
+  </div><!-- fim de #obtch12-materiais -->
+
+  </div><!-- fim de #obt-controleh12 -->
+
+
+  <!-- ---------- RADAR ---------- -->
+  <div id="obt-radar">
+    <div class="kpis" id="obtKpis"></div>
+    <div class="row" style="align-items:flex-end;margin:0 0 16px">
+      <div style="flex:1 1 380px"><p class="hint" id="obtRadarEscopo" style="margin:0"></p></div>
+      <div style="flex:0 1 auto"><button class="btn" id="obtRadarAtualiza">Atualizar do governo</button></div>
+    </div>
+    <div id="obtRadarEstado" class="obtmeta" style="margin:-8px 0 16px"></div>
+    <div class="card reveal">
+      <h2>Dispensas em trâmite <span class="n" id="nObtTramite">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Publicadas no PNCP e ainda sem homologação, na UASG configurada. <b>A fase é você quem marca</b> — a base aberta do governo não informa em qual das seis etapas cada dispensa está, ela devolve "Divulgada no PNCP" para todas. O que você marcar aqui fica gravado e sobrevive às sincronizações. Dispensa que na verdade já terminou: use <b>tirar daqui</b>.</p>
+      <div class="scroller" id="obtTramite"></div>
+      <div id="obtPorFase" class="obtfases"></div>
+    </div>
+    <div class="card reveal">
+      <h2>Exige atenção <span class="n" id="nObtAtencao">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Dispensa parada há mais de 30 dias sem resultado, e nota de empenho emitida há mais de 45 dias sem entrega confirmada.</p>
+      <div class="scroller" id="obtAtencao"></div>
+    </div>
+    <div class="card reveal">
+      <h2>Últimos processos <span class="n" id="nObtRecentes">0</span></h2>
+      <div class="scroller" id="obtRecentes"></div>
+    </div>
   </div>
 
+  <!-- ---------- PROCESSOS ---------- -->
+  <div id="obt-processos" class="hidden">
+    <div class="subtabs" id="subObtProc">
+      <button data-pr="outras" aria-selected="true">Outras UASGs</button>
+      <button data-pr="atas" aria-selected="false">Atas e pregões</button>
+      <button data-pr="empenhos" aria-selected="false">Notas de empenho</button>
+    </div>
+
   <!-- ======= OUTRAS UASGs: busca ao vivo no governo ======= -->
-  <div id="obtproc-outras" class="hidden">
+  <div id="obtproc-outras">
     <div class="card reveal">
       <h2>Buscar processo no PNCP</h2>
       <p class="hint" style="margin:0 0 12px">Cole o número de controle do PNCP, o endereço da página do processo, ou os três dados soltos. Ele busca ao vivo no PNCP, mostra o que achou e lista os anexos para você escolher quais baixar. Funciona mesmo com processo que ainda não está na sua base — e mesmo de outra UASG.</p>
@@ -2564,21 +2580,6 @@ body.semvideo .sp-foto{display:block}
   </div>
   </div><!-- fim de #obt-processos -->
 
-  <!-- ---------- JULGAMENTO E HABILITAÇÃO ---------- -->
-  <div id="obt-julgamento" class="hidden">
-    <div class="card reveal">
-      <h2>Julgamento e Habilitação</h2>
-      <p class="hint" style="margin:0 0 12px">Por CNPJ: busca automática de dados públicos (Receita, CEIS/CNEP) e, quando alguma certidão vier restrita, uma busca da IA pelo que for público, para você decidir habilitar ou não. SICAF, FGTS, Simples Nacional e certidões estaduais/municipais exigem login ou têm captcha — ficam para conferência manual (ou pela extensão do Chrome, na sua sessão já logada).</p>
-      <div class="row" style="align-items:flex-end">
-        <div style="flex:2 1 260px"><label>Processo (Dispensa)</label><select id="habProcesso"></select></div>
-        <div style="flex:1 1 200px"><label>CNPJ do fornecedor</label><input type="text" id="habCnpjNovo" placeholder="00.000.000/0000-00"></div>
-        <div style="flex:0 1 auto"><button class="btn" id="habAdicionar">Adicionar fornecedor</button></div>
-      </div>
-      <p class="hint" id="habAviso" style="margin:10px 2px 0"></p>
-    </div>
-    <div id="habLista"></div>
-  </div>
-
   <!-- ---------- CONFIGURAÇÃO ---------- -->
   <div id="obt-config" class="hidden">
     <div class="card reveal" id="obtCfgTranca">
@@ -2694,19 +2695,6 @@ body.semvideo .sp-foto{display:block}
     <div style="margin-top:14px"><button class="btn" id="cNfSave">Salvar leitura</button>
       <button class="btn ghost" id="cNfTest" style="margin-left:8px">Testar conexão</button></div>
   </div>
-  <div class="card reveal">
-    <h2>Julgamento e Habilita&ccedil;&atilde;o</h2>
-    <p class="hint" style="margin:0 0 12px">Apoia a fase de habilita&ccedil;&atilde;o da Dispensa: busca dados p&uacute;blicos do CNPJ (Receita, CEIS/CNEP) e, quando h&aacute; restri&ccedil;&atilde;o, pede &agrave; IA uma busca do que for p&uacute;blico. SICAF, FGTS, Simples Nacional e certid&otilde;es estaduais/municipais exigem login ou t&ecirc;m captcha &mdash; ficam para confer&ecirc;ncia manual, com os links abaixo j&aacute; abrindo o portal certo.</p>
-    <div class="row">
-      <div style="flex:1 1 320px"><label>Endere&ccedil;o da fun&ccedil;&atilde;o</label><input type="text" id="cHabUrl" placeholder="https://...supabase.co/functions/v1/consulta-habilitacao"></div>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <div style="flex:1 1 260px"><label>Link do portal estadual (Fazenda)</label><input type="text" id="cHabEstUrl" placeholder="https://www.sefa.pa.gov.br/..."></div>
-      <div style="flex:1 1 260px"><label>Link do portal municipal (Fazenda)</label><input type="text" id="cHabMunUrl" placeholder="https://www.belem.pa.gov.br/..."></div>
-    </div>
-    <div style="margin-top:14px"><button class="btn" id="cHabSave">Salvar</button></div>
-  </div>
-
   <div class="card reveal">
     <h2>Backup</h2>
     <p class="hint" style="margin:0 0 12px">A tripulação e a identificação vêm da mesma tabela do Controle de Bordo — o que você alterar aqui aparece lá. O restante fica nas tabelas do painel.</p>
@@ -3350,10 +3338,7 @@ function fillForms(){
   if($('#cNfUrl'))$('#cNfUrl').value=CFG.nfUrl||'';
   if($('#cNfKey'))$('#cNfKey').value=localStorage.getItem('nfKey')||'';
   if($('#cSefazUrl'))$('#cSefazUrl').value=CFG.sefazUrl||'';
-  if($('#cHabUrl'))$('#cHabUrl').value=CFG.habUrl||'';
-  if($('#cHabEstUrl'))$('#cHabEstUrl').value=CFG.habEstUrl||'';
-  if($('#cHabMunUrl'))$('#cHabMunUrl').value=CFG.habMunUrl||'';
-  
+
   const a0=new Date().getFullYear(), anos=[];
   for(let a=a0-1;a<=a0+2;a++)anos.push(a);
   if(!$('#fAno').options.length)$('#fAno').innerHTML=anos.map(a=>'<option'+(a===a0?' selected':'')+'>'+a+'</option>').join('');
@@ -4242,8 +4227,9 @@ $$('#subServicosViagem button').forEach(b=>b.onclick=()=>{
 const OBT_SIT_NE={emitida:'Emitida',entregue:'Entregue',liquidada:'Liquidada',paga:'Paga',anulada:'Anulada'};
 const OBT_UASG_NOME={'784515':'AvHoFlu Rio Tocantins','784810':'CeIMBe'};
 
-let OBT_SUB='radar', OBT_PROC_SUB='h12', OBT_EDIT_NE=null, OBT_ATA_ABERTA=null, OBT_BUSCANDO=false;
-const OBT_PROC_ABAS=['h12','outras','atas','empenhos'];
+let OBT_SUB='radar', OBT_PROC_SUB='outras', OBT_CH12_SUB='dispensa', OBT_EDIT_NE=null, OBT_ATA_ABERTA=null, OBT_BUSCANDO=false;
+const OBT_PROC_ABAS=['outras','atas','empenhos'];
+const OBT_CH12_ABAS=['dispensa','solemp','materiais'];
 
 function obtVazio(){
   return {uasgs:['784515'],uasgsAta:['784810'],processos:[],atas:[],nes:[],solemps:[],dispensas:[],
@@ -4479,13 +4465,15 @@ function renderObtencao(){
   if(!OBT)OBT=obtVazio();
   if(OBT_SUB==='radar')renderObtRadar();
   if(OBT_SUB==='processos'){
-    if(OBT_PROC_SUB==='h12'){renderSolemps();renderObtProcessos();}
-    else if(OBT_PROC_SUB==='outras')renderObtProcessosFora();
+    if(OBT_PROC_SUB==='outras')renderObtProcessosFora();
     else if(OBT_PROC_SUB==='atas')renderObtAtas();
     else if(OBT_PROC_SUB==='empenhos')renderObtEmpenhos();
   }
-  if(OBT_SUB==='dispensa')renderDispensa();
-  if(OBT_SUB==='julgamento')habRender();
+  if(OBT_SUB==='controleh12'){
+    if(OBT_CH12_SUB==='dispensa')renderDispensa();
+    else if(OBT_CH12_SUB==='solemp'){renderSolemps();renderObtProcessos();}
+    /* 'materiais' ainda não tem o que renderizar — módulo por construir */
+  }
   /* a busca na base do governo mora dentro da Configuração: é ajuste de
      máquina, não consulta do dia a dia */
   if(OBT_SUB==='config'){renderObtConfig();renderObtBuscar();}
@@ -7409,20 +7397,30 @@ function obtLiga(){
   $$('#subObt button').forEach(b=>b.onclick=()=>{
     OBT_SUB=b.dataset.sub;
     $$('#subObt button').forEach(o=>o.setAttribute('aria-selected',o===b));
-    ['radar','processos','dispensa','julgamento','config'].forEach(s=>{
+    ['radar','processos','controleh12','config'].forEach(s=>{
       const el=$('#obt-'+s); if(el)el.classList.toggle('hidden',s!==OBT_SUB);
     });
     renderObtencao();
   });
 
-  /* ---- as quatro faces de Processos ----
-     H12 e Outras UASGs são os processos em si; atas e empenhos são o que sai
-     deles. Ficam na mesma barra porque é a mesma pergunta em quatro recortes. */
+  /* ---- as três faces de Processos ----
+     Outras UASGs é processo em si; atas e empenhos são o que sai dele.
+     Ficam na mesma barra porque é a mesma pergunta em três recortes. */
   $$('#subObtProc button').forEach(b=>b.onclick=()=>{
     OBT_PROC_SUB=b.dataset.pr;
     $$('#subObtProc button').forEach(o=>o.setAttribute('aria-selected',o===b));
     OBT_PROC_ABAS.forEach(s=>{
       const el=$('#obtproc-'+s); if(el)el.classList.toggle('hidden',s!==OBT_PROC_SUB);
+    });
+    renderObtencao();
+  });
+
+  /* ---- as três frentes do Controle H12 ---- */
+  $$('#subObtCh12 button').forEach(b=>b.onclick=()=>{
+    OBT_CH12_SUB=b.dataset.ch12;
+    $$('#subObtCh12 button').forEach(o=>o.setAttribute('aria-selected',o===b));
+    OBT_CH12_ABAS.forEach(s=>{
+      const el=$('#obtch12-'+s); if(el)el.classList.toggle('hidden',s!==OBT_CH12_SUB);
     });
     renderObtencao();
   });
@@ -11809,13 +11807,6 @@ if($('#cCatSave'))$('#cCatSave').onclick=async()=>{
   toast(ok?'Endereço do catálogo salvo.':'Não foi possível gravar.',!ok);
 };
 if($('#cCatSync'))$('#cCatSync').onclick=()=>catSincroniza($('#cCatSync'));
-if($('#cHabSave'))$('#cHabSave').onclick=async()=>{
-  const u=$('#cHabUrl').value.trim(), ue=$('#cHabEstUrl').value.trim(), um=$('#cHabMunUrl').value.trim();
-  if(u&&!/^https:\/\//i.test(u)){toast('O endereço da função precisa começar com https://',true);return;}
-  CFG.habUrl=u; CFG.habEstUrl=ue; CFG.habMunUrl=um;
-  const ok=await salvar('cfg',CFG);
-  toast(ok?'Configuração de Julgamento e Habilitação salva.':'Não foi possível gravar.',!ok);
-};
 if($('#cNfSave'))$('#cNfSave').onclick=async()=>{
   const url=$('#cNfUrl').value.trim(), key=$('#cNfKey').value.trim();
   if(url&&!/^https:\/\//i.test(url)){toast('O endereço precisa começar com https://',true);return;}
@@ -14278,296 +14269,10 @@ $('#bkpIn').onclick=()=>{
   };
 };
 
-/* ============ Julgamento e Habilitação ============
-   Por CNPJ: dados públicos automáticos (Receita, CEIS/CNEP) + o que a IA achar
-   de público quando houver restrição. SICAF, FGTS, Simples Nacional e
-   certidões estaduais/municipais exigem login ou têm captcha — não têm API
-   pública, então ficam como conferência manual (o Imediato, ou o Claude pela
-   extensão do Chrome, na sessão já logada do Compras.gov.br). Os registros
-   viajam dentro do próprio processo salvo em OBT.dispensas — não é preciso
-   chave nova no banco. */
-let HAB_PROC_ID='';
-function habCfg(){ return {url:(CFG&&CFG.habUrl)||''}; }
-function habCnpjDigitos(v){ return String(v||'').replace(/\D/g,''); }
-function habCnpjFmt(v){
-  const d=habCnpjDigitos(v).padEnd(14,' ').slice(0,14);
-  if(d.trim().length<14)return String(v||'');
-  return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5');
-}
-async function habChamar(acao,corpo){
-  const cfg=habCfg();
-  if(!cfg.url)throw new Error('configure o endereço da função em Configurações → Julgamento e Habilitação');
-  const r=await fetch(cfg.url,{method:'POST',
-    headers:Object.assign({'Content-Type':'application/json'},cabecalhoLeitura()),
-    body:JSON.stringify(Object.assign({acao:acao},corpo))});
-  const j=await r.json().catch(()=>({erro:'resposta inválida do serviço'}));
-  if(!r.ok||j.erro)throw new Error(j.erro||('o serviço respondeu '+r.status));
-  return j;
-}
-function habForn(processo,id){ return (processo.hab||[]).find(f=>f.id===id); }
-function habNovoForn(cnpj){
-  return {id:uid(),cnpj:habCnpjDigitos(cnpj),criadoEm:Date.now(),
-    basico:null,sancoes:null,
-    manual:{sicaf:{situacao:'',validade:'',obs:''},simples:{situacao:'',obs:''},
-      fgts:{situacao:'',obs:''},estadual:{situacao:'',obs:''},municipal:{situacao:'',obs:''}},
-    restricoes:null,
-    parecer:{decisao:'',justificativa:'',data:''}};
-}
-async function habSalvar(){ return await salvar('obtencao',OBT); }
-function habRenderSeletorProcesso(){
-  const sel=$('#habProcesso'); if(!sel)return;
-  const lst=(OBT.dispensas||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
-  if(!lst.length){sel.innerHTML='<option value="">nenhum processo guardado ainda</option>';HAB_PROC_ID='';return;}
-  if(!HAB_PROC_ID||!lst.find(p=>p.id===HAB_PROC_ID))HAB_PROC_ID=lst[0].id;
-  sel.innerHTML=lst.map(p=>'<option value="'+p.id+'"'+(p.id===HAB_PROC_ID?' selected':'')+'>'+
-    esc(p.numDispensa||'—')+' — '+esc(p.assunto||'sem assunto')+'</option>').join('');
-}
-function habRender(){
-  habRenderSeletorProcesso();
-  const aviso=$('#habAviso');
-  if(aviso)aviso.textContent=habCfg().url?'':'Sem o endereço da função configurado, a busca automática de Receita e CEIS/CNEP fica indisponível — os campos manuais continuam funcionando.';
-  habRenderLista();
-}
-function habRenderLista(){
-  const host=$('#habLista'); if(!host)return;
-  const processo=(OBT.dispensas||[]).find(p=>p.id===HAB_PROC_ID);
-  if(!processo){host.innerHTML='';return;}
-  const forns=processo.hab||[];
-  if(!forns.length){
-    host.innerHTML='<div class="card reveal"><p class="hint" style="margin:0">Nenhum fornecedor adicionado a este processo ainda. Informe o CNPJ acima e clique em <b>Adicionar fornecedor</b>.</p></div>';
-    return;
-  }
-  host.innerHTML=forns.map(f=>habCardForn(processo,f)).join('');
-  forns.forEach(f=>habLigaCard(processo,f));
-}
-const HAB_SITUACOES=['','Regular','Irregular','Não consultado'];
-function habSelectSituacao(id,valor){
-  return '<select id="'+id+'">'+HAB_SITUACOES.map(s=>'<option value="'+esc(s)+'"'+(s===valor?' selected':'')+'>'+
-    (s||'— selecione —')+'</option>').join('')+'</select>';
-}
-function habBadge(f){
-  const d=f.parecer&&f.parecer.decisao;
-  if(d==='habilitado')return '<span class="badge" style="color:var(--bordo);border-color:var(--bordo)">HABILITADO</span>';
-  if(d==='inabilitado')return '<span class="badge" style="color:var(--alert);border-color:var(--alert)">INABILITADO</span>';
-  const restrito=f.sancoes&&f.sancoes.restrito;
-  if(restrito)return '<span class="badge" style="color:var(--alert);border-color:var(--alert)">RESTRIÇÃO EM CEIS/CNEP</span>';
-  return '<span class="badge">pendente</span>';
-}
-function habCardForn(processo,f){
-  const b=f.basico||{}, s=f.sancoes||{}, m=f.manual||{}, r=f.restricoes||{};
-  const razao=b.razaoSocial||'';
-  const linhaManual=(campo,rot,link,temValidade)=>{
-    const v=m[campo]||{};
-    return '<div style="flex:1 1 210px">'+
-      '<label>'+rot+'</label>'+
-      habSelectSituacao('hab_'+campo+'_sit_'+f.id,v.situacao||'')+
-      (temValidade?'<input type="text" id="hab_'+campo+'_val_'+f.id+'" placeholder="validade (dd/mm/aaaa)" value="'+esc(v.validade||'')+'" style="margin-top:6px">':'')+
-      '<textarea id="hab_'+campo+'_obs_'+f.id+'" rows="2" placeholder="observações" style="margin-top:6px">'+esc(v.obs||'')+'</textarea>'+
-      (link?'<button class="mini" data-hababrir="'+campo+'" data-habid="'+f.id+'" style="margin-top:6px">Abrir consulta ↗</button>':'')+
-      '</div>';
-  };
-  let htmlSancoes='';
-  if(s.consultadoEm){
-    htmlSancoes='<p class="hint" style="margin:6px 2px 0">CEIS: <b>'+((s.ceis||[]).length||'nenhuma ocorrência')+
-      '</b> · CNEP: <b>'+((s.cnep||[]).length||'nenhuma ocorrência')+'</b>'+
-      (s.restrito?' — <b style="color:var(--alert)">há registro de sanção; confira os detalhes abaixo e use a busca de restrições</b>':' — nenhuma sanção encontrada')+
-      '</p>';
-    if(s.restrito){
-      htmlSancoes+='<div class="scroller" style="max-height:160px">'+
-        (s.ceis||[]).map(x=>'<p class="hint" style="margin:4px 0">CEIS: '+esc(JSON.stringify(x)).slice(0,300)+'</p>').join('')+
-        (s.cnep||[]).map(x=>'<p class="hint" style="margin:4px 0">CNEP: '+esc(JSON.stringify(x)).slice(0,300)+'</p>').join('')+
-        '</div>';
-    }
-  }
-  return '<div class="card reveal" data-habcard="'+f.id+'">'+
-    '<div class="row" style="align-items:flex-start;justify-content:space-between">'+
-      '<div><h2 style="margin-bottom:2px">'+esc(habCnpjFmt(f.cnpj))+' '+habBadge(f)+'</h2>'+
-      '<p class="hint" style="margin:0">'+(razao?esc(razao)+(b.nomeFantasia?' ('+esc(b.nomeFantasia)+')':''):'razão social ainda não consultada')+'</p></div>'+
-      '<button class="mini" data-habremover="'+f.id+'">Remover</button>'+
-    '</div>'+
-
-    '<div class="row" style="margin-top:10px">'+
-      '<button class="btn ghost" data-habbasico="'+f.id+'">Consultar Receita (CNPJ)</button>'+
-      '<button class="btn ghost" data-habsancoes="'+f.id+'">Consultar CEIS/CNEP</button>'+
-      '<button class="btn ghost" data-habrestricoes="'+f.id+'">Buscar restrições públicas (IA)</button>'+
-    '</div>'+
-    (b.erro?'<p class="hint" style="color:var(--alert)">Receita: '+esc(b.erro)+'</p>':'')+
-    (b.situacaoCadastral?'<p class="hint" style="margin:8px 2px 0">Situação cadastral: <b>'+esc(b.situacaoCadastral)+'</b> · '+esc(b.municipio||'')+'/'+esc(b.uf||'')+' · CNAE: '+esc(b.cnaePrincipal||'—')+'</p>':'')+
-    (s.erro?'<p class="hint" style="color:var(--alert)">CEIS/CNEP: '+esc(s.erro)+'</p>':'')+
-    ((s.avisos||[]).map(a=>'<p class="hint" style="color:var(--alert)">'+esc(a)+'</p>').join(''))+
-    htmlSancoes+
-    (r.erro?'<p class="hint" style="color:var(--alert)">Busca por IA: '+esc(r.erro)+'</p>':'')+
-    (r.resumo?'<div class="card" style="margin-top:10px;background:var(--paper2,#faf7ee)"><b>O que a IA encontrou de público</b>'+
-      '<p style="margin:8px 0">'+esc(r.resumo)+'</p>'+
-      (r.achados&&r.achados.length?'<ul style="margin:0 0 8px 18px">'+r.achados.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul>':'')+
-      (r.fontes&&r.fontes.length?'<p class="hint" style="margin:0">Fontes: '+r.fontes.map(fo=>'<a href="'+esc(fo.url||'#')+'" target="_blank" rel="noopener">'+esc(fo.titulo||fo.url||'link')+'</a>').join(' · ')+'</p>':'')+
-      '</div>':'')+
-
-    '<h2 style="margin-top:16px;font-size:15px">Conferência manual — SICAF, Simples, FGTS, estadual e municipal</h2>'+
-    '<div class="row">'+
-      linhaManual('sicaf','SICAF',true,true)+
-      linhaManual('simples','Simples Nacional',true,false)+
-      linhaManual('fgts','FGTS (CRF)',true,false)+
-    '</div>'+
-    '<div class="row" style="margin-top:10px">'+
-      linhaManual('estadual','Regularidade Estadual',true,false)+
-      linhaManual('municipal','Regularidade Municipal',true,false)+
-    '</div>'+
-
-    '<h2 style="margin-top:16px;font-size:15px">Parecer</h2>'+
-    '<div class="row">'+
-      '<div style="flex:1 1 220px"><label>Decisão</label><select id="hab_parecer_dec_'+f.id+'">'+
-        '<option value=""'+(!f.parecer.decisao?' selected':'')+'>— pendente —</option>'+
-        '<option value="habilitado"'+(f.parecer.decisao==='habilitado'?' selected':'')+'>Habilitado</option>'+
-        '<option value="inabilitado"'+(f.parecer.decisao==='inabilitado'?' selected':'')+'>Inabilitado</option>'+
-        '</select></div>'+
-      '<div style="flex:3 1 320px"><label>Justificativa</label><textarea id="hab_parecer_just_'+f.id+'" rows="2">'+esc(f.parecer.justificativa||'')+'</textarea></div>'+
-    '</div>'+
-    '<div class="row" style="margin-top:10px">'+
-      '<button class="btn ghost" data-habsalvar="'+f.id+'">Salvar</button>'+
-      '<button class="btn" data-habpdf="'+f.id+'">Gerar PDF do parecer</button>'+
-    '</div>'+
-  '</div>';
-}
-function habLerManual(f){
-  const campos=['sicaf','simples','fgts','estadual','municipal'];
-  campos.forEach(c=>{
-    const sit=$('#hab_'+c+'_sit_'+f.id), obs=$('#hab_'+c+'_obs_'+f.id), val=$('#hab_'+c+'_val_'+f.id);
-    if(!f.manual[c])f.manual[c]={};
-    if(sit)f.manual[c].situacao=sit.value;
-    if(obs)f.manual[c].obs=obs.value;
-    if(val)f.manual[c].validade=val.value;
-  });
-  const dec=$('#hab_parecer_dec_'+f.id), just=$('#hab_parecer_just_'+f.id);
-  if(dec)f.parecer.decisao=dec.value;
-  if(just)f.parecer.justificativa=just.value;
-  if(f.parecer.decisao)f.parecer.data=hoje();
-}
-function habLinkConsulta(campo){
-  if(campo==='sicaf')return 'https://www.gov.br/compras/pt-br';
-  if(campo==='simples')return 'http://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/opcao.app/identificacao';
-  if(campo==='fgts')return 'https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf';
-  if(campo==='estadual')return (CFG&&CFG.habEstUrl)||'';
-  if(campo==='municipal')return (CFG&&CFG.habMunUrl)||'';
-  return '';
-}
-function habLigaCard(processo,f){
-  const card=$('[data-habcard="'+f.id+'"]'); if(!card)return;
-  const $q=sel=>card.querySelector(sel);
-  const salvarCampos=async()=>{ habLerManual(f); habRenderLista.__skip=true; await habSalvar(); };
-
-  card.querySelectorAll('[data-hababrir]').forEach(b=>b.onclick=()=>{
-    const campo=b.dataset.hababrir, url=habLinkConsulta(campo);
-    try{navigator.clipboard&&navigator.clipboard.writeText(habCnpjFmt(f.cnpj));}catch(e){}
-    if(!url){toast('Configure o link deste portal em Configurações → Julgamento e Habilitação.',true);return;}
-    toast('CNPJ copiado — cole na página que vai abrir.');
-    window.open(url,'_blank','noopener');
-  });
-  const btnRemover=$q('[data-habremover]');
-  if(btnRemover)btnRemover.onclick=async()=>{
-    if(!confirm('Remover este fornecedor da habilitação?'))return;
-    processo.hab=(processo.hab||[]).filter(x=>x.id!==f.id);
-    if(await habSalvar())habRenderLista(); else toast('Não foi possível gravar.',true);
-  };
-  const btnBasico=$q('[data-habbasico]');
-  if(btnBasico)btnBasico.onclick=async()=>{
-    const rot=btnBasico.textContent; btnBasico.disabled=true; btnBasico.textContent='Consultando…';
-    try{ f.basico=await habChamar('basico',{cnpj:f.cnpj}); await habSalvar(); habRenderLista(); }
-    catch(e){ f.basico={erro:e.message}; habRenderLista(); }
-    finally{ btnBasico.disabled=false; btnBasico.textContent=rot; }
-  };
-  const btnSancoes=$q('[data-habsancoes]');
-  if(btnSancoes)btnSancoes.onclick=async()=>{
-    const rot=btnSancoes.textContent; btnSancoes.disabled=true; btnSancoes.textContent='Consultando…';
-    try{ f.sancoes=await habChamar('sancoes',{cnpj:f.cnpj}); await habSalvar(); habRenderLista(); }
-    catch(e){ f.sancoes={erro:e.message}; habRenderLista(); }
-    finally{ btnSancoes.disabled=false; btnSancoes.textContent=rot; }
-  };
-  const btnRestr=$q('[data-habrestricoes]');
-  if(btnRestr)btnRestr.onclick=async()=>{
-    const rot=btnRestr.textContent; btnRestr.disabled=true; btnRestr.textContent='Buscando…';
-    try{
-      const contexto=(f.sancoes&&f.sancoes.restrito)?
-        'CEIS: '+JSON.stringify((f.sancoes.ceis||[]).slice(0,3))+' / CNEP: '+JSON.stringify((f.sancoes.cnep||[]).slice(0,3)):'';
-      f.restricoes=await habChamar('restricoes',{cnpj:f.cnpj,razaoSocial:(f.basico&&f.basico.razaoSocial)||'',contexto});
-      await habSalvar(); habRenderLista();
-    }catch(e){ f.restricoes={erro:e.message}; habRenderLista(); }
-    finally{ btnRestr.disabled=false; btnRestr.textContent=rot; }
-  };
-  const btnSalvar=$q('[data-habsalvar]');
-  if(btnSalvar)btnSalvar.onclick=async()=>{
-    habLerManual(f);
-    const ok=await habSalvar();
-    toast(ok?'Registro salvo.':'Não foi possível gravar.',!ok);
-    if(ok)habRenderLista();
-  };
-  const btnPdf=$q('[data-habpdf]');
-  if(btnPdf)btnPdf.onclick=async()=>{
-    habLerManual(f);
-    await habSalvar();
-    const D=new Pdf();
-    pdfParecerHabilitacao(D,processo,f);
-    entregarPdf(D.bytes(),'Parecer_Habilitacao_'+habCnpjDigitos(f.cnpj)+'_'+String(processo.numDispensa||'').replace(/\D/g,'')+'.pdf');
-    habRenderLista();
-  };
-}
-function pdfParecerHabilitacao(D,processo,f){
-  const b=f.basico||{}, s=f.sancoes||{}, m=f.manual||{}, r=f.restricoes||{};
-  let y=tituloPdf(D,cabecalhoPdf(D),'Parecer de Julgamento e Habilitação',
-    'Dispensa Eletrônica nº '+(processo.numDispensa||'—')+' · CNPJ '+habCnpjFmt(f.cnpj));
-  const bloco=(titulo,linhas)=>{
-    y=D.espaco(y+8,14);
-    D.txt(titulo,18,y,{size:10.5,font:'F2'});y+=6;
-    linhas.filter(Boolean).forEach(txt=>{
-      quebra(txt,10,174).forEach(ln=>{y=D.espaco(y,5);D.txt(ln,18,y,{size:10});y+=4.6;});
-    });
-  };
-  bloco('Identificação',[
-    'Fornecedor: '+(b.razaoSocial||'(não consultado na Receita)')+(b.nomeFantasia?' — '+b.nomeFantasia:''),
-    'CNPJ: '+habCnpjFmt(f.cnpj),
-    b.situacaoCadastral?('Situação cadastral: '+b.situacaoCadastral+' · '+(b.municipio||'')+'/'+(b.uf||'')):'',
-    b.cnaePrincipal?('CNAE: '+b.cnaePrincipal):''
-  ]);
-  bloco('CEIS / CNEP (Portal da Transparência)',[
-    s.consultadoEm?('CEIS: '+((s.ceis||[]).length)+' ocorrência(s) · CNEP: '+((s.cnep||[]).length)+' ocorrência(s).'):'Não consultado.',
-    s.restrito?'HÁ REGISTRO DE SANÇÃO — ver detalhes na tela do painel.':''
-  ]);
-  bloco('Conferência manual',[
-    'SICAF: '+(m.sicaf.situacao||'não consultado')+(m.sicaf.validade?(' · validade '+m.sicaf.validade):'')+(m.sicaf.obs?(' · '+m.sicaf.obs):''),
-    'Simples Nacional: '+(m.simples.situacao||'não consultado')+(m.simples.obs?(' · '+m.simples.obs):''),
-    'FGTS (CRF): '+(m.fgts.situacao||'não consultado')+(m.fgts.obs?(' · '+m.fgts.obs):''),
-    'Regularidade Estadual: '+(m.estadual.situacao||'não consultado')+(m.estadual.obs?(' · '+m.estadual.obs):''),
-    'Regularidade Municipal: '+(m.municipal.situacao||'não consultado')+(m.municipal.obs?(' · '+m.municipal.obs):'')
-  ]);
-  if(r.resumo)bloco('Busca por IA do que é público (subsídio, não substitui certidão)',[r.resumo].concat(r.achados||[]));
-  bloco('Decisão',[
-    'Decisão: '+(f.parecer.decisao==='habilitado'?'HABILITADO':f.parecer.decisao==='inabilitado'?'INABILITADO':'pendente'),
-    'Justificativa: '+(f.parecer.justificativa||'—')
-  ]);
-  assinaturaPdf(D,y);
-  D.numerar();
-}
-function habLiga(){
-  const sel=$('#habProcesso'); if(sel)sel.onchange=()=>{HAB_PROC_ID=sel.value;habRenderLista();};
-  const btn=$('#habAdicionar');
-  if(btn)btn.onclick=async()=>{
-    const processo=(OBT.dispensas||[]).find(p=>p.id===HAB_PROC_ID);
-    if(!processo){toast('Guarde um processo de Dispensa antes de adicionar fornecedor.',true);return;}
-    const cnpj=habCnpjDigitos($('#habCnpjNovo').value);
-    if(cnpj.length!==14){toast('CNPJ inválido — são 14 dígitos.',true);return;}
-    if(!processo.hab)processo.hab=[];
-    if(processo.hab.find(x=>x.cnpj===cnpj)){toast('Este CNPJ já está na lista deste processo.',true);return;}
-    processo.hab.push(habNovoForn(cnpj));
-    $('#habCnpjNovo').value='';
-    if(await habSalvar())habRenderLista(); else toast('Não foi possível gravar.',true);
-  };
-}
-
 setInterval(()=>{if(!document.hidden&&TAB==='painel')load(false);},20000);
 window.addEventListener('focus',()=>{if(TAB==='painel')load(false);});
 ajustaEfe();
 obtLiga();
 dispZera(); dispLeRascunho(); dispLiga();
-habLiga();
 load(true);
 </script>
