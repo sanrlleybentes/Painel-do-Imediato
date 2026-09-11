@@ -1251,19 +1251,23 @@ body.semvideo .sp-foto{display:block}
   <div id="sub-diasmar" class="hidden">
     <div class="subtabs" id="subDM">
       <button data-dm="controle" aria-selected="true">Controle de DM</button>
+      <button data-dm="controletv" aria-selected="false">Controle TV</button>
       <button data-dm="insercao" aria-selected="false">Inserção de DM</button>
     </div>
 
     <div id="dm-controle">
       <div class="card reveal">
         <h2>Dias de Mar <span class="n" id="nDmRoster">0</span></h2>
-        <p class="hint" style="margin:0 0 12px">Coluna <b>Base</b> é o saldo de dias de mar já feito antes de este controle existir — edite uma vez só, por militar. O resto vem somado automaticamente dos Termos de Viagem importados na aba <b>Inserção de DM</b>. 500/750/1000 dias dão direito, respectivamente, à Medalha Mérito Marinheiro com 1, 2 e 3 ferros.</p>
+        <p class="hint" style="margin:0 0 12px">Coluna <b>Base</b> é o saldo de dias de mar já feito antes de este controle existir — edite uma vez só, por militar. O resto vem somado automaticamente dos Termos de Viagem importados na aba <b>Inserção de DM</b>. 500/750/1000 dias dão direito, respectivamente, à Medalha Mérito Marinheiro com 1, 2 e 3 ferros — toque ou passe o mouse na bolinha pra ver qual.</p>
         <div class="scroller" id="dmRoster"></div>
       </div>
+    </div>
+
+    <div id="dm-controletv" class="hidden">
       <div class="card reveal">
-        <h2>Termos de Viagem lançados <span class="n" id="nDmTermos">0</span></h2>
-        <p class="hint" style="margin:0 0 12px">Clique numa linha para ver o período completo, a comissão e os militares do documento.</p>
-        <div class="scroller" id="dmTermosLista"></div>
+        <h2>Termos de Viagem <span class="n" id="nDmTV">0</span></h2>
+        <p class="hint" style="margin:0 0 12px">Todos os TVs já computados nos dias de mar da tripulação: os antigos que vieram da planilha (contados na coluna <b>Base</b> de cada militar, em Controle de DM) e os lançados aqui pela aba <b>Inserção de DM</b>. Serve pra conferir que nenhum TV ficou de fora nem foi contado duas vezes. Clique numa linha para ver o período completo, a comissão e os militares do documento.</p>
+        <div class="scroller" id="dmTVLista"></div>
       </div>
     </div>
 
@@ -4265,7 +4269,7 @@ $$('#subEfetivo button').forEach(b=>b.onclick=()=>{
 $$('#subDM button').forEach(b=>b.onclick=()=>{
   SUB_DM=b.dataset.dm;
   $$('#subDM button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['controle','insercao'].forEach(s=>$('#dm-'+s).classList.toggle('hidden',s!==SUB_DM));
+  ['controle','controletv','insercao'].forEach(s=>$('#dm-'+s).classList.toggle('hidden',s!==SUB_DM));
   renderEfetivo();
 });
 $$('#subSaude button').forEach(b=>b.onclick=()=>{
@@ -7717,6 +7721,7 @@ function renderEfetivo(){
   if(SUB_EFE==='tripulacao')renderPessoal();
   if(SUB_EFE==='diasmar'){
     if(SUB_DM==='controle')renderControleDM();
+    else if(SUB_DM==='controletv')renderControleTV();
     else renderInsercaoDM();
   }
   if(SUB_EFE==='movimentacao')renderEfe();
@@ -10907,7 +10912,7 @@ function renderAlertaDM(){
 }
 
 /* ---- tabela do efetivo com dias de mar (compartilhada por Controle de DM e pelo Painel) ---- */
-function dmRosterHtml(editavel){
+function dmRosterHtml(editavel,mostrarBase){
   const lista=all();
   const linhas=lista.map((x,i)=>{
     const nip=dmNip(x.nip), total=dmTotal(nip), prox=dmProxima(total), ferros=dmFerros(total);
@@ -10915,15 +10920,16 @@ function dmRosterHtml(editavel){
     const baseCel=editavel?
       '<input type="text" inputmode="decimal" class="mono" style="width:80px" value="'+(dmBaseline(nip)||0)+'" data-dmbase="'+esc(nip)+'">':
       '<span class="mono">'+dmBaseline(nip)+'</span>';
+    const nomeMedalha=ferros?dmNomeMedalha(ferros):'';
     return '<tr><td class="mono">'+(i+1)+'</td><td>'+esc(x.posto||'')+'</td><td>'+esc(rotulo(x))+'</td>'+
-      '<td class="mono">'+esc(x.nip||'')+'</td><td>'+baseCel+'</td>'+
-      '<td class="num mono" style="font-weight:600">'+total+(ferros?' <span class="badge" style="margin-left:4px">'+ferros+'f</span>':'')+'</td>'+
+      '<td class="mono">'+esc(x.nip||'')+'</td>'+(mostrarBase?'<td>'+baseCel+'</td>':'')+
+      '<td class="num mono" style="font-weight:600">'+total+(ferros?' <span class="badge" style="margin-left:4px;cursor:help" title="'+esc(nomeMedalha)+'" data-dmferro="'+esc(nomeMedalha)+'">'+ferros+'f</span>':'')+'</td>'+
       '<td>'+esc(proxTxt)+'</td></tr>';
   }).join('');
   return '<table><thead><tr><th style="width:34px">Ant.</th><th style="width:90px">Posto</th><th>Nome</th>'+
-    '<th style="width:110px">NIP</th><th style="width:100px">Base</th><th class="num" style="width:130px">Dias de Mar</th>'+
+    '<th style="width:110px">NIP</th>'+(mostrarBase?'<th style="width:100px">Base</th>':'')+'<th class="num" style="width:130px">Dias de Mar</th>'+
     '<th style="width:190px">Próxima medalha</th></tr></thead><tbody>'+
-    (linhas||'<tr><td colspan="7"><p class="hint" style="margin:6px 0">Nenhum militar cadastrado.</p></td></tr>')+'</tbody></table>';
+    (linhas||'<tr><td colspan="'+(mostrarBase?7:6)+'"><p class="hint" style="margin:6px 0">Nenhum militar cadastrado.</p></td></tr>')+'</tbody></table>';
 }
 function dmLigaBaseline(host){
   host.querySelectorAll('[data-dmbase]').forEach(inp=>{
@@ -10935,52 +10941,98 @@ function dmLigaBaseline(host){
     });
   });
 }
+function dmLigaFerros(host){
+  host.querySelectorAll('[data-dmferro]').forEach(b=>{
+    b.addEventListener('click',e=>{e.stopPropagation();toast(b.dataset.dmferro);});
+  });
+}
 function renderPainelDiasMar(){
   $('#nDmPainel').textContent=pad(all().length);
-  $('#dmPainelRoster').innerHTML=dmRosterHtml(false);
+  $('#dmPainelRoster').innerHTML=dmRosterHtml(false,false);
+  dmLigaFerros($('#dmPainelRoster'));
 }
 
 /* ---- Controle de DM ---- */
 function renderControleDM(){
   $('#nDmRoster').textContent=pad(all().length);
   const host=$('#dmRoster');
-  host.innerHTML=dmRosterHtml(true);
+  host.innerHTML=dmRosterHtml(true,true);
   dmLigaBaseline(host);
+  dmLigaFerros(host);
+}
+let DM_TERMO_ABERTO='';
 
-  const termos=(DM.termos||[]).slice().sort((a,b)=>(b.importadoEm||0)-(a.importadoEm||0));
-  $('#nDmTermos').textContent=pad(termos.length);
-  $('#dmTermosLista').innerHTML=termos.length?
-    ('<table><thead><tr><th style="width:70px">TV</th><th style="width:60px">Tipo</th>'+
-     '<th style="width:150px">Período</th><th>Comissão</th><th class="num" style="width:80px">Dias</th>'+
-     '<th class="num" style="width:70px">Qtd</th><th style="width:150px">Arquivo</th><th></th></tr></thead><tbody>'+
-     termos.map(t=>'<tr data-dmtermo="'+t.id+'" style="cursor:pointer">'+
-       '<td class="mono">'+esc(t.numero||'—')+'</td><td class="mono">'+esc(t.tipo||'')+'</td>'+
-       '<td class="mono">'+esc(dmPeriodoResumo(t))+'</td>'+
-       '<td>'+esc((t.comissao||'').slice(0,60))+((t.comissao||'').length>60?'…':'')+'</td>'+
-       '<td class="num mono">'+(t.diasCred==null?'—':t.diasCred)+'</td>'+
-       '<td class="num mono">'+(t.militares||[]).length+'</td>'+
-       '<td style="color:var(--muted)">'+esc(t.arquivo||'')+'</td>'+
-       '<td class="acts"><button class="mini del" data-dmdel="'+t.id+'">Excluir</button></td></tr>'+
-       (DM_TERMO_ABERTO===t.id?'<tr><td colspan="8">'+dmTermoDetalheHtml(t)+'</td></tr>':'')
-     ).join('')+'</tbody></table>')
-    :'<p class="hint" style="margin:0">Nenhum Termo de Viagem lançado ainda. Use a aba <b>Inserção de DM</b>.</p>';
+/* ---- Controle TV: todos os TVs já computados nos dias de mar — os antigos que vieram
+   embutidos na planilha (e por isso só aparecem somados na coluna Base) e os lançados
+   aqui pela aba Inserção de DM. É só para conferência, os "na base" não têm exclusão
+   porque já estão fechados dentro do saldo de cada militar. */
+const DM_TV_HISTORICO=(()=>{
+  const T15=['09022376','17005418','99140306','07358024','09007130','10009337','08108102','13037391','13019015','14022265','14169606','15019829','19007507','03071014','23006242'];
+  const T19=['09022376','17005418','99140306','15011631','99144531','07358024','09007130','10009337','08108102','13037391','13019015','14022265','15047521','14169606','15019829','19007507','03071014','23006242','25026844'];
+  return [
+    {numero:141,ini:'16/07/2026',fim:'20/07/2026',dias:5,nips:T15},
+    {numero:142,ini:'20/07/2026',fim:'27/07/2026',dias:7,nips:T15},
+    {numero:143,ini:'27/07/2026',fim:'28/07/2026',dias:2,nips:T15},
+    {numero:144,ini:'09/08/2026',fim:'13/08/2026',dias:4,nips:T19},
+    {numero:145,ini:'13/08/2026',fim:'13/08/2026',dias:0.5,nips:T19},
+    {numero:146,ini:'13/08/2026',fim:'19/08/2026',dias:6.5,nips:T19},
+  ];
+})();
+function dmMilitarPorNip(nip){ return all().find(x=>dmNip(x.nip)===nip); }
+function renderControleTV(){
+  const lancados=(DM.termos||[]).slice().sort((a,b)=>(b.importadoEm||0)-(a.importadoEm||0));
+  const historico=DM_TV_HISTORICO.slice().sort((a,b)=>b.numero-a.numero);
+  $('#nDmTV').textContent=pad(lancados.length+historico.length);
 
-  $$('#dmTermosLista tr[data-dmtermo]').forEach(tr=>tr.onclick=e=>{
+  const linhasLancados=lancados.map(t=>'<tr data-dmtermo="'+t.id+'" style="cursor:pointer">'+
+    '<td class="mono">'+esc(t.numero||'—')+'</td>'+
+    '<td class="mono">'+esc(dmPeriodoResumo(t))+'</td>'+
+    '<td class="num mono">'+(t.diasCred==null?'—':t.diasCred)+'</td>'+
+    '<td class="num mono">'+(t.militares||[]).length+'</td>'+
+    '<td><span class="badge" style="color:var(--bordo);border-color:var(--bordo)">lançado</span></td>'+
+    '<td class="acts"><button class="mini del" data-dmdel="'+t.id+'">Excluir</button></td></tr>'+
+    (DM_TERMO_ABERTO===t.id?'<tr><td colspan="6">'+dmTermoDetalheHtml(t)+'</td></tr>':'')
+  ).join('');
+  const linhasHistorico=historico.map((t,i)=>{
+    const id='hist-'+t.numero+'-'+i;
+    const militares=t.nips.map(n=>{const m=dmMilitarPorNip(n);return m?{posto:m.posto,nome:m.nome}:{posto:'',nome:n};});
+    const tObj={numero:t.numero,periodoIni:t.ini,periodoFim:t.fim,diasCred:t.dias,comissao:'',militares};
+    return '<tr data-dmhist="'+id+'" style="cursor:pointer">'+
+      '<td class="mono">'+esc(t.numero)+'</td>'+
+      '<td class="mono">'+esc(dmPeriodoResumo(tObj))+'</td>'+
+      '<td class="num mono">'+t.dias+'</td>'+
+      '<td class="num mono">'+militares.length+'</td>'+
+      '<td><span class="badge">na base</span></td>'+
+      '<td></td></tr>'+
+      (DM_TERMO_ABERTO===id?'<tr><td colspan="6">'+dmTermoDetalheHtml(tObj)+'</td></tr>':'');
+  }).join('');
+
+  $('#dmTVLista').innerHTML=(lancados.length+historico.length)?
+    ('<table><thead><tr><th style="width:70px">TV</th><th style="width:150px">Período</th>'+
+     '<th class="num" style="width:80px">Dias</th><th class="num" style="width:70px">Qtd</th>'+
+     '<th style="width:110px">Origem</th><th></th></tr></thead><tbody>'+linhasLancados+linhasHistorico+'</tbody></table>')
+    :'<p class="hint" style="margin:0">Nenhum TV registrado ainda.</p>';
+
+  $$('#dmTVLista tr[data-dmtermo]').forEach(tr=>tr.onclick=e=>{
     if(e.target.closest('button'))return;
     const id=tr.dataset.dmtermo;
     DM_TERMO_ABERTO=DM_TERMO_ABERTO===id?'':id;
-    renderControleDM();
+    renderControleTV();
   });
-  $$('#dmTermosLista [data-dmdel]').forEach(b=>b.onclick=e=>{
+  $$('#dmTVLista tr[data-dmhist]').forEach(tr=>tr.onclick=()=>{
+    const id=tr.dataset.dmhist;
+    DM_TERMO_ABERTO=DM_TERMO_ABERTO===id?'':id;
+    renderControleTV();
+  });
+  $$('#dmTVLista [data-dmdel]').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
     confirmar('Excluir Termo de Viagem','Os dias de mar creditados por ele saem do total de todo mundo listado nele.',async()=>{
       DM.termos=(DM.termos||[]).filter(t=>t.id!==b.dataset.dmdel);
       if(await salvar('diasmar',DM))toast('Termo excluído.'); else toast('Não foi possível gravar.',true);
-      renderControleDM();
+      renderControleTV();
     });
   });
 }
-let DM_TERMO_ABERTO='';
 function dmPeriodoResumo(t){
   const ini=(t.periodoIni||'').split(' ')[0], fim=(t.periodoFim||'').split(' ')[0];
   if(!ini&&!fim)return '—';
