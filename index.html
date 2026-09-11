@@ -8205,7 +8205,9 @@ async function importarPlanilhaPB(){
 /* ── tela pública: o militar preenche a própria ficha ── */
 function ehTelaFicha(){ return (location.hash||'').toLowerCase().indexOf('ficha')>=0; }
 function montaTelaFicha(){
-  const sel=$('#pubMil'); if(!sel)return;
+  const sel=$('#pubMil'); if(!sel||sel.dataset.pronto)return;   /* monta uma vez só: reconstruir o <select>
+    de novo (ex.: recarga em segundo plano) apaga a seleção de quem já estava preenchendo */
+  sel.dataset.pronto='1';
   const lst=all();
   sel.innerHTML='<option value="">— escolha seu nome —</option>'+
     lst.map(x=>'<option value="'+x.id+'">'+esc(rotulo(x))+(x.completo?' — '+esc(x.completo):'')+'</option>').join('');
@@ -15122,8 +15124,17 @@ $('#bkpIn').onclick=()=>{
   };
 };
 
-setInterval(()=>{if(!document.hidden&&TAB==='painel')load(false);},20000);
-window.addEventListener('focus',()=>{if(TAB==='painel')load(false);});
+/* Na tela pública da ficha (#ficha), recarregar de novo depois que o
+   formulário já montou reconstruiria o <select> do nome e derrubaria a
+   seleção de quem está preenchendo — foi isso que fazia o formulário
+   "resetar" no celular de vários militares. Continua tentando de novo
+   sozinho só enquanto a primeira carga não deu certo (internet ruim de
+   bordo), pra não deixar a lista de nomes vazia pra sempre; uma vez
+   montada, para — quem entrar depois disso só recarrega abrindo o link
+   de novo. */
+function fichaJaMontada(){ const s=$('#pubMil'); return !!(s&&s.dataset.pronto); }
+setInterval(()=>{if(!document.hidden&&TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))load(false);},20000);
+window.addEventListener('focus',()=>{if(TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))load(false);});
 ajustaEfe();
 obtLiga();
 dispZera(); dispLeRascunho(); dispLiga();
