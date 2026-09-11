@@ -9387,9 +9387,33 @@ function mareTipo(serie,i){
   if(next==null)return cur>prev?'preamar':'baixamar';
   return (cur>=prev&&cur>=next)?'preamar':'baixamar';
 }
+/* Dias com só 3 marés (o ciclo de ~12h25min às vezes não fecha 4 dentro do
+   dia) completam com a maré mais próxima do dia vizinho, marcada como tal
+   — assim dá pra ver a maré que ainda está agindo desde ontem, ou a que já
+   começa amanhã, sem confundir com maré "deste dia" na tábua oficial. */
 function mareEventosDoDia(portoId,dataISO){
-  const serie=mareSerie(portoId), out=[];
-  serie.forEach((e,i)=>{ if(e.data===dataISO)out.push({...e,idx:i}); });
+  const serie=mareSerie(portoId);
+  let primeiroIdx=-1, ultimoIdx=-1;
+  serie.forEach((e,i)=>{
+    if(e.data===dataISO){ if(primeiroIdx===-1)primeiroIdx=i; ultimoIdx=i; }
+  });
+  if(primeiroIdx===-1)return [];
+  const out=[];
+  for(let i=primeiroIdx;i<=ultimoIdx;i++)out.push({...serie[i],idx:i,fora:false});
+  let antesIdx=primeiroIdx-1, depoisIdx=ultimoIdx+1;
+  while(out.length<4 && (antesIdx>=0 || depoisIdx<serie.length)){
+    const antes=antesIdx>=0?serie[antesIdx]:null;
+    const depois=depoisIdx<serie.length?serie[depoisIdx]:null;
+    const gapAntes=antes?(out[0].t-antes.t):Infinity;
+    const gapDepois=depois?(depois.t-out[out.length-1].t):Infinity;
+    if(antes&&gapAntes<=gapDepois){
+      out.unshift({...antes,idx:antesIdx,fora:true,foraDia:'anterior'});
+      antesIdx--;
+    }else if(depois){
+      out.push({...depois,idx:depoisIdx,fora:true,foraDia:'seguinte'});
+      depoisIdx++;
+    }else break;
+  }
   return out;
 }
 /* altura estimada num instante qualquer, por interpolação em meio-cosseno
@@ -9556,7 +9580,8 @@ function renderMare(){
     ('<table><thead><tr><th>Maré</th><th>Hora</th><th class="num">Altura</th></tr></thead><tbody>'+
      eventosDoDia.map(e=>{
        const tipo=mareTipo(serie,e.idx);
-       return '<tr><td>'+(tipo==='preamar'?'Preamar':'Baixamar')+'</td>'+
+       const nota=e.fora?(' <span class="hint" style="font-weight:400">('+(e.foraDia==='anterior'?'dia anterior':'dia seguinte')+')</span>'):'';
+       return '<tr'+(e.fora?' style="opacity:.65"':'')+'><td>'+(tipo==='preamar'?'Preamar':'Baixamar')+nota+'</td>'+
          '<td class="mono">'+e.hora.slice(0,2)+':'+e.hora.slice(2)+'</td>'+
          '<td class="num mono">'+e.alt.toFixed(2)+' m</td></tr>';
      }).join('')+'</tbody></table>')
