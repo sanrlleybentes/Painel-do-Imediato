@@ -8325,7 +8325,7 @@ async function importarPlanilhaPB(){
   if(semPar.length)console.log('sem par no efetivo:',semPar);
 }
 /* ═══════════════════════════════════════════════════════════════════════
-   TMFT — Tabela Mestra de Funções e Tarefas
+   TMFT — Tabela Mestra da Força de Trabalho
    Um militar (tripulação + destacados) por linha, com onde ele guarnece em
    cada evolução do navio. Nome de guerra e posto vêm do Efetivo — aqui só
    fica o que é específico da Tabela Mestra, pra não duplicar cadastro.
@@ -8400,19 +8400,22 @@ function renderTmftIndForm(){
 function renderTmftExportar(){ /* botão estático, nada a desenhar */ }
 /* ── PDF: mesmo layout de colunas da planilha original (2 grupos de colunas,
    tripulação e destacados à parte), com a assinatura em toda página ── */
-const TMFT_PAG1=['bordo','lotacao','cargo','sangue','camarote','cond3','dem','susp','demBv'];
-const TMFT_PAG2=['bordo','lotacao','gse','cont','aband','emerg','gsd','hm','obs'];
-const TMFT_ROT={bordo:'Nº bordo',lotacao:'Lotação',cargo:'Cargo/Incumb.',sangue:'Sangue',camarote:'Camarote',
+/* mesma ordem de colunas da planilha original: Nº de bordo, Lotação,
+   Efetivo, Nome de guerra, depois os campos de cada página */
+const TMFT_PAG1=['cargo','sangue','camarote','cond3','dem','susp','demBv'];
+const TMFT_PAG2=['gse','cont','aband','emerg','gsd','hm','obs'];
+const TMFT_ROT={cargo:'Cargo/Incumb.',sangue:'Sangue',camarote:'Camarote',
   cond3:'Condição III',dem:'DEM',susp:'Susp. e fundear',demBv:'DEM BV/canal varrido',gse:'GSE',cont:'Continência',
   aband:'Abandono',emerg:'Emergência',gsd:'GSD',hm:'Homem ao mar',obs:'Observações'};
-function tmftTabelaPdf(D,y,titulo,lista,campos){
+function tmftTabelaPdf(D,y,lista,campos,titulo){
   y=D.espacoMargem(y,14,10);
-  D.txt(titulo,15,y,{size:10,font:'F2'});y+=5;
-  const larg=[16,20].concat(Array(campos.length).fill((267-36)/campos.length));
-  const cab=['Efetivo','Nome'].concat(campos.map(k=>TMFT_ROT[k]));
+  if(titulo){D.txt(titulo,D.PGW/2,y,{size:11,font:'F2',align:'center'});y+=6;}
+  const largFixa=[14,18,14,22];
+  const larg=largFixa.concat(Array(campos.length).fill((267-largFixa.reduce((a,b)=>a+b,0))/campos.length));
+  const cab=['Nº bordo','Lotação','Efetivo','Nome'].concat(campos.map(k=>TMFT_ROT[k]));
   const linhas=lista.map(x=>{
     const c=tmftCampo(x.id);
-    return [x.posto||'',x.nome||''].concat(campos.map(k=>c[k]||'—'));
+    return [c.bordo||'—',c.lotacao||'—',x.posto||'',x.nome||''].concat(campos.map(k=>c[k]||'—'));
   });
   return D.tabela({x:15,y,larguras:larg,cabecalho:cab,linhas,size:7.2,margemBaixo:26});
 }
@@ -8424,19 +8427,19 @@ function pdfTmft(D){
     D.imagem(15,y,13,18);
     D.txt('MARINHA DO BRASIL',cx,y+3.5,{size:11,font:'F2',align:'center'});
     D.txt('AVISO HIDROCEANOGRÁFICO FLUVIAL RIO TOCANTINS',cx,y+9,{size:11,font:'F2',align:'center'});
-    D.txt('TABELA MESTRA DE FUNÇÕES E TAREFAS (TMFT)',cx,y+15,{size:11,font:'F2',align:'center'});
+    D.txt('TABELA MESTRA DA FORÇA DE TRABALHO (TMFT)',cx,y+15,{size:11,font:'F2',align:'center'});
     return y+20;
   };
   const trip=grupo('tripulacao'), dest=grupo('destacado');
   let y=cabecalho();
-  y=tmftTabelaPdf(D,y,'Tripulação / Efetivo próprio — parte 1 de 2',trip,TMFT_PAG1);
+  y=tmftTabelaPdf(D,y,trip,TMFT_PAG1);
   D.novaPagina();y=cabecalho();
-  y=tmftTabelaPdf(D,y,'Tripulação / Efetivo próprio — parte 2 de 2',trip,TMFT_PAG2);
+  y=tmftTabelaPdf(D,y,trip,TMFT_PAG2);
   if(dest.length){
     D.novaPagina();y=cabecalho();
-    y=tmftTabelaPdf(D,y,'Destacados — parte 1 de 2',dest,TMFT_PAG1);
+    y=tmftTabelaPdf(D,y,dest,TMFT_PAG1,'Destacados');
     D.novaPagina();y=cabecalho();
-    y=tmftTabelaPdf(D,y,'Destacados — parte 2 de 2',dest,TMFT_PAG2);
+    y=tmftTabelaPdf(D,y,dest,TMFT_PAG2,'Destacados');
   }
   /* assinatura fixa no rodapé de toda página — não usa D.espaco() aqui:
      as páginas já estão fechadas, só carimba por cima na posição de sempre */
@@ -8448,6 +8451,8 @@ function pdfTmft(D){
     D.txtNomeMil(aut,62.5,yy,{size:9,align:'center'});yy+=4.4;
     D.txt(aut?extenso(aut.posto):'',62.5,yy,{size:9,align:'center'});yy+=4.4;
     D.txt(CFG.autCargo||'Imediato',62.5,yy,{size:9,align:'center'});
+    D.txt('(*) GUARNECE AUTO-EXCITADO',282,yAss,{size:7,align:'right'});
+    D.txt('(**) GUARNECE PRC',282,yAss+4,{size:7,align:'right'});
   });
   D.ops=salvo;
   D.numerar();
