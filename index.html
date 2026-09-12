@@ -203,6 +203,17 @@ th.num{text-align:right}
 .gradeserv td.rowlab{box-shadow:1px 0 0 var(--line)}
 .tmftGrid th,.tmftGrid td{white-space:nowrap}
 .tmftGrid input{width:150px;font-size:11.5px;padding:5px 7px}
+.tmiCard{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;max-width:720px}
+.tmiTit{font-family:var(--display);font-weight:700;text-align:center;letter-spacing:.02em;
+  padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line);line-height:1.5}
+.tmiTit2{font-family:var(--display);font-weight:700;font-size:12.5px;text-transform:uppercase;
+  letter-spacing:.03em;color:var(--muted);margin-bottom:8px}
+.tmiCols{display:flex;gap:20px;flex-wrap:wrap}
+.tmiColEsq,.tmiColDir{flex:1 1 260px;min-width:240px}
+.tmiLinha{padding:4px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+.tmiRot{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+.tmiVal{display:block;font-weight:600}
+.tmiBranco{display:block;height:14px}
 .falta{color:var(--alert);font-family:var(--mono);font-size:11.5px}
 .pill{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:3px;white-space:nowrap}
 .pill.out{background:#F6E8D2;color:var(--terra)}
@@ -1489,8 +1500,27 @@ body.semvideo .sp-foto{display:block}
     </div>
   </div>
   <div id="sub-tmi" class="hidden">
-    <div class="card reveal"><h2>TMI</h2>
-      <p class="hint" style="margin:0">Subm&oacute;dulo criado, pronto para receber o conte&uacute;do. Me diga o que entra aqui que eu monto.</p></div>
+    <div class="subtabs" id="subTmi">
+      <button data-sub="consulta" aria-selected="true">Consulta TMI</button>
+      <button data-sub="exportar" aria-selected="false">Exportar TMI</button>
+    </div>
+    <div id="tmi-consulta">
+      <div class="card reveal">
+        <h2>Tabela Mestra Individual</h2>
+        <p class="hint" style="margin:0 0 12px">O cart&atilde;o que o militar guarda com ele: onde ele guarnece em cada situa&ccedil;&atilde;o do navio. Os dados vêm da TMFT.</p>
+        <div class="row" style="margin-bottom:14px">
+          <div style="flex:1 1 260px"><label>Militar</label><select id="tmiMilSel"></select></div>
+        </div>
+        <div id="tmiCartao"></div>
+      </div>
+    </div>
+    <div id="tmi-exportar" class="hidden">
+      <div class="card reveal">
+        <h2>Exportar Tabela Mestra Individual</h2>
+        <p class="hint" style="margin:0 0 12px">PDF em paisagem, 4 cart&otilde;es por p&aacute;gina, prontos pra imprimir e recortar — um por militar da tripula&ccedil;&atilde;o e dos destacados. O bloco de abandono sai em branco, pra preencher na hora.</p>
+        <button class="btn" id="tmiExportar">Gerar PDF</button>
+      </div>
+    </div>
   </div>
   <div id="sub-saude" class="hidden">
     <div class="subtabs" id="subSaude">
@@ -3049,7 +3079,8 @@ const RELACAO=[
 let TAF=null;
 let CREW=null,CFG=null,EFE=null,FER=null,PAG=null,PAI=null,GAS=null,RAN=null,CAR=null,DOCS=null,PAP=null,SRV=null,DET=null,TRC=null,SAU=null,MED=null,FOR=null,PES=null,COM=null,DM=null,TMFT=null;
 let TAB='painel', SUB_PAINEL='visao', SUB='gastos', SUB_EFE='tripulacao', SUB_DM='controle', SUB_FER='programadas', SUB_SRV='detalhes', SUB_DET='porto', SUB_SVCAT='sporto',
-  SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', SUB_TMFT='metadados', SUB_TMFTMETA='planilha', TMFT_MIL='', lastSync=null;
+  SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', SUB_TMFT='metadados', SUB_TMFTMETA='planilha', TMFT_MIL='',
+  SUB_TMI='consulta', TMI_MIL='', lastSync=null;
 const DIAS_SEMANA=['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'];
 const MESES_ABREV=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 const SEED_SERVICOS_PORTO=['Supervisor de Serviço','Contramestre (CM-1) 08-12 / 16-20 / 00-04',
@@ -4424,6 +4455,12 @@ $$('#subTmftMeta button').forEach(b=>b.onclick=()=>{
   $$('#subTmftMeta button').forEach(o=>o.setAttribute('aria-selected',o===b));
   ['planilha','individual'].forEach(s=>$('#tmftmeta-'+s).classList.toggle('hidden',s!==SUB_TMFTMETA));
   renderTmft();
+});
+$$('#subTmi button').forEach(b=>b.onclick=()=>{
+  SUB_TMI=b.dataset.sub;
+  $$('#subTmi button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  ['consulta','exportar'].forEach(s=>$('#tmi-'+s).classList.toggle('hidden',s!==SUB_TMI));
+  renderTmi();
 });
 $$('#subFerias button').forEach(b=>b.onclick=()=>{
   SUB_FER=b.dataset.sub;
@@ -7875,6 +7912,7 @@ function renderEfetivo(){
   if(SUB_EFE==='saude')renderSaude();
   if(SUB_EFE==='plano')renderPlano();
   if(SUB_EFE==='tmft')renderTmft();
+  if(SUB_EFE==='tmi')renderTmi();
 }
 /* ═══════════════════ TAF — teste de aptidão física ═══════════════════
    Três modalidades por militar, uma marca cada: feito, não feito ou dispensado.
@@ -8332,13 +8370,16 @@ async function importarPlanilhaPB(){
    ═══════════════════════════════════════════════════════════════════════ */
 const TMFT_CAMPOS=[
   ['bordo','Nº de bordo'],['lotacao','Lotação'],['cargo','Cargo / Incumbência'],
-  ['sangue','Tipo sanguíneo'],['camarote','Camarote / Alojamento'],
+  ['camarote','Camarote / Alojamento'],
   ['dem','DEM'],['cond3','Condição III'],['susp','Postos de suspender e fundear'],
   ['demBv','DEM em baixa visibilidade / canal varrido'],['emerg','Postos de emergência'],
   ['hm','Detalhe de homem ao mar'],['aband','Postos de abandono'],
   ['gse','GSE'],['gsd','GSD'],['cont','Postos de continência'],['obs','Observações']];
 function tmftLista(){ return grupo('tripulacao').concat(grupo('destacado')); }
 function tmftCampo(id){ TMFT.campos=TMFT.campos||{}; return (TMFT.campos[id]=TMFT.campos[id]||{}); }
+/* tipo sanguíneo não duplica cadastro: vem do Plano de Busca (dado pessoal),
+   não da Tabela Mestra — se estiver errado, corrige lá. */
+function tmftSangue(id){ return fichaDe(id).sangue||''; }
 function renderTmft(){
   if(SUB_TMFT==='metadados'){
     if(SUB_TMFTMETA==='planilha')renderTmftPlanilha();
@@ -8349,15 +8390,17 @@ function renderTmftPlanilha(){
   const lst=tmftLista();
   $('#nTmft').textContent=pad(lst.length);
   const th='<th style="width:70px">Nº bordo</th><th style="width:80px">Posto</th><th style="min-width:130px">Nome</th>'+
+    '<th style="width:70px">Sangue</th>'+
     TMFT_CAMPOS.slice(1).map(([,rot])=>'<th style="min-width:150px">'+esc(rot)+'</th>').join('');
   const linhas=lst.map(x=>{
     const c=tmftCampo(x.id);
     const cel=(k)=>'<td><input type="text" data-tmft="'+x.id+'|'+k+'" value="'+esc(c[k]||'')+'"></td>';
     return '<tr>'+cel('bordo')+'<td class="mono">'+esc(x.posto||'')+'</td><td>'+esc(x.nome||'')+'</td>'+
+      '<td class="mono" title="Vem do Plano de Busca">'+esc(tmftSangue(x.id)||'—')+'</td>'+
       TMFT_CAMPOS.slice(1).map(([k])=>cel(k)).join('')+'</tr>';
   }).join('');
   $('#tmftPlanilha').innerHTML='<table class="tmftGrid"><thead><tr>'+th+'</tr></thead><tbody>'+
-    (linhas||'<tr><td colspan="'+(TMFT_CAMPOS.length+2)+'"><p class="hint" style="margin:6px 0">Nenhum militar na tripulação ou destacado.</p></td></tr>')+
+    (linhas||'<tr><td colspan="'+(TMFT_CAMPOS.length+3)+'"><p class="hint" style="margin:6px 0">Nenhum militar na tripulação ou destacado.</p></td></tr>')+
     '</tbody></table>';
   ligaTmftPlanilha();
 }
@@ -8386,6 +8429,8 @@ function renderTmftIndForm(){
   if(!x){host.innerHTML='<p class="hint" style="margin:0">Nenhum militar selecionado.</p>';return;}
   const c=tmftCampo(TMFT_MIL);
   host.innerHTML='<div class="row">'+
+    '<div><label>Tipo sanguíneo</label><input type="text" value="'+esc(tmftSangue(TMFT_MIL)||'—')+
+    '" readonly title="Vem do Plano de Busca — corrija lá"></div>'+
     TMFT_CAMPOS.map(([k,rot])=>'<div><label>'+esc(rot)+'</label>'+
       '<input type="text" data-tmftind="'+k+'" value="'+esc(c[k]||'')+'"></div>').join('')+
     '</div>';
@@ -8415,7 +8460,8 @@ function tmftTabelaPdf(D,y,lista,campos,titulo){
   const cab=['Nº bordo','Lotação','Efetivo','Nome'].concat(campos.map(k=>TMFT_ROT[k]));
   const linhas=lista.map(x=>{
     const c=tmftCampo(x.id);
-    return [c.bordo||'—',c.lotacao||'—',x.posto||'',x.nome||''].concat(campos.map(k=>c[k]||'—'));
+    return [c.bordo||'—',c.lotacao||'—',x.posto||'',x.nome||''].concat(
+      campos.map(k=>(k==='sangue'?tmftSangue(x.id):c[k])||'—'));
   });
   return D.tabela({x:15,y,larguras:larg,cabecalho:cab,linhas,size:7.2,margemBaixo:26});
 }
@@ -8464,6 +8510,98 @@ $('#tmftExportar').onclick=async()=>{
     const D=new Pdf(true);
     pdfTmft(D);
     entregarPdf(D.bytes(),'Tabela_Mestra_TMFT_'+ddmmmCurto(hoje())+'.pdf');
+  }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
+  finally{btn.disabled=false;btn.textContent=rot;}
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TMI — Tabela Mestra Individual
+   O cartão que cada militar guarda com ele: as mesmas informações da TMFT
+   que dizem respeito só a ele, mais o bloco de abandono — esse é dado da
+   hora da emergência, então sai sempre em branco, pra preencher na hora
+   ou à mão no papel impresso.
+   ═══════════════════════════════════════════════════════════════════════ */
+const TMI_ABANDONO=['LAT/LONG DO LOCAL DE ABANDONO','TERRA MAIS PRÓXIMA','TERRA: AMIGA / INIMIGA',
+  'LOCALIDADE','MARC. MAGNÉTICA','DISTÂNCIA','PROF. LOCAL','ÁGUAS: RASAS / PROFUNDAS',
+  'VENTO — DIREÇÃO','VENTO — INTENSIDADE','CORRENTE — DIREÇÃO','CORRENTE — INTENSIDADE',
+  'TEMPERATURA DA ÁGUA DO MAR','TEMPO DE SOBREVIVÊNCIA NA ÁGUA'];
+function tmiCamposDe(x){
+  const c=tmftCampo(x.id);
+  return [
+    ['Nº de bordo',c.bordo],['Posto/Graduação',x.posto],['Nome de guerra',x.nome],
+    ['Cargo/Incumbência',c.cargo],['Tipo sanguíneo',tmftSangue(x.id)],['Camarote/Alojamento',c.camarote],
+    ['DEM',c.dem],['Condição III',c.cond3],['Suspender e fundear',c.susp],
+    ['DEM BV/canal varrido',c.demBv],['Postos de emergência',c.emerg],['Detalhe de homem ao mar',c.hm],
+    ['Postos de abandono',c.aband],['GSE',c.gse],['GSD',c.gsd],
+    ['Postos de continência',c.cont],['Observações',c.obs]];
+}
+function renderTmi(){
+  if(SUB_TMI==='consulta')renderTmiConsulta(); else renderTmiExportar();
+}
+function renderTmiConsulta(){
+  const lst=tmftLista();
+  const sel=$('#tmiMilSel');
+  if(!TMI_MIL||!lst.some(x=>x.id===TMI_MIL))TMI_MIL=lst[0]?lst[0].id:'';
+  sel.innerHTML=lst.length?lst.map(x=>'<option value="'+x.id+'"'+(x.id===TMI_MIL?' selected':'')+'>'+
+    esc(rotulo(x))+'</option>').join(''):'<option value="">Nenhum militar</option>';
+  sel.onchange=()=>{TMI_MIL=sel.value;renderTmiCartao();};
+  renderTmiCartao();
+}
+function renderTmiCartao(){
+  const host=$('#tmiCartao');
+  const x=milPorId(TMI_MIL);
+  host.innerHTML=x?tmiCartaoHtml(x):'<p class="hint" style="margin:0">Nenhum militar selecionado.</p>';
+}
+function tmiCartaoHtml(x){
+  return '<div class="tmiCard"><div class="tmiTit">AvHoFlu Rio Tocantins<br>TABELA MESTRA INDIVIDUAL (TMI)</div>'+
+    '<div class="tmiCols"><div class="tmiColEsq">'+
+    tmiCamposDe(x).map(([rot,val])=>'<div class="tmiLinha"><span class="tmiRot">'+esc(rot)+'</span>'+
+      '<span class="tmiVal">'+esc(val||'—')+'</span></div>').join('')+
+    '</div><div class="tmiColDir"><div class="tmiTit2">Informações para o abandono</div>'+
+    TMI_ABANDONO.map(rot=>'<div class="tmiLinha"><span class="tmiRot">'+esc(rot)+'</span>'+
+      '<span class="tmiBranco"></span></div>').join('')+
+    '</div></div></div>';
+}
+function renderTmiExportar(){ /* botão estático, nada a desenhar */ }
+/* linha "Rótulo: valor" compacta, quebrando como qualquer texto longo */
+function tmiCampoLinhaPdf(D,x,y,w,rot,valor,size){
+  quebra(rot+': '+(valor||'—'),size,w).forEach(ln=>{D.txt(ln,x,y,{size});y+=size*0.42;});
+  return y+0.5;
+}
+function tmiAbandonoLinhaPdf(D,x,y,w,rot,size){
+  quebra(rot,size,w).forEach(ln=>{D.txt(ln,x,y,{size,font:'F2'});y+=size*0.42;});
+  y+=0.6;D.linha(x,y,x+w,y);
+  return y+1.1;
+}
+function pdfTmi(D){
+  const lst=tmftLista();
+  const mX=8,mY=8,gut=6,size=5.3;
+  const cw=(D.PGW-2*mX-gut)/2, ch=(D.PGH-2*mY-gut)/2;
+  const pos=[[mX,mY],[mX+cw+gut,mY],[mX,mY+ch+gut],[mX+cw+gut,mY+ch+gut]];
+  lst.forEach((x,i)=>{
+    const slot=i%4;
+    if(slot===0&&i>0)D.novaPagina();
+    const [cx,cy]=pos[slot];
+    D.caixa(cx,cy,cw,ch);
+    let y=cy+4.5;
+    D.txt('AvHoFlu Rio Tocantins',cx+cw/2,y,{size:7,font:'F2',align:'center'});y+=3.6;
+    D.txt('TABELA MESTRA INDIVIDUAL (TMI)',cx+cw/2,y,{size:7.3,font:'F2',align:'center'});y+=3.4;
+    D.linha(cx+2,y,cx+cw-2,y);y+=3.2;
+    const colW=(cw-6)/2, xEsq=cx+2, xDir=cx+4+colW;
+    D.linha(cx+cw/2,y-1.5,cx+cw/2,cy+ch-2);
+    let yE=y, yD=y;
+    D.txt('Informações para o abandono',xDir,yD,{size:6,font:'F2'});yD+=3;
+    tmiCamposDe(x).forEach(([rot,val])=>{yE=tmiCampoLinhaPdf(D,xEsq,yE,colW-2,rot,val,size);});
+    TMI_ABANDONO.forEach(rot=>{yD=tmiAbandonoLinhaPdf(D,xDir,yD,colW-2,rot,size);});
+  });
+}
+$('#tmiExportar').onclick=async()=>{
+  const btn=$('#tmiExportar'), rot=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando…';
+  try{
+    const D=new Pdf(true);
+    pdfTmi(D);
+    entregarPdf(D.bytes(),'Tabela_Mestra_Individual_TMI_'+ddmmmCurto(hoje())+'.pdf');
   }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
   finally{btn.disabled=false;btn.textContent=rot;}
 };
