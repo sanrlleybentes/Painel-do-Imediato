@@ -1146,6 +1146,9 @@ body.semvideo .sp-foto{display:block}
   </div>
   <div id="painel-visao">
     <div class="kpis" id="kpis"></div>
+    <div class="card reveal hidden" id="anivCard"><h2>Aniversariantes <span class="n" id="nAniv">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Quem faz aniversário nos próximos 30 dias, com a data que vem do Plano de Busca.</p>
+      <div class="scroller" id="anivLista"></div></div>
     <div class="card reveal">
       <h2><span id="tafPainelTit">TAF-a</span> <span class="n" id="nTafPainel"></span></h2>
       <p class="hint" style="margin:0 0 12px">Conclus&atilde;o de cada modalidade, sobre quem deve fazer o teste.</p>
@@ -8414,6 +8417,7 @@ function renderPainel(){
   if(SUB_PAINEL==='mare'){renderMare();return;}
   if(SUB_PAINEL==='diasmar'){renderPainelDiasMar();return;}
   renderAlertaDM();
+  renderAniversarios();
   const des=grupo('destacado');
   const bordo=all().filter(x=>x.status==='bordo').length;
   const af=afastadosHoje();
@@ -11356,6 +11360,47 @@ function dmProximosDaMedalha(){
     if(faltam<=0||faltam>DM_JANELA_ALERTA)return null;
     return {mil:x,total,prox,faltam};
   }).filter(Boolean).sort((a,b)=>a.faltam-b.faltam);
+}
+/* ---- aniversariantes (Painel → Visão geral) ----
+   A data vem da ficha do Plano de Busca (aniv "20FEV" e, quando o militar
+   escolheu o ano certo, nascIso completo — só aí dá pra saber a idade).
+   Sem nascIso, mostra a data e avisa que a idade não foi informada; nunca
+   inventa ano de nascimento. */
+function diasEntreDatas(a,b){
+  return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);
+}
+function aniversariosProximos(janela){
+  const hj=hoje();
+  return all().map(x=>{
+    const f=fichaDe(x.id);
+    let mesDia='';
+    if(f.nascIso&&/^\d{4}-\d{2}-\d{2}$/.test(f.nascIso))mesDia=f.nascIso.slice(5,10);
+    else if(f.aniv){const iso=anivParaIso(f.aniv); if(iso)mesDia=iso.slice(5,10);}
+    if(!mesDia)return null;
+    let ano=+hj.slice(0,4), prox=ano+'-'+mesDia;
+    if(prox<hj){ano++; prox=ano+'-'+mesDia;}
+    const faltam=diasEntreDatas(hj,prox);
+    if(faltam>janela)return null;
+    const idade=(f.nascIso&&/^\d{4}/.test(f.nascIso))?ano-(+f.nascIso.slice(0,4)):null;
+    return {mil:x,data:prox,faltam,idade};
+  }).filter(Boolean).sort((a,b)=>a.faltam-b.faltam);
+}
+const ANIV_JANELA=30;
+function renderAniversarios(){
+  const card=$('#anivCard'); if(!card)return;
+  const lista=aniversariosProximos(ANIV_JANELA);
+  $('#nAniv').textContent=pad(lista.length);
+  card.classList.toggle('hidden',lista.length===0);
+  if(!lista.length)return;
+  $('#anivLista').innerHTML='<table><thead><tr><th>Militar</th><th style="width:110px">Data</th>'+
+    '<th class="num" style="width:90px">Idade</th><th class="num" style="width:110px">Quando</th></tr></thead><tbody>'+
+    lista.map(r=>{
+      const dd=r.data.slice(8,10), mm=+r.data.slice(5,7);
+      const quando=r.faltam===0?'Hoje!':(r.faltam===1?'Amanhã':'Em '+r.faltam+' dias');
+      return '<tr><td>'+esc(rotulo(r.mil))+'</td><td class="mono">'+dd+' '+MES3[mm-1]+'</td>'+
+        '<td class="num mono">'+(r.idade!=null?r.idade+' anos':'—')+'</td>'+
+        '<td class="num"><span class="pill '+(r.faltam===0?'out':'in')+'">'+quando+'</span></td></tr>';
+    }).join('')+'</tbody></table>';
 }
 function renderAlertaDM(){
   const card=$('#dmAlertaCard'); if(!card)return;
