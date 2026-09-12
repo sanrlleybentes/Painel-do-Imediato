@@ -15140,10 +15140,28 @@ function quebra(s,size,largMm,negrito){
   const palavras=bruto.split(/\s+/).filter(Boolean);
   if(!palavras.length)return [''];
   const linhas=[];let atual='';
+  /* uma "palavra" sem espaço (ex.: "PASSADIÇO/SOTATIMONEIRO") que sozinha não
+     cabe na coluna precisa quebrar por caractere — senão ela vaza por cima
+     das células vizinhas em vez de descer de linha, como qualquer texto. */
+  const porCaractere=p=>{
+    const partes=[];let pedaco='';
+    for(const ch of p){
+      const teste=pedaco+ch;
+      if(larguraTxt(teste,size,negrito)<=largMm||!pedaco)pedaco=teste;
+      else{partes.push(pedaco);pedaco=ch;}
+    }
+    if(pedaco)partes.push(pedaco);
+    return partes;
+  };
   palavras.forEach(p=>{
     const teste=atual?atual+' '+p:p;
-    if(larguraTxt(teste,size,negrito)<=largMm||!atual)atual=teste;
-    else{linhas.push(atual);atual=p;}
+    if(larguraTxt(teste,size,negrito)<=largMm){atual=teste;return;}
+    if(atual){linhas.push(atual);atual='';}
+    if(larguraTxt(p,size,negrito)<=largMm){atual=p;return;}
+    const partes=porCaractere(p);
+    partes.forEach((parte,i)=>{
+      if(i<partes.length-1)linhas.push(parte); else atual=parte;
+    });
   });
   if(atual)linhas.push(atual);
   return linhas;
