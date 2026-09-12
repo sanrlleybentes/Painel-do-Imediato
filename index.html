@@ -127,8 +127,10 @@ main{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
 h2{font-family:var(--display);text-transform:uppercase;letter-spacing:.18em;font-size:14px;font-weight:600;margin:0 0 12px;color:var(--muted)}
 h2 .n{font-family:var(--mono);color:var(--brass);letter-spacing:0}
 label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
-input[type=text],input[type=number],input[type=file],select,textarea{width:100%;background:#FFFFFF;border:1px solid var(--line);
+input[type=text],input[type=number],input[type=file],input[type=time],select,textarea{width:100%;background:#FFFFFF;border:1px solid var(--line);
   color:var(--ink);border-radius:3px;padding:9px 10px;font-size:14px}
+input[type=time]{font-family:var(--mono);color-scheme:light}
+input[type=time]::-webkit-calendar-picker-indicator{filter:sepia(1) saturate(2) hue-rotate(2deg) opacity(.65);cursor:pointer}
 select:disabled,input:disabled,button:disabled{opacity:.4;cursor:not-allowed}
 input.datebr{font-family:var(--mono);letter-spacing:.03em;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--brass) 50%),linear-gradient(135deg,var(--brass) 50%,transparent 50%);
   background-position:calc(100% - 18px) center,calc(100% - 13px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
@@ -559,13 +561,13 @@ select.obtfase{min-width:210px;font-size:12px}
 .tabs button{border-radius:var(--r-sm) var(--r-sm) 0 0;transition:color .16s ease,background .16s ease}
 .tabs button:hover{color:var(--ink);background:rgba(204,162,90,.08)}
 
-input[type=text],input[type=number],input[type=file],select,textarea{border-radius:var(--r-sm);
+input[type=text],input[type=number],input[type=file],input[type=time],select,textarea{border-radius:var(--r-sm);
   transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}
 /* Herança do tema escuro: o campo ficava quase preto ao passar o mouse ou ao
    ser tocado no celular, e o texto sumia. No tema claro o realce é o contrário —
    fundo mais branco que o normal e a borda em ocre. */
-input[type=text]:hover,input[type=number]:hover,select:hover,textarea:hover{border-color:var(--brass);background:#FFFDF7}
-input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:var(--brass);background:#FFFDF7}
+input[type=text]:hover,input[type=number]:hover,input[type=time]:hover,select:hover,textarea:hover{border-color:var(--brass);background:#FFFDF7}
+input[type=text]:focus,input[type=number]:focus,input[type=time]:focus,select:focus,textarea:focus{border-color:var(--brass);background:#FFFDF7}
 
 .scroller{border-radius:var(--r-md)}
 tbody tr{transition:background .15s ease}
@@ -1150,7 +1152,7 @@ body.semvideo .sp-foto{display:block}
       <div id="tafPainel"></div>
       <p class="hint" id="tafPainelNota" style="margin:10px 2px 0"></p>
     </div>
-    <div class="card reveal" id="dmAlertaCard"><h2>Medalhas de Dias de Mar próximas <span class="n" id="nDmAlerta">0</span></h2>
+    <div class="card reveal" id="dmAlertaCard"><h2>Próximas Medalhas Mérito Marinheiro <span class="n" id="nDmAlerta">0</span></h2>
       <p class="hint" style="margin:0 0 12px">Faltam <b>15 dias de mar ou menos</b> para completar 500, 750 ou 1000 dias — Medalha Mérito Marinheiro com 1, 2 ou 3 ferros.</p>
       <div class="scroller" id="dmAlerta"></div></div>
     <div class="card reveal" id="ferCursoCard"><h2>Férias em curso <span class="n" id="nFerCurso">0</span></h2><div class="scroller" id="ferCurso"></div></div>
@@ -1423,7 +1425,7 @@ body.semvideo .sp-foto{display:block}
   <div id="sub-saude" class="hidden">
     <div class="subtabs" id="subSaude">
       <button data-sub="inspecoes" aria-selected="true">Inspeções de saúde</button>
-      <button data-sub="medicamentos" aria-selected="false">Medicamentos a bordo</button>
+      <button data-sub="medicamentos" aria-selected="false">Estoque de Saúde</button>
       <button data-sub="taf" aria-selected="false">TAF</button>
     </div>
 
@@ -1460,12 +1462,23 @@ body.semvideo .sp-foto{display:block}
 
     <div id="saude-medicamentos" class="hidden">
       <div class="card reveal">
-        <h2>Incluir medicamento</h2>
+        <h2>Importar lista colada</h2>
+        <p class="hint" style="margin:0 0 12px">Cole aqui a relação de material e medicação do paiol de saúde, no formato de sempre (uma linha por item, <b>"Nome: quantidade+unidade V:mm/aa"</b> ou <b>"...IND"</b> para sem validade). Linhas de título como <b>MATERIAL MÉDICO HOSPITALAR</b>, <b>MEDICAÇÃO VENCIDA/NA VALIDADE</b> ou <b>MATERIAL DE SUTURA</b> definem a categoria dos itens que vêm depois — não precisa separar vencido de válido à mão, o painel calcula isso sozinho pela data.</p>
+        <textarea id="medColar" rows="8" style="width:100%;font-family:var(--mono);font-size:13px" placeholder="MATERIAL MÉDICO HOSPITALAR&#10;Algodão em rolo 250g: 10UN V:12/26&#10;Tala moldável TAM G: 4UN IND&#10;&#10;MEDICAÇÃO NA VALIDADE&#10;Paracetamol 500mg: 30cp V:11/26"></textarea>
+        <p class="hint" id="medColarStatus" style="margin:8px 2px 0"></p>
+        <div style="margin-top:10px"><button class="btn ghost" id="medColarPrever">Conferir antes de importar</button></div>
+        <div id="medColarPrevia"></div>
+      </div>
+      <div class="card reveal">
+        <h2>Incluir item</h2>
         <div class="row">
-          <div><label>Medicamento</label><input type="text" id="medNome" placeholder="Ex.: Dipirona 500mg"></div>
+          <div><label>Item</label><input type="text" id="medNome" placeholder="Ex.: Dipirona 500mg"></div>
+          <div style="flex:0 1 160px"><label>Categoria</label><select id="medCategoria">
+            <option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
           <div style="flex:0 1 150px"><label>Forma</label><select id="medForma">
-            <option>Comprimido</option><option>Ampola</option><option>Frasco</option>
-            <option>Pomada</option><option>Spray</option><option>Curativo</option><option>Outro</option></select></div>
+            <option>Comprimido</option><option>Ampola</option><option>Frasco</option><option>Unidade</option>
+            <option>Pomada</option><option>Creme</option><option>Solução</option><option>Spray</option>
+            <option>Curativo</option><option>Kit</option><option>Outro</option></select></div>
           <div style="flex:0 1 130px"><label>Lote</label><input type="text" id="medLote"></div>
         </div>
         <div class="row" style="margin-top:12px">
@@ -1474,13 +1487,28 @@ body.semvideo .sp-foto{display:block}
           <div style="flex:0 1 190px"><label>Validade</label><input type="hidden" id="medVal"><input type="text" id="medValBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
           <div><label>Observação</label><input type="text" id="medObs"></div>
         </div>
-        <div style="margin-top:14px"><button class="btn" id="medAdd">Incluir medicamento</button></div>
+        <div style="margin-top:14px"><button class="btn" id="medAdd">Incluir item</button></div>
       </div>
       <div class="card reveal">
-        <h2>Botica de bordo <span class="n" id="nMed">0</span></h2>
+        <h2>Estoque de Saúde <span class="n" id="nMed">0</span></h2>
         <p class="hint" style="margin:0 0 12px">Vermelho é vencido ou zerado, laranja é validade próxima (60 dias) ou existência abaixo da dotação.</p>
         <div class="kpis" id="medKpis"></div>
+        <div class="row" style="margin:4px 0 12px">
+          <div style="flex:1 1 220px"><label>Buscar</label><input type="text" id="medBusca" placeholder="Nome, categoria, forma ou lote"></div>
+          <div style="flex:0 1 200px"><label>Categoria</label><select id="medFiltroCat">
+            <option value="">Todas</option><option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
+        </div>
         <div class="scroller" id="listMed"></div>
+      </div>
+      <div class="card reveal">
+        <h2>Balanço</h2>
+        <p class="hint" style="margin:0 0 12px">Emite o documento padronizado do navio com a posição do Estoque de Saúde, assinado pelo Imediato. Use a posição de hoje ou volte para qualquer data — o painel reconstrói a existência de cada item a partir das entradas e baixas lançadas, sem inventar número pra quem ainda não tinha registro naquela data.</p>
+        <div class="row" style="align-items:flex-end">
+          <div style="flex:0 1 190px"><label>Posição em</label><input type="hidden" id="medBalData"><input type="text" id="medBalDataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+          <div style="flex:0 1 200px"><label>Categoria</label><select id="medBalCat">
+            <option value="">Todas</option><option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
+          <div style="flex:0 1 auto"><button class="btn" id="medBalPdf">Gerar PDF</button></div>
+        </div>
       </div>
     </div>
     <div id="saude-taf" class="hidden">
@@ -3458,7 +3486,7 @@ function fillForms(){
   setDataMes('gMes',m);
   ['eData','eFim','gData','cSem','fIni','fFim','pVal','pfIni','pfFim',
     'detSemPorto','detDiaCond3','detDiaDem','trDiaAnt','trDiaPos','blData',
-    'isData','isVenc','medVal','ckData','rcData'].forEach(ligaCalDia);
+    'isData','isVenc','medVal','medBalData','ckData','rcData'].forEach(ligaCalDia);
   ['gMes'].forEach(ligaCalMes);
   if($('#ckLocal'))$('#ckLocal').value=CFG.local||'';
   if($('#ckData'))setDataDia('ckData',hoje());
@@ -8210,7 +8238,7 @@ function montaTelaFicha(){
   sel.dataset.pronto='1';
   const lst=all();
   sel.innerHTML='<option value="">— escolha seu nome —</option>'+
-    lst.map(x=>'<option value="'+x.id+'">'+esc(rotulo(x))+(x.completo?' — '+esc(x.completo):'')+'</option>').join('');
+    lst.map(x=>'<option value="'+x.id+'">'+esc(rotulo(x))+'</option>').join('');
   sel.onchange=()=>{
     $('#pubForm').classList.toggle('hidden',!sel.value);
     if(!sel.value)return;
@@ -9690,18 +9718,118 @@ function renderInspecoes(){
 }
 $('#medAdd').onclick=async()=>{
   const nome=$('#medNome').value.trim();
-  if(!nome){toast('Informe o medicamento.',true);return;}
-  MED.itens.push({id:uid(),nome,forma:$('#medForma').value,lote:$('#medLote').value.trim(),
+  if(!nome){toast('Informe o item.',true);return;}
+  MED.itens.push({id:uid(),nome,categoria:$('#medCategoria').value,forma:$('#medForma').value,lote:$('#medLote').value.trim(),
     dot:num($('#medDot').value),qtd:num($('#medQtd').value),val:$('#medVal').value,
     obs:$('#medObs').value.trim(),ts:Date.now()});
   const ok=await salvar('medicamentos',MED);
   ['#medNome','#medLote','#medDot','#medQtd','#medObs'].forEach(s=>$(s).value='');
   setDataDia('medVal','');
   renderMedicamentos();
-  if(ok)toast('Medicamento incluído.');
+  if(ok)toast('Item incluído.');
 };
-function situacaoMed(m){
-  const t=hoje();
+/* ── importar lista colada ──
+   O militar da saúde mantém a relação num bloco de texto (Notas do celular,
+   por exemplo). Título em linha própria (sem ":") muda a categoria dos itens
+   seguintes; cada item é "Nome: quantidade+unidade V:mm/aa" ou "...IND" pra
+   sem validade. Vencido/válido nunca precisa vir separado à mão — é sempre
+   calculado da data, então uma linha embaixo de um título "...VENCIDO" ou
+   "...VENCIDA" entra igual, e a situação real aparece sozinha no Estoque. */
+const MED_FORMA_POR_UNIDADE={un:'Unidade',cp:'Comprimido',cpr:'Comprimido',amp:'Ampola',fr:'Frasco',ml:'Frasco',
+  kit:'Kit',"kit's":'Kit',kits:'Kit'};
+function medDetectaCategoria(linha){
+  if(linha.indexOf(':')>=0)return null;              /* tem ":" → é item, não título */
+  const up=linha.toUpperCase();
+  if(!up.trim())return undefined;                     /* linha em branco: não muda nada */
+  if(up.includes('SUTURA'))return 'Sutura';
+  if(up.includes('MEDICA'))return 'Medicamento';       /* cobre MEDICAÇÃO/MEDICACAO, vencida ou não */
+  if(up.includes('MATERIAL'))return 'Material';
+  return null;                                         /* título desconhecido: ignora a linha */
+}
+function medParseLinha(linha,categoria){
+  const l=linha.trim();
+  const idx=l.indexOf(':');
+  if(idx<0)return null;
+  const nome=l.slice(0,idx).trim();
+  let resto=l.slice(idx+1).trim();
+  if(!nome||!resto)return null;
+  let val='',obs='';
+  const mv=resto.match(/V\s*:?\s*(\d{1,2})\s*[\/:.]\s*(\d{2,4})/i);
+  if(mv){
+    let mm=+mv[1],aa=+mv[2]; if(aa<100)aa+=2000;
+    if(mm>=1&&mm<=12){
+      const ultimoDia=new Date(aa,mm,0).getDate();
+      val=aa+'-'+pad(mm)+'-'+pad(ultimoDia);
+    }
+    resto=resto.slice(0,mv.index).trim();
+  }else if(/\bIND\b/i.test(resto)){
+    resto=resto.replace(/\bIND\b/i,'').trim();
+  }else if(/fora da validade/i.test(resto)){
+    obs='Fora da validade (sem data exata informada na relação)';
+    resto=resto.replace(/fora da validade/i,'').trim();
+  }
+  const mq=resto.match(/(\d+(?:[.,]\d+)?)\s*([A-Za-zÀ-ÿ'’]*)/);
+  const qtd=mq?parseFloat(mq[1].replace(',','.')):0;
+  const unidade=mq?mq[2]:'';
+  const forma=MED_FORMA_POR_UNIDADE[unidade.toLowerCase()]||(unidade?'Outro':'');
+  return {nome,qtd,val,obs,categoria,forma,loteObs:unidade&&!forma?('unidade: '+unidade):''};
+}
+function medColarParse(texto){
+  let categoria='Material';                           /* se colar sem título nenhum, assume material */
+  const itens=[],ignoradas=[];
+  texto.split('\n').forEach(linhaBruta=>{
+    const linha=linhaBruta.trim();
+    if(!linha)return;
+    const cat=medDetectaCategoria(linha);
+    if(cat===undefined)return;                         /* branco */
+    if(cat){categoria=cat;return;}
+    if(linha.indexOf(':')<0){ignoradas.push(linha);return;}
+    const item=medParseLinha(linha,categoria);
+    if(item&&item.nome)itens.push(item); else ignoradas.push(linha);
+  });
+  return {itens,ignoradas};
+}
+function medColarPrevia(){
+  const texto=$('#medColar').value;
+  const {itens,ignoradas}=medColarParse(texto);
+  const host=$('#medColarPrevia');
+  if(!texto.trim()){host.innerHTML='';$('#medColarStatus').textContent='';return {itens,ignoradas};}
+  $('#medColarStatus').textContent=itens.length+' item(ns) reconhecido(s)'+(ignoradas.length?', '+ignoradas.length+' linha(s) não entendida(s)':'')+'.';
+  host.innerHTML=(itens.length?('<div class="scroller" style="margin-top:10px"><table><thead><tr>'+
+    '<th>Item</th><th style="width:110px">Categoria</th><th class="num" style="width:80px">Qtd</th>'+
+    '<th style="width:100px">Validade</th><th></th></tr></thead><tbody>'+
+    itens.map(i=>'<tr><td>'+esc(i.nome)+(i.obs?'<br><span style="color:var(--muted);font-size:12px">'+esc(i.obs)+'</span>':'')+'</td>'+
+      '<td class="mono">'+esc(i.categoria)+'</td><td class="num">'+i.qtd+'</td>'+
+      '<td class="mono">'+(i.val?brDate(i.val):'—')+'</td>'+
+      '<td></td></tr>').join('')+'</tbody></table></div>'):'')+
+    (ignoradas.length?('<p class="hint" style="margin:10px 2px 0">Não entendi: '+ignoradas.map(esc).join(' · ')+'</p>'):'')+
+    (itens.length?'<div style="margin-top:10px"><button class="btn" id="medColarOk">Importar '+itens.length+' item(ns) pro Estoque</button></div>':'');
+  if($('#medColarOk'))$('#medColarOk').onclick=async()=>{
+    const b=$('#medColarOk'); b.disabled=true; b.textContent='Importando…';
+    itens.forEach(i=>MED.itens.push({id:uid(),nome:i.nome,categoria:i.categoria,forma:i.forma||'Outro',
+      lote:'',dot:0,qtd:i.qtd,val:i.val,obs:(i.obs||'')+(i.loteObs?(i.obs?' · ':'')+i.loteObs:''),ts:Date.now()}));
+    const ok=await salvar('medicamentos',MED);
+    $('#medColar').value=''; host.innerHTML=''; $('#medColarStatus').textContent='';
+    renderMedicamentos();
+    toast(ok?(itens.length+' item(ns) importado(s).'):'Não foi possível gravar.',!ok);
+  };
+  return {itens,ignoradas};
+}
+if($('#medColarPrever'))$('#medColarPrever').onclick=medColarPrevia;
+if($('#medBusca'))$('#medBusca').addEventListener('input',renderMedicamentos);
+if($('#medFiltroCat'))$('#medFiltroCat').addEventListener('change',renderMedicamentos);
+if($('#medBalPdf'))$('#medBalPdf').onclick=()=>{
+  const b=$('#medBalPdf'),rot=b.textContent;
+  b.disabled=true;b.textContent='Gerando…';
+  try{
+    const D=new Pdf();
+    pdfBalancoSaude(D,$('#medBalData').value||hoje(),$('#medBalCat').value);
+    entregarPdf(D.bytes(),'Balanco_Saude_'+($('#medBalData').value||hoje())+'.pdf');
+  }catch(e){toast('Falhou ao montar o balanço: '+(e.message||e),true);}
+  finally{b.disabled=false;b.textContent=rot;}
+};
+function situacaoMed(m,dataRef){
+  const t=dataRef||hoje();
   if(m.val&&m.val<t)return {cls:'red',txt:'Vencido',ordem:0};
   if(+m.qtd<=0)return {cls:'red',txt:'Sem estoque',ordem:0};
   const faltando=(+m.dot>0&&+m.qtd<+m.dot);
@@ -9711,21 +9839,61 @@ function situacaoMed(m){
   if(faltando)return {cls:'out',txt:'Abaixo da dotação',ordem:1};
   return {cls:'in',txt:'Em dia',ordem:2};
 }
+/* Reconstrói a existência de um item numa data passada, desfazendo as
+   entradas/baixas lançadas depois dela. Sem registro de movimento anterior
+   à data (item cadastrado depois), não inventa número: devolve desconhecido. */
+function medExistenciaNaData(m,dataISO){
+  if(!dataISO||dataISO>=hoje())return {qtd:+m.qtd||0,desconhecido:false};
+  const criado=m.ts?new Date(m.ts).toISOString().slice(0,10):null;
+  if(criado&&dataISO<criado)return {qtd:null,desconhecido:true};
+  const corte=new Date(dataISO+'T23:59:59').getTime();
+  const desfazer=(m.mov||[]).filter(mv=>mv.ts>corte).reduce((s,mv)=>s+(+mv.q||0),0);
+  return {qtd:q2((+m.qtd||0)-desfazer),desconhecido:false};
+}
+function pdfBalancoSaude(D,dataBal,categoria){
+  const dataRef=dataBal||hoje();
+  const itens=MED.itens.filter(m=>!categoria||(m.categoria||'Medicamento')===categoria)
+    .slice().sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||'')||a.nome.localeCompare(b.nome));
+  let y=tituloPdf(D,cabecalhoPdf(D),'Balanço do Estoque de Saúde',
+    (categoria||'Todas as categorias')+' · '+itens.length+' '+(itens.length===1?'item':'itens')+
+    ' · posição de '+brDate(dataRef));
+  const larguras=[10,58,26,18,22,22,18];
+  const cabecalho=['Nº','Item','Categoria','Forma','Exist.','Validade','Situação'];
+  const linhas=itens.map((m,i)=>{
+    const ex=medExistenciaNaData(m,dataRef);
+    const sit=ex.desconhecido?{txt:'Sem registro'}:situacaoMed({...m,qtd:ex.qtd},dataRef);
+    return [String(i+1),m.nome,m.categoria||'Medicamento',m.forma||'—',
+      ex.desconhecido?'—':String(ex.qtd),m.val?brDate(m.val):'—',sit.txt];
+  });
+  y=D.tabela({x:18,y:y+4,larguras,cabecalho,linhas,centralizar:[0,2,3,4,5,6],size:8.2,margemBaixo:34});
+  assinaturaPdf(D,y);
+  D.numerar();
+}
 function renderMedicamentos(){
-  const lst=MED.itens.map(m=>({m,sit:situacaoMed(m)}))
-    .sort((a,b)=>a.sit.ordem-b.sit.ordem||a.m.nome.localeCompare(b.m.nome));
-  $('#nMed').textContent=pad(lst.length);
-  const vencidos=lst.filter(o=>o.m.val&&o.m.val<hoje()).length;
-  const proxVenc=lst.filter(o=>o.m.val&&o.m.val>=hoje()&&o.m.val<=addDias(hoje(),JANELA_VENC_SAUDE)).length;
-  const abaixo=lst.filter(o=>+o.m.dot>0&&+o.m.qtd<+o.m.dot).length;
-  $('#medKpis').innerHTML=[['Itens',lst.length],['Vencidos',vencidos],
+  if($('#medBalData')&&!$('#medBalData').value)setDataDia('medBalData',hoje());
+  const todos=MED.itens.map(m=>({m,sit:situacaoMed(m)}));
+  $('#nMed').textContent=pad(todos.length);
+  const vencidos=todos.filter(o=>o.m.val&&o.m.val<hoje()).length;
+  const proxVenc=todos.filter(o=>o.m.val&&o.m.val>=hoje()&&o.m.val<=addDias(hoje(),JANELA_VENC_SAUDE)).length;
+  const abaixo=todos.filter(o=>+o.m.dot>0&&+o.m.qtd<+o.m.dot).length;
+  $('#medKpis').innerHTML=[['Itens',todos.length],['Vencidos',vencidos],
     ['Vencem em '+JANELA_VENC_SAUDE+'d',proxVenc],['Abaixo da dotação',abaixo]]
     .map(k=>'<div class="kpi"><span>'+esc(k[0])+'</span><b>'+k[1]+'</b></div>').join('');
-  $('#listMed').innerHTML=lst.length?('<table><thead><tr><th>Medicamento</th><th style="width:110px">Forma</th>'+
+
+  const filtroCat=$('#medFiltroCat')?$('#medFiltroCat').value:'';
+  const filtroTxt=($('#medBusca')?$('#medBusca').value:'').toLowerCase().trim();
+  const lst=todos.filter(o=>{
+      if(filtroCat&&(o.m.categoria||'Medicamento')!==filtroCat)return false;
+      if(!filtroTxt)return true;
+      return [o.m.nome,o.m.categoria,o.m.forma,o.m.lote,o.m.obs].some(v=>String(v||'').toLowerCase().includes(filtroTxt));
+    })
+    .sort((a,b)=>a.sit.ordem-b.sit.ordem||a.m.nome.localeCompare(b.m.nome));
+  $('#listMed').innerHTML=lst.length?('<table><thead><tr><th>Item</th><th style="width:110px">Categoria</th><th style="width:100px">Forma</th>'+
     '<th style="width:100px">Lote</th><th class="num" style="width:90px">Dotação</th>'+
     '<th class="num" style="width:90px">Existe</th><th style="width:100px">Validade</th>'+
     '<th style="width:150px">Situação</th><th style="width:170px">Ajuste</th><th></th></tr></thead><tbody>'+
     lst.map(o=>'<tr><td>'+esc(o.m.nome)+(o.m.obs?'<br><span style="color:var(--muted);font-size:12px">'+esc(o.m.obs)+'</span>':'')+'</td>'+
+      '<td class="mono">'+esc(o.m.categoria||'Medicamento')+'</td>'+
       '<td class="mono">'+esc(o.m.forma||'—')+'</td><td class="mono">'+esc(o.m.lote||'—')+'</td>'+
       '<td class="num">'+(+o.m.dot||0)+'</td><td class="num">'+(+o.m.qtd||0)+'</td>'+
       '<td class="mono">'+(o.m.val?brDate(o.m.val):'—')+'</td>'+
@@ -9734,13 +9902,13 @@ function renderMedicamentos(){
         '<button class="mini" data-medbaixa="'+o.m.id+'">− baixa</button>'+
         '<button class="mini" data-medentra="'+o.m.id+'">+ entrada</button></div></td>'+
       '<td class="acts"><button class="mini del" data-meddel="'+o.m.id+'">Excluir</button></td></tr>').join('')+
-    '</tbody></table>'):'<p class="hint" style="margin:0">Nenhum medicamento cadastrado.</p>';
+    '</tbody></table>'):('<p class="hint" style="margin:0">'+(todos.length?'Nenhum item bate com o filtro.':'Nenhum item cadastrado.')+'</p>');
   $$('#listMed [data-medbaixa]').forEach(b=>b.onclick=()=>ajusteMed(b.dataset.medbaixa,-1));
   $$('#listMed [data-medentra]').forEach(b=>b.onclick=()=>ajusteMed(b.dataset.medentra,1));
-  $$('#listMed [data-meddel]').forEach(b=>b.onclick=()=>confirmar('Excluir medicamento',
-    'O item sai da botica de bordo.',async()=>{
+  $$('#listMed [data-meddel]').forEach(b=>b.onclick=()=>confirmar('Excluir item',
+    'O item sai do Estoque de Saúde.',async()=>{
       MED.itens=MED.itens.filter(m=>m.id!==b.dataset.meddel);
-      if(await salvar('medicamentos',MED))toast('Medicamento excluído.');
+      if(await salvar('medicamentos',MED))toast('Item excluído.');
       renderMedicamentos();}));
 }
 function ajusteMed(id,sinal){
