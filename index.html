@@ -201,6 +201,8 @@ td.num{font-family:var(--mono);font-size:12.5px;text-align:right;white-space:now
 th.num{text-align:right}
 .scroller{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .gradeserv td.rowlab{box-shadow:1px 0 0 var(--line)}
+.tmftGrid th,.tmftGrid td{white-space:nowrap}
+.tmftGrid input{width:150px;font-size:11.5px;padding:5px 7px}
 .falta{color:var(--alert);font-family:var(--mono);font-size:11.5px}
 .pill{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:3px;white-space:nowrap}
 .pill.out{background:#F6E8D2;color:var(--terra)}
@@ -1452,8 +1454,39 @@ body.semvideo .sp-foto{display:block}
     </div>
   </div>
   <div id="sub-tmft" class="hidden">
-    <div class="card reveal"><h2>TMFT</h2>
-      <p class="hint" style="margin:0">Subm&oacute;dulo criado, pronto para receber o conte&uacute;do. Me diga o que entra aqui &mdash; quais campos, quem controla e o que precisa gerar &mdash; que eu monto.</p></div>
+    <div class="subtabs" id="subTmft">
+      <button data-sub="metadados" aria-selected="true">Metadados</button>
+      <button data-sub="exportar" aria-selected="false">Exportar</button>
+    </div>
+    <div id="tmft-metadados">
+      <div class="subtabs" id="subTmftMeta">
+        <button data-sub="planilha" aria-selected="true">Planilha completa</button>
+        <button data-sub="individual" aria-selected="false">Consulta individual</button>
+      </div>
+      <div id="tmftmeta-planilha">
+        <div class="card reveal">
+          <h2>Tabela Mestra do navio <span class="n" id="nTmft">0</span></h2>
+          <p class="hint" style="margin:0 0 12px">Toque numa célula e edite direto — grava sozinho ao sair do campo. Nome de guerra e posto vêm do Efetivo; para corrigi-los, mude lá.</p>
+          <div class="scroller" id="tmftPlanilha"></div>
+        </div>
+      </div>
+      <div id="tmftmeta-individual" class="hidden">
+        <div class="card reveal">
+          <h2>Consulta individual</h2>
+          <div class="row" style="margin-bottom:14px">
+            <div style="flex:1 1 260px"><label>Militar</label><select id="tmftMilSel"></select></div>
+          </div>
+          <div id="tmftIndForm"></div>
+        </div>
+      </div>
+    </div>
+    <div id="tmft-exportar" class="hidden">
+      <div class="card reveal">
+        <h2>Exportar Tabela Mestra</h2>
+        <p class="hint" style="margin:0 0 12px">Gera o PDF em paisagem, no mesmo layout da planilha original: tripulação e destacados, cada um em duas partes de colunas — e a assinatura do Imediato em todas as páginas.</p>
+        <button class="btn" id="tmftExportar">Gerar PDF</button>
+      </div>
+    </div>
   </div>
   <div id="sub-tmi" class="hidden">
     <div class="card reveal"><h2>TMI</h2>
@@ -3014,9 +3047,9 @@ const RELACAO=[
  ['MN','25.0268.44','VICTOR VAZ DE QUEIROZ','QUEIROZ']];
 
 let TAF=null;
-let CREW=null,CFG=null,EFE=null,FER=null,PAG=null,PAI=null,GAS=null,RAN=null,CAR=null,DOCS=null,PAP=null,SRV=null,DET=null,TRC=null,SAU=null,MED=null,FOR=null,PES=null,COM=null,DM=null;
+let CREW=null,CFG=null,EFE=null,FER=null,PAG=null,PAI=null,GAS=null,RAN=null,CAR=null,DOCS=null,PAP=null,SRV=null,DET=null,TRC=null,SAU=null,MED=null,FOR=null,PES=null,COM=null,DM=null,TMFT=null;
 let TAB='painel', SUB_PAINEL='visao', SUB='gastos', SUB_EFE='tripulacao', SUB_DM='controle', SUB_FER='programadas', SUB_SRV='detalhes', SUB_DET='porto', SUB_SVCAT='sporto',
-  SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', lastSync=null;
+  SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', SUB_TMFT='metadados', SUB_TMFTMETA='planilha', TMFT_MIL='', lastSync=null;
 const DIAS_SEMANA=['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'];
 const MESES_ABREV=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 const SEED_SERVICOS_PORTO=['Supervisor de Serviço','Contramestre (CM-1) 08-12 / 16-20 / 00-04',
@@ -3478,6 +3511,8 @@ async function load(first){
   DM=m.diasmar||{baseline:[],termos:[]};
   if(!DM.baseline)DM.baseline=[];
   if(!DM.termos)DM.termos=[];
+  TMFT=m.tmft||{campos:{}};
+  if(!TMFT.campos)TMFT.campos={};
   /* migra registros antigos: inspeção sem etapa passa a valer como concluída */
   (SAU.inspecoes||[]).forEach(r=>{
     if(!r.etapa)r.etapa=r.venc?'concluida':'aberta';
@@ -4377,6 +4412,18 @@ $$('#subSaude button').forEach(b=>b.onclick=()=>{
   $$('#subSaude button').forEach(o=>o.setAttribute('aria-selected',o===b));
   ['inspecoes','medicamentos','taf'].forEach(s=>$('#saude-'+s).classList.toggle('hidden',s!==SUB_SAUDE));
   renderSaude();
+});
+$$('#subTmft button').forEach(b=>b.onclick=()=>{
+  SUB_TMFT=b.dataset.sub;
+  $$('#subTmft button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  ['metadados','exportar'].forEach(s=>$('#tmft-'+s).classList.toggle('hidden',s!==SUB_TMFT));
+  renderTmft();
+});
+$$('#subTmftMeta button').forEach(b=>b.onclick=()=>{
+  SUB_TMFTMETA=b.dataset.sub;
+  $$('#subTmftMeta button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  ['planilha','individual'].forEach(s=>$('#tmftmeta-'+s).classList.toggle('hidden',s!==SUB_TMFTMETA));
+  renderTmft();
 });
 $$('#subFerias button').forEach(b=>b.onclick=()=>{
   SUB_FER=b.dataset.sub;
@@ -7827,6 +7874,7 @@ function renderEfetivo(){
   if(SUB_EFE==='movimentacao')renderEfe();
   if(SUB_EFE==='saude')renderSaude();
   if(SUB_EFE==='plano')renderPlano();
+  if(SUB_EFE==='tmft')renderTmft();
 }
 /* ═══════════════════ TAF — teste de aptidão física ═══════════════════
    Três modalidades por militar, uma marca cada: feito, não feito ou dispensado.
@@ -8276,6 +8324,145 @@ async function importarPlanilhaPB(){
            +' · vencimentos de IS levados para Saúde'):'Não foi possível gravar.',!ok);
   if(semPar.length)console.log('sem par no efetivo:',semPar);
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   TMFT — Tabela Mestra de Funções e Tarefas
+   Um militar (tripulação + destacados) por linha, com onde ele guarnece em
+   cada evolução do navio. Nome de guerra e posto vêm do Efetivo — aqui só
+   fica o que é específico da Tabela Mestra, pra não duplicar cadastro.
+   ═══════════════════════════════════════════════════════════════════════ */
+const TMFT_CAMPOS=[
+  ['bordo','Nº de bordo'],['lotacao','Lotação'],['cargo','Cargo / Incumbência'],
+  ['sangue','Tipo sanguíneo'],['camarote','Camarote / Alojamento'],
+  ['dem','DEM'],['cond3','Condição III'],['susp','Postos de suspender e fundear'],
+  ['demBv','DEM em baixa visibilidade / canal varrido'],['emerg','Postos de emergência'],
+  ['hm','Detalhe de homem ao mar'],['aband','Postos de abandono'],
+  ['gse','GSE'],['gsd','GSD'],['cont','Postos de continência'],['obs','Observações']];
+function tmftLista(){ return grupo('tripulacao').concat(grupo('destacado')); }
+function tmftCampo(id){ TMFT.campos=TMFT.campos||{}; return (TMFT.campos[id]=TMFT.campos[id]||{}); }
+function renderTmft(){
+  if(SUB_TMFT==='metadados'){
+    if(SUB_TMFTMETA==='planilha')renderTmftPlanilha();
+    else renderTmftIndividual();
+  }else renderTmftExportar();
+}
+function renderTmftPlanilha(){
+  const lst=tmftLista();
+  $('#nTmft').textContent=pad(lst.length);
+  const th='<th style="width:70px">Nº bordo</th><th style="width:80px">Posto</th><th style="min-width:130px">Nome</th>'+
+    TMFT_CAMPOS.slice(1).map(([,rot])=>'<th style="min-width:150px">'+esc(rot)+'</th>').join('');
+  const linhas=lst.map(x=>{
+    const c=tmftCampo(x.id);
+    const cel=(k)=>'<td><input type="text" data-tmft="'+x.id+'|'+k+'" value="'+esc(c[k]||'')+'"></td>';
+    return '<tr>'+cel('bordo')+'<td class="mono">'+esc(x.posto||'')+'</td><td>'+esc(x.nome||'')+'</td>'+
+      TMFT_CAMPOS.slice(1).map(([k])=>cel(k)).join('')+'</tr>';
+  }).join('');
+  $('#tmftPlanilha').innerHTML='<table class="tmftGrid"><thead><tr>'+th+'</tr></thead><tbody>'+
+    (linhas||'<tr><td colspan="'+(TMFT_CAMPOS.length+2)+'"><p class="hint" style="margin:6px 0">Nenhum militar na tripulação ou destacado.</p></td></tr>')+
+    '</tbody></table>';
+  ligaTmftPlanilha();
+}
+function ligaTmftPlanilha(){
+  $$('#tmftPlanilha [data-tmft]').forEach(inp=>{
+    inp.addEventListener('change',async()=>{
+      const [id,k]=inp.dataset.tmft.split('|');
+      tmftCampo(id)[k]=inp.value;
+      const ok=await salvar('tmft',TMFT);
+      if(!ok)toast('Não foi possível gravar.',true);
+    });
+  });
+}
+function renderTmftIndividual(){
+  const lst=tmftLista();
+  const sel=$('#tmftMilSel');
+  if(!TMFT_MIL||!lst.some(x=>x.id===TMFT_MIL))TMFT_MIL=lst[0]?lst[0].id:'';
+  sel.innerHTML=lst.length?lst.map(x=>'<option value="'+x.id+'"'+(x.id===TMFT_MIL?' selected':'')+'>'+
+    esc(rotulo(x))+'</option>').join(''):'<option value="">Nenhum militar</option>';
+  sel.onchange=()=>{TMFT_MIL=sel.value;renderTmftIndForm();};
+  renderTmftIndForm();
+}
+function renderTmftIndForm(){
+  const host=$('#tmftIndForm');
+  const x=milPorId(TMFT_MIL);
+  if(!x){host.innerHTML='<p class="hint" style="margin:0">Nenhum militar selecionado.</p>';return;}
+  const c=tmftCampo(TMFT_MIL);
+  host.innerHTML='<div class="row">'+
+    TMFT_CAMPOS.map(([k,rot])=>'<div><label>'+esc(rot)+'</label>'+
+      '<input type="text" data-tmftind="'+k+'" value="'+esc(c[k]||'')+'"></div>').join('')+
+    '</div>';
+  $$('#tmftIndForm [data-tmftind]').forEach(inp=>{
+    inp.addEventListener('change',async()=>{
+      tmftCampo(TMFT_MIL)[inp.dataset.tmftind]=inp.value;
+      const ok=await salvar('tmft',TMFT);
+      toast(ok?'Gravado.':'Não foi possível gravar.',!ok);
+    });
+  });
+}
+function renderTmftExportar(){ /* botão estático, nada a desenhar */ }
+/* ── PDF: mesmo layout de colunas da planilha original (2 grupos de colunas,
+   tripulação e destacados à parte), com a assinatura em toda página ── */
+const TMFT_PAG1=['bordo','lotacao','cargo','sangue','camarote','cond3','dem','susp','demBv'];
+const TMFT_PAG2=['bordo','lotacao','gse','cont','aband','emerg','gsd','hm','obs'];
+const TMFT_ROT={bordo:'Nº bordo',lotacao:'Lotação',cargo:'Cargo/Incumb.',sangue:'Sangue',camarote:'Camarote',
+  cond3:'Condição III',dem:'DEM',susp:'Susp. e fundear',demBv:'DEM BV/canal varrido',gse:'GSE',cont:'Continência',
+  aband:'Abandono',emerg:'Emergência',gsd:'GSD',hm:'Homem ao mar',obs:'Observações'};
+function tmftTabelaPdf(D,y,titulo,lista,campos){
+  y=D.espacoMargem(y,14,10);
+  D.txt(titulo,15,y,{size:10,font:'F2'});y+=5;
+  const larg=[16,20].concat(Array(campos.length).fill((267-36)/campos.length));
+  const cab=['Efetivo','Nome'].concat(campos.map(k=>TMFT_ROT[k]));
+  const linhas=lista.map(x=>{
+    const c=tmftCampo(x.id);
+    return [x.posto||'',x.nome||''].concat(campos.map(k=>c[k]||'—'));
+  });
+  return D.tabela({x:15,y,larguras:larg,cabecalho:cab,linhas,size:7.2,margemBaixo:26});
+}
+function pdfTmft(D){
+  D.usarBrasao();
+  const cx=D.PGW/2;
+  const cabecalho=()=>{
+    let y=8;
+    D.imagem(15,y,13,18);
+    D.txt('MARINHA DO BRASIL',cx,y+3.5,{size:11,font:'F2',align:'center'});
+    D.txt('AVISO HIDROCEANOGRÁFICO FLUVIAL RIO TOCANTINS',cx,y+9,{size:11,font:'F2',align:'center'});
+    D.txt('TABELA MESTRA DE FUNÇÕES E TAREFAS (TMFT)',cx,y+15,{size:11,font:'F2',align:'center'});
+    return y+20;
+  };
+  const trip=grupo('tripulacao'), dest=grupo('destacado');
+  let y=cabecalho();
+  y=tmftTabelaPdf(D,y,'Tripulação / Efetivo próprio — parte 1 de 2',trip,TMFT_PAG1);
+  D.novaPagina();y=cabecalho();
+  y=tmftTabelaPdf(D,y,'Tripulação / Efetivo próprio — parte 2 de 2',trip,TMFT_PAG2);
+  if(dest.length){
+    D.novaPagina();y=cabecalho();
+    y=tmftTabelaPdf(D,y,'Destacados — parte 1 de 2',dest,TMFT_PAG1);
+    D.novaPagina();y=cabecalho();
+    y=tmftTabelaPdf(D,y,'Destacados — parte 2 de 2',dest,TMFT_PAG2);
+  }
+  /* assinatura fixa no rodapé de toda página — não usa D.espaco() aqui:
+     as páginas já estão fechadas, só carimba por cima na posição de sempre */
+  const salvo=D.ops, yAss=Y_ASSINATURA(D), aut=milPorId(CFG.autId);
+  D.paginas.forEach(ops=>{
+    D.ops=ops;
+    D.linha(15,yAss,110,yAss);
+    let yy=yAss+4.4;
+    D.txtNomeMil(aut,62.5,yy,{size:9,align:'center'});yy+=4.4;
+    D.txt(aut?extenso(aut.posto):'',62.5,yy,{size:9,align:'center'});yy+=4.4;
+    D.txt(CFG.autCargo||'Imediato',62.5,yy,{size:9,align:'center'});
+  });
+  D.ops=salvo;
+  D.numerar();
+}
+$('#tmftExportar').onclick=async()=>{
+  const btn=$('#tmftExportar'), rot=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando…';
+  try{
+    const D=new Pdf(true);
+    pdfTmft(D);
+    entregarPdf(D.bytes(),'Tabela_Mestra_TMFT_'+ddmmmCurto(hoje())+'.pdf');
+  }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
+  finally{btn.disabled=false;btn.textContent=rot;}
+};
+
 /* ── tela pública: o militar preenche a própria ficha ── */
 function ehTelaFicha(){ return (location.hash||'').toLowerCase().indexOf('ficha')>=0; }
 function montaTelaFicha(){
