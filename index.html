@@ -1516,9 +1516,17 @@ body.semvideo .sp-foto{display:block}
     </div>
     <div id="tmi-exportar" class="hidden">
       <div class="card reveal">
-        <h2>Exportar Tabela Mestra Individual</h2>
+        <h2>Exportar todas</h2>
         <p class="hint" style="margin:0 0 12px">PDF em paisagem, 4 cart&otilde;es por p&aacute;gina, prontos pra imprimir e recortar — um por militar da tripula&ccedil;&atilde;o e dos destacados. O bloco de abandono sai em branco, pra preencher na hora.</p>
-        <button class="btn" id="tmiExportar">Gerar PDF</button>
+        <button class="btn" id="tmiExportar">Gerar PDF de todas</button>
+      </div>
+      <div class="card reveal">
+        <h2>Exportar uma específica</h2>
+        <p class="hint" style="margin:0 0 12px">Escolhe um militar e sai só o cart&atilde;o dele, no mesmo padr&atilde;o.</p>
+        <div class="row" style="margin-bottom:14px">
+          <div style="flex:1 1 260px"><label>Militar</label><select id="tmiExpMilSel"></select></div>
+        </div>
+        <button class="btn" id="tmiExportarUma">Gerar PDF desta TMI</button>
       </div>
     </div>
   </div>
@@ -8562,20 +8570,27 @@ function tmiCartaoHtml(x){
       '<span class="tmiBranco"></span></div>').join('')+
     '</div></div></div>';
 }
-function renderTmiExportar(){ /* botão estático, nada a desenhar */ }
+function renderTmiExportar(){
+  const lst=tmftLista(), sel=$('#tmiExpMilSel');
+  if(!sel)return;
+  if(!TMI_MIL||!lst.some(x=>x.id===TMI_MIL))TMI_MIL=lst[0]?lst[0].id:'';
+  sel.innerHTML=lst.length?lst.map(x=>'<option value="'+x.id+'"'+(x.id===TMI_MIL?' selected':'')+'>'+
+    esc(rotulo(x))+'</option>').join(''):'<option value="">Nenhum militar</option>';
+  sel.onchange=()=>{TMI_MIL=sel.value;};
+}
 /* linha "Rótulo: valor" compacta, quebrando como qualquer texto longo */
 function tmiCampoLinhaPdf(D,x,y,w,rot,valor,size){
   quebra(rot+': '+(valor||'—'),size,w).forEach(ln=>{D.txt(ln,x,y,{size});y+=size*0.42;});
-  return y+0.5;
+  return y+0.25;
 }
 function tmiAbandonoLinhaPdf(D,x,y,w,rot,size){
   quebra(rot,size,w).forEach(ln=>{D.txt(ln,x,y,{size,font:'F2'});y+=size*0.42;});
-  y+=0.6;D.linha(x,y,x+w,y);
-  return y+1.1;
+  y+=0.8;D.linha(x,y,x+w,y);          /* espaço entre o rótulo e a linha de preencher à mão */
+  return y+1.6;   /* mais respiro DEPOIS da linha — é o que evita ela cruzar o próximo rótulo */
 }
-function pdfTmi(D){
-  const lst=tmftLista();
-  const mX=8,mY=8,gut=6,size=5.3;
+function pdfTmi(D,lista){
+  const lst=lista||tmftLista();
+  const mX=8,mY=8,gut=6,size=7.3,sizeAband=5.3;
   const cw=(D.PGW-2*mX-gut)/2, ch=(D.PGH-2*mY-gut)/2;
   const pos=[[mX,mY],[mX+cw+gut,mY],[mX,mY+ch+gut],[mX+cw+gut,mY+ch+gut]];
   lst.forEach((x,i)=>{
@@ -8587,12 +8602,16 @@ function pdfTmi(D){
     D.txt('AvHoFlu Rio Tocantins',cx+cw/2,y,{size:7,font:'F2',align:'center'});y+=3.6;
     D.txt('TABELA MESTRA INDIVIDUAL (TMI)',cx+cw/2,y,{size:7.3,font:'F2',align:'center'});y+=3.4;
     D.linha(cx+2,y,cx+cw-2,y);y+=3.2;
-    const colW=(cw-6)/2, xEsq=cx+2, xDir=cx+4+colW;
-    D.linha(cx+cw/2,y-1.5,cx+cw/2,cy+ch-2);
+    /* a coluna da esquerda tem valores mais longos — ganha mais largura que o
+       bloco de abandono, que é só rótulo curto e linha em branco */
+    const colWEsq=(cw-6)*0.6, colWDir=(cw-6)*0.4, xEsq=cx+2, xDir=cx+4+colWEsq;
+    D.linha(cx+2+colWEsq+2,y-1.5,cx+2+colWEsq+2,cy+ch-2);
     let yE=y, yD=y;
     D.txt('Informações para o abandono',xDir,yD,{size:6,font:'F2'});yD+=3;
-    tmiCamposDe(x).forEach(([rot,val])=>{yE=tmiCampoLinhaPdf(D,xEsq,yE,colW-2,rot,val,size);});
-    TMI_ABANDONO.forEach(rot=>{yD=tmiAbandonoLinhaPdf(D,xDir,yD,colW-2,rot,size);});
+    tmiCamposDe(x).forEach(([rot,val])=>{yE=tmiCampoLinhaPdf(D,xEsq,yE,colWEsq-2,rot,val,size);});
+    TMI_ABANDONO.forEach(rot=>{yD=tmiAbandonoLinhaPdf(D,xDir,yD,colWDir-2,rot,sizeAband);});
+    D.txt('(*) GUARNECE AUTO-EXCITADO',cx+2,cy+ch-5.4,{size:5});
+    D.txt('(**) GUARNECE PRC',cx+2,cy+ch-2,{size:5});
   });
 }
 $('#tmiExportar').onclick=async()=>{
@@ -8602,6 +8621,18 @@ $('#tmiExportar').onclick=async()=>{
     const D=new Pdf(true);
     pdfTmi(D);
     entregarPdf(D.bytes(),'Tabela_Mestra_Individual_TMI_'+ddmmmCurto(hoje())+'.pdf');
+  }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
+  finally{btn.disabled=false;btn.textContent=rot;}
+};
+$('#tmiExportarUma').onclick=async()=>{
+  const x=milPorId($('#tmiExpMilSel').value);
+  if(!x){toast('Escolha um militar.',true);return;}
+  const btn=$('#tmiExportarUma'), rot=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando…';
+  try{
+    const D=new Pdf(true);
+    pdfTmi(D,[x]);
+    entregarPdf(D.bytes(),'TMI_'+String(x.nome||'').replace(/\s+/g,'_')+'_'+ddmmmCurto(hoje())+'.pdf');
   }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
   finally{btn.disabled=false;btn.textContent=rot;}
 };
