@@ -8585,8 +8585,8 @@ function tmiCampoLinhaPdf(D,x,y,w,rot,valor,size){
 }
 function tmiAbandonoLinhaPdf(D,x,y,w,rot,size){
   quebra(rot,size,w).forEach(ln=>{D.txt(ln,x,y,{size,font:'F2'});y+=size*0.42;});
-  y+=0.8;D.linha(x,y,x+w,y);          /* espaço entre o rótulo e a linha de preencher à mão */
-  return y+1.6;   /* mais respiro DEPOIS da linha — é o que evita ela cruzar o próximo rótulo */
+  y+=1.0;D.linha(x,y,x+w,y);          /* espaço entre o rótulo e a linha de preencher à mão */
+  return y+2.0;   /* respiro DEPOIS da linha — é o que evita ela cruzar o próximo rótulo */
 }
 function pdfTmi(D,lista){
   const lst=lista||tmftLista();
@@ -8598,14 +8598,15 @@ function pdfTmi(D,lista){
     if(slot===0&&i>0)D.novaPagina();
     const [cx,cy]=pos[slot];
     D.caixa(cx,cy,cw,ch);
-    let y=cy+4.5;
-    D.txt('AvHoFlu Rio Tocantins',cx+cw/2,y,{size:7,font:'F2',align:'center'});y+=3.6;
-    D.txt('TABELA MESTRA INDIVIDUAL (TMI)',cx+cw/2,y,{size:7.3,font:'F2',align:'center'});y+=3.4;
-    D.linha(cx+2,y,cx+cw-2,y);y+=3.2;
-    /* a coluna da esquerda tem valores mais longos — ganha mais largura que o
-       bloco de abandono, que é só rótulo curto e linha em branco */
-    const colWEsq=(cw-6)*0.6, colWDir=(cw-6)*0.4, xEsq=cx+2, xDir=cx+4+colWEsq;
-    D.linha(cx+2+colWEsq+2,y-1.5,cx+2+colWEsq+2,cy+ch-2);
+    let y=cy+4.2;
+    D.txt('AvHoFlu Rio Tocantins',cx+cw/2,y,{size:7,font:'F2',align:'center'});y+=3.3;
+    D.txt('TABELA MESTRA INDIVIDUAL (TMI)',cx+cw/2,y,{size:7.3,font:'F2',align:'center'});y+=3.1;
+    D.linha(cx+2,y,cx+cw-2,y);y+=2.9;
+    /* linha central dividindo a folha ao meio — metade pra identificação
+       (quebra normal quando o valor não cabe, igual em outras telas do site),
+       metade pro bloco de abandono */
+    const meio=cx+cw/2, xEsq=cx+2, xDir=meio+2, colWEsq=cw/2-4, colWDir=cw/2-4;
+    D.linha(meio,y-1.5,meio,cy+ch-2);
     let yE=y, yD=y;
     D.txt('Informações para o abandono',xDir,yD,{size:6,font:'F2'});yD+=3;
     tmiCamposDe(x).forEach(([rot,val])=>{yE=tmiCampoLinhaPdf(D,xEsq,yE,colWEsq-2,rot,val,size);});
