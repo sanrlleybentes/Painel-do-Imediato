@@ -467,16 +467,18 @@ select.obtfase{min-width:210px;font-size:12px}
 .progWrap{position:relative;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -13px;
   padding:0 13px 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .progGrid{display:grid;grid-template-columns:112px 1fr;min-width:4500px}
-.progCorner,.progCorner2{position:sticky;left:0;background:var(--steel-800);z-index:3}
-.progMeses{position:sticky;top:0;display:grid;grid-template-columns:repeat(12,1fr);background:var(--steel-800);z-index:2;
-  font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.03em;color:var(--ink);border-bottom:1px solid var(--line)}
-.progMeses span{padding:6px 0 4px;text-align:center;border-left:1px solid var(--line)}
+.progCorner,.progCorner2{position:sticky;left:0;background:var(--ink);z-index:3}
+.progMeses{position:sticky;top:0;display:grid;grid-template-columns:repeat(12,1fr);background:var(--ink);z-index:2;
+  font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.03em;color:#fff}
+.progMeses span{padding:6px 0 4px;text-align:center;border-left:1px solid rgba(255,255,255,.18)}
 .progMeses span:first-child{border-left:none}
-.progCorner2{top:26px}
-.progDias{position:sticky;top:26px;height:16px;background:var(--steel-800);z-index:2;border-bottom:1px solid var(--line)}
+.progCorner2{top:26px;background:var(--steel-900)}
+.progDias{position:sticky;top:26px;height:16px;background:var(--steel-900);z-index:2;border-bottom:1px solid var(--line)}
 .progDias span{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--muted);top:2px;white-space:nowrap}
 .progDias i{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
-.progNome{position:sticky;left:0;background:var(--steel-800);z-index:1;display:flex;align-items:center;
+.progDias i.progTickMes{width:1.5px;background:var(--dest);opacity:.55}
+.progNome{position:sticky;left:0;background:linear-gradient(90deg,rgba(46,111,134,.14),var(--steel-800) 70%);
+  z-index:1;display:flex;align-items:center;border-left:3px solid var(--dest);
   padding:0 8px;font-size:12.5px;font-weight:600;font-family:var(--display);letter-spacing:.03em;text-transform:uppercase;
   border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .progTrack{position:relative;height:34px;border-bottom:1px solid var(--line);background:
@@ -486,10 +488,10 @@ select.obtfase{min-width:210px;font-size:12px}
   display:flex;align-items:center;overflow:hidden;font-family:var(--mono);font-size:10.5px;
   color:#fff;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.12);transition:filter .15s ease}
 .progSeg:hover{filter:brightness(1.12)}
-.progSeg.ferias{background:var(--terra)}
+.progSeg.ferias{background:var(--brass);color:var(--ink)}
+.progSeg.feito{background:var(--bode-claro)}
 .progSeg.lts{background:var(--alert)}
 .progSeg.lic{background:var(--dest)}
-.progSeg.cumprido{opacity:.55;filter:grayscale(.15)}
 .progHoje{position:absolute;top:0;bottom:0;width:2px;background:var(--brass);z-index:1;pointer-events:none}
 .progHoje::after{content:'HOJE';position:absolute;top:-15px;left:50%;transform:translateX(-50%);
   font-family:var(--mono);font-size:9px;color:var(--brass);letter-spacing:.06em;white-space:nowrap}
@@ -10060,10 +10062,10 @@ function renderProgramadas(){
   const ini0=new Date(anoNum,0,1,12);
   const tot=365+((anoNum%4===0&&anoNum%100!==0)||anoNum%400===0?1:0);
   $('#ganttLegenda').innerHTML='<div class="glegenda">'+
-    '<span><i style="background:var(--terra)"></i>Férias</span>'+
+    '<span><i style="background:var(--bode-claro)"></i>Já cumprido / em curso</span>'+
+    '<span><i style="background:var(--brass)"></i>Férias programadas</span>'+
     '<span><i style="background:var(--alert)"></i>LTS</span>'+
     '<span><i style="background:var(--dest)"></i>Licença / dispensa</span>'+
-    '<span style="opacity:.75"><i style="background:var(--muted)"></i>Esmaecido = já cumprido</span>'+
     '</div>';
 
   const ordem=all().filter(x=>porMil[x.id]);
@@ -10077,7 +10079,7 @@ function renderProgramadas(){
     for(let m=0;m<12;m++){
       [1,6,11,16,21,26].forEach(d=>{
         const pct=(progDiaDoAno(anoNum,m,d)-1)/tot*100;
-        ticks+='<i style="left:'+pct.toFixed(3)+'%"></i><span style="left:'+pct.toFixed(3)+'%">'+pad(d)+'</span>';
+        ticks+='<i class="'+(d===1?'progTickMes':'')+'" style="left:'+pct.toFixed(3)+'%"></i><span style="left:'+pct.toFixed(3)+'%">'+pad(d)+'</span>';
       });
     }
     const hojeIso=hoje(), mostraHoje=hojeIso.slice(0,4)===ano;
@@ -10092,15 +10094,16 @@ function renderProgramadas(){
       const segs=porMil[x.id].map(p=>{
         const a=Math.max(0,(new Date(p.ini+'T12:00:00')-ini0)/864e5);
         const b=Math.min(tot,(new Date(p.fim+'T12:00:00')-ini0)/864e5+1);
-        const cls=p.tipo==='lts'?'lts':(p.tipo==='ferias'?'ferias':'lic');
         const cumprido=p.fim<hoje()&&p.status!=='cancelada';
+        const emCurso=p.ini<=hoje()&&p.fim>=hoje()&&p.status!=='cancelada';
+        const cls=p.tipo==='lts'?'lts':(p.tipo==='ferias'?((cumprido||emCurso)?'feito':'ferias'):'lic');
         const widthPct=Math.max(0.28,(b-a)/tot*100);
         const larguraPx=widthPct/100*PROG_LARGURA_PX;
         const txt=larguraPx>90?(p.ini===p.fim?progFmtCurto(p.ini):progFmtCurto(p.ini)+' – '+progFmtCurto(p.fim)):'';
         const nDias=dias(p.ini,p.fim);
         const dtxt=(p.ini===p.fim?brDate(p.ini):brDate(p.ini)+' a '+brDate(p.fim))+' · '+nDias+(nDias===1?' dia':' dias')+
           (cumprido?' · já cumprido':'');
-        return '<button type="button" class="progSeg '+cls+(cumprido?' cumprido':'')+
+        return '<button type="button" class="progSeg '+cls+
           '" style="left:'+(a/tot*100).toFixed(3)+'%;width:'+widthPct.toFixed(3)+'%" data-t="'+
           esc(rotulo(x)+' — '+TIPO_FER[p.tipo])+'" data-d="'+esc(dtxt)+'">'+esc(txt)+'</button>';
       }).join('');
