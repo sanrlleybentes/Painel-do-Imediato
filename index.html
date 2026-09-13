@@ -2613,6 +2613,7 @@ body.semvideo .sp-foto{display:block}
         <div style="flex:2 1 240px"><label>Favorecido</label><input type="text" id="obtNeForn" placeholder="razão social"></div>
         <div style="flex:1 1 140px"><label>Valor</label><input type="text" id="obtNeValor" placeholder="0,00"></div>
         <div style="flex:1 1 160px"><label>Dispensa/Pregão</label><input type="text" id="obtNeAta" placeholder="0032/2026 ou PE 28/2024"></div>
+        <div style="flex:1 1 140px"><label>SOLEMP</label><input type="text" id="obtNeSolemp" placeholder="0048/2026"></div>
         <div style="flex:1 1 170px"><label>NUP</label><input type="text" id="obtNeProcesso" placeholder="63387.000143/2026-91"></div>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:10px">
@@ -2638,7 +2639,7 @@ body.semvideo .sp-foto{display:block}
     <div class="card reveal">
       <h2>Notas lançadas <span class="n" id="nObtNe">0</span></h2>
       <div class="row" style="align-items:flex-end">
-        <div style="flex:2 1 240px"><label>Procurar</label><input type="text" id="obtNeBusca" placeholder="número, favorecido, dispensa/pregão" autocomplete="off"></div>
+        <div style="flex:2 1 240px"><label>Procurar</label><input type="text" id="obtNeBusca" placeholder="número, favorecido, dispensa/pregão, SOLEMP" autocomplete="off"></div>
         <div style="flex:0 1 180px"><label>Situação</label>
           <select id="obtNeFiltro">
             <option value="">Todas</option>
@@ -7749,7 +7750,7 @@ function renderObtEmpenhos(){
   const f=($('#obtNeFiltro')||{}).value||'';
   const lista=nes.filter(n=>{
     if(f&&n.situacao!==f)return false;
-    if(q&&!(obtTem(n.numero,q)||obtTem(n.fornecedor,q)||obtTem(n.ata,q)||obtTem(n.cnpj,q)))return false;
+    if(q&&!(obtTem(n.numero,q)||obtTem(n.fornecedor,q)||obtTem(n.ata,q)||obtTem(n.solemp,q)||obtTem(n.cnpj,q)))return false;
     return true;
   }).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
 
@@ -7762,7 +7763,9 @@ function renderObtEmpenhos(){
          (n.ug?'<div class="obtmeta">UG '+esc(n.ug)+'</div>':'')+'</td>'+
        '<td class="mono" style="white-space:nowrap">'+esc(obtBr(n.data))+'</td>'+
        '<td>'+esc(n.fornecedor||'—')+'<div class="obtmeta mono">'+esc(n.cnpj||'')+'</div></td>'+
-       '<td class="mono">'+esc(n.ata||'—')+(n.processo?'<div class="obtmeta mono">'+esc(obtNup(n.processo))+
+       '<td class="mono">'+esc(n.ata||'—')+
+         (n.solemp?'<div class="obtmeta">SOLEMP '+esc(n.solemp)+'</div>':'')+
+         (n.processo?'<div class="obtmeta mono">'+esc(obtNup(n.processo))+
          (dispensaPorNup(n.processo)?' — '+esc(dispensaPorNup(n.processo).objeto||'').slice(0,40):'')+'</div>':'')+'</td>'+
        '<td class="num mono">'+esc(obtMoeda(n.valor))+'</td>'+
        '<td><span class="pill '+(n.situacao==='anulada'?'red':(n.situacao==='emitida'?'out':'in'))+'">'+
@@ -7887,12 +7890,12 @@ function pdmNdRoscaHtml(fatias){
 /* a linha da tabela é apertada de propósito (cabe mais nota na tela); ao
    clicar, tudo o que ali vem truncado/pequeno aparece por extenso aqui. */
 function neDetalheHtml(n){
-  const sol=solParaLigar(n.numero,n.ata);
+  const sol=solParaLigar(n.numero,n.solemp||n.ata);
   const disp=n.processo&&dispensaPorNup(n.processo);
   const linhas=[
     ['Número da NE',n.numero],['UG emitente',n.ug],['Data',obtBr(n.data)],
     ['CNPJ do favorecido',n.cnpj],['Favorecido',n.fornecedor],['Valor',obtMoeda(n.valor)],
-    ['Dispensa/Pregão',n.ata],['NUP',n.processo?obtNup(n.processo):''],
+    ['Dispensa/Pregão',n.ata],['SOLEMP',n.solemp||(sol?sol.numero:'')],['NUP',n.processo?obtNup(n.processo):''],
     ['Situação',OBT_SIT_NE[n.situacao]||n.situacao],['Natureza de Despesa',n.nd||''],['Observação',n.obs],
     ['Origem',n.fonte==='pdf'?'lançada a partir do PDF da NE':'lançada à mão'],
   ];
@@ -7909,7 +7912,7 @@ function neDetalheHtml(n){
 }
 
 function obtLimpaFormNe(){
-  ['obtNeNum','obtNeUg','obtNeCnpj','obtNeForn','obtNeValor','obtNeAta','obtNeProcesso','obtNeObs']
+  ['obtNeNum','obtNeUg','obtNeCnpj','obtNeForn','obtNeValor','obtNeAta','obtNeSolemp','obtNeProcesso','obtNeObs']
     .forEach(id=>{const e=$('#'+id);if(e)e.value='';});
   setDataDia('obtNeData','');
   $('#obtNeSit').value='emitida';
@@ -7925,7 +7928,8 @@ function obtEditaNe(id){
   setDataDia('obtNeData',n.data||'');
   $('#obtNeCnpj').value=n.cnpj||''; $('#obtNeForn').value=n.fornecedor||'';
   $('#obtNeValor').value=n.valor?String(n.valor).replace('.',','):'';
-  $('#obtNeAta').value=n.ata||''; $('#obtNeProcesso').value=n.processo||''; $('#obtNeObs').value=n.obs||'';
+  $('#obtNeAta').value=n.ata||''; $('#obtNeSolemp').value=n.solemp||'';
+  $('#obtNeProcesso').value=n.processo||''; $('#obtNeObs').value=n.obs||'';
   $('#obtNeSit').value=n.situacao||'emitida';
   $('#obtNeNd').value=n.nd||'';
   $('#obtNeCancelar').classList.remove('hidden');
@@ -7949,13 +7953,20 @@ function obtCamposNe(r){
   const sol=solParaLigar(r.numero,r.solemp);
   const disp=r.processo&&dispensaPorNup(r.processo);
   const deOutraUasg=!!(r.complUasg&&r.complUasg!==obtUasgNavio());
+  /* "Dispensa/Pregão" e "SOLEMP" são números DIFERENTES — a SOLEMP é o
+     documento interno de solicitação, a dispensa/pregão é o processo do
+     governo que originou a compra. Nunca usar sol.numero aqui: já causou
+     a NE mostrar "0048/2026" (a SOLEMP) como se fosse a dispensa 13/2026. */
   let ata='';
-  if(sol)ata=sol.numero; else if(r.solemp)ata=r.solemp; else if(r.ata)ata=r.ata;
+  if(deOutraUasg)ata='PE '+r.complPregao+' (UASG '+r.complUasg+')';
+  else if(disp)ata=(disp.modalidade||'Dispensa')+' '+disp.compra+'/'+disp.ano;
+  else if(sol&&sol.dispensa)ata=sol.dispensa;
+  else if(r.ata)ata=r.ata;
   let obs='';
   if(deOutraUasg)obs='Ata/pregão PE '+r.complPregao+' da UASG '+r.complUasg+' ('+obtUasgNome(r.complUasg)+')';
   return {
     numero:r.numero||'',ug:r.ug||'',data:r.data||'',cnpj:r.cnpj||'',fornecedor:r.fornecedor||'',
-    valor:r.valor||0,ata,processo:r.processo||'',situacao:'emitida',obs,
+    valor:r.valor||0,ata,solemp:(sol?sol.numero:r.solemp)||'',processo:r.processo||'',situacao:'emitida',obs,
     complUasg:r.complUasg||'',complPregao:r.complPregao||'',
     _sol:sol?sol.numero+' ('+(sol.fornecedor||'sem fornecedor')+')':'',
     _disp:disp?String(disp.objeto||'').slice(0,50):'',_deOutraUasg:deOutraUasg
@@ -7968,7 +7979,8 @@ function obtRegNeDeCampos(c,id){
     id:id||uid(),numero:String(c.numero||'').trim().toUpperCase(),
     ug:String(c.ug||'').replace(/\D/g,''),data:c.data||'',
     cnpj:obtCnpjFmt(c.cnpj||''),fornecedor:String(c.fornecedor||'').trim(),
-    valor:num(c.valor)||0,ata:String(c.ata||'').trim(),processo:String(c.processo||'').trim(),
+    valor:num(c.valor)||0,ata:String(c.ata||'').trim(),solemp:String(c.solemp||'').trim(),
+    processo:String(c.processo||'').trim(),
     complUasg:c.complUasg||'',complPregao:c.complPregao||'',nd:String(c.nd||'').replace(/\D/g,''),
     situacao:c.situacao||'emitida',obs:String(c.obs||'').trim(),fonte:c.fonte||'manual',em:Date.now()
   };
@@ -7976,7 +7988,7 @@ function obtRegNeDeCampos(c,id){
 /* fecha o elo do outro lado: a SOLEMP que ainda não tinha o nº da NE ganha
    ele agora. Só quando está vazio — nunca pisa em algo que já foi conferido. */
 function obtLigaSolemp(reg){
-  const sol=solParaLigar(reg.numero,reg.ata);
+  const sol=solParaLigar(reg.numero,reg.solemp);
   if(sol&&!sol.ne){ sol.ne=reg.numero; return sol; }
   return null;
 }
@@ -7987,6 +7999,7 @@ async function obtGravaNe(){
   const reg=obtRegNeDeCampos({
     numero,ug:$('#obtNeUg').value,data:$('#obtNeData').value,cnpj:$('#obtNeCnpj').value,
     fornecedor:$('#obtNeForn').value,valor:$('#obtNeValor').value,ata:$('#obtNeAta').value,
+    solemp:$('#obtNeSolemp').value,
     processo:$('#obtNeProcesso').value,situacao:$('#obtNeSit').value,obs:$('#obtNeObs').value,
     nd:$('#obtNeNd').value
   },OBT_EDIT_NE);
@@ -8031,6 +8044,7 @@ function obtLoteItemHtml(c,i){
       '<div style="flex:2 1 240px"><label>Favorecido</label><input type="text" data-lote="'+i+'|fornecedor" value="'+esc(c.fornecedor||'')+'"></div>'+
       '<div style="flex:1 1 140px"><label>Valor</label><input type="text" data-lote="'+i+'|valor" value="'+esc(String(q2(c.valor||0)).replace('.',','))+'"></div>'+
       '<div style="flex:1 1 160px"><label>Dispensa/Pregão</label><input type="text" data-lote="'+i+'|ata" value="'+esc(c.ata||'')+'"></div>'+
+      '<div style="flex:1 1 140px"><label>SOLEMP</label><input type="text" data-lote="'+i+'|solemp" value="'+esc(c.solemp||'')+'"></div>'+
       '<div style="flex:1 1 170px"><label>NUP</label><input type="text" data-lote="'+i+'|processo" value="'+esc(c.processo||'')+'"></div>'+
     '</div>'+
     '<div class="row" style="align-items:flex-end;margin-top:10px">'+
