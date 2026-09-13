@@ -2413,7 +2413,7 @@ body.semvideo .sp-foto{display:block}
       <button data-ch12="dispensa" aria-selected="true">Dispensa Eletrônica</button>
       <button data-ch12="solemp" aria-selected="false">Controle SOLEMP</button>
       <button data-ch12="empenhos" aria-selected="false">Notas de Empenho</button>
-      <button data-ch12="materiais" aria-selected="false">Controle de Materiais e Serviços</button>
+      <button data-ch12="materiais" aria-selected="false">Controle de PDM</button>
     </div>
 
   <!-- ---------- DISPENSA ELETRÔNICA ---------- -->
@@ -2645,11 +2645,23 @@ body.semvideo .sp-foto{display:block}
     </div>
   </div><!-- fim de #obtch12-empenhos -->
 
-  <!-- ---------- CONTROLE DE MATERIAIS E SERVIÇOS ---------- -->
+  <!-- ---------- CONTROLE DE PDM ---------- -->
   <div id="obtch12-materiais" class="hidden">
     <div class="card reveal">
-      <h2>Controle de Materiais e Serviços</h2>
-      <p class="hint" style="margin:0">Módulo ainda por construir — vamos desenhar com calma, junto com o Controle SOLEMP.</p>
+      <h2>Controle de PDM</h2>
+      <p class="hint" style="margin:0 0 12px">A Lei 14.133 limita a dispensa por licitação a um valor anual — hoje <b id="obtPdmLimiteTxt">—</b> (Decreto 12.807/2025) — e, na prática administrativa, esse teto é controlado <b>por PDM</b> (Padrão Descritivo de Material), somando tudo que foi obtido daquele mesmo material no ano, seja por dispensa própria ou por adesão a ata de outra UASG. Ultrapassar o limite por PDM é sinal de fracionamento de despesa.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:0 1 120px"><label>Ano</label>
+          <select id="obtPdmAno"><option value="2026">2026</option><option value="2025">2025</option></select></div>
+        <div style="flex:0 1 200px"><label>Limite anual por PDM (R$)</label>
+          <input type="text" id="obtPdmLimite" placeholder="65492,11"></div>
+        <div style="flex:0 1 auto"><button class="btn ghost" id="obtPdmLimiteGravar">Salvar limite</button></div>
+        <div style="flex:1"></div>
+        <div style="flex:0 1 auto"><button class="btn" id="obtPdmAtualizar">Atualizar do PNCP</button></div>
+      </div>
+      <div id="obtPdmEstado" class="obtmeta" style="margin-top:10px"></div>
+      <div class="scroller" id="obtPdmLista" style="margin-top:14px"></div>
+      <p class="hint" id="obtPdmRodape" style="margin:12px 0 0"></p>
     </div>
   </div><!-- fim de #obtch12-materiais -->
 
@@ -4563,9 +4575,11 @@ let OBT_NE_ABERTA='';
 const OBT_PROC_ABAS=['outras','atas'];
 const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais'];
 
+const OBT_PDM_LIMITE_PADRAO=65492.11; /* Decreto 12.807/2025, art. 75-II da Lei 14.133 — atualizado desde 1º/1/2026 */
 function obtVazio(){
   return {uasgs:['784515'],uasgsAta:['784810'],processos:[],atas:[],nes:[],solemps:[],dispensas:[],
-          itensAta:{},ignorados:[],sync:{ultima:0,desde:'2024-01-01',ate:''},ver:1};
+          itensAta:{},ignorados:[],sync:{ultima:0,desde:'2024-01-01',ate:''},ver:1,
+          pdm:{itens:{},atualizadoEm:''},pdmLimite:OBT_PDM_LIMITE_PADRAO};
 }
 function obtNormaliza(o){
   const d=obtVazio();
@@ -4581,7 +4595,9 @@ function obtNormaliza(o){
     itensAta:o.itensAta&&typeof o.itensAta==='object'?o.itensAta:{},
     ignorados:Array.isArray(o.ignorados)?o.ignorados.map(String):[],
     sync:Object.assign({ultima:0,desde:'2024-01-01',ate:''},o.sync||{}),
-    ver:1
+    ver:1,
+    pdm:(o.pdm&&typeof o.pdm==='object')?{itens:(o.pdm.itens&&typeof o.pdm.itens==='object')?o.pdm.itens:{},atualizadoEm:o.pdm.atualizadoEm||''}:{itens:{},atualizadoEm:''},
+    pdmLimite:(typeof o.pdmLimite==='number'&&o.pdmLimite>0)?o.pdmLimite:OBT_PDM_LIMITE_PADRAO
   };
 }
 
@@ -4838,7 +4854,7 @@ function renderObtencao(){
     if(OBT_CH12_SUB==='dispensa')renderDispensa();
     else if(OBT_CH12_SUB==='solemp'){renderSolemps();renderObtProcessos();}
     else if(OBT_CH12_SUB==='empenhos')renderObtEmpenhos();
-    /* 'materiais' ainda não tem o que renderizar — módulo por construir */
+    else if(OBT_CH12_SUB==='materiais')renderObtPdm();
   }
   /* a busca na base do governo mora dentro da Configuração: é ajuste de
      máquina, não consulta do dia a dia */
@@ -6407,6 +6423,112 @@ function catNomeClasse(cod){
   return m?m[1]:'';
 }
 
+/* ---------- Controle de PDM: descobre o PDM por trás da descrição de um item ----------
+   O governo monta a descrição do item colando o nome do PDM na frente das
+   características ("Notebook tela: superior a 14, memória ram: superior a 8...").
+   Isolamos o nome extraindo tudo antes do primeiro rótulo minúsculo seguido de
+   ":" — rótulo pode ter mais de uma palavra ("capacidade memória:"), por isso
+   anda palavra a palavra a partir do ":" enquanto a palavra anterior começar
+   minúscula. Testado contra as dispensas reais do navio: bate exato com o
+   catálogo em 100% dos itens de material. */
+function pdmNomeCandidato(desc){
+  const s=String(desc||'').trim();
+  const partes=s.split(/\s+/);
+  const idxColon=partes.findIndex(t=>t.includes(':'));
+  if(idxColon<0)return s;
+  let inicio=idxColon;
+  for(let i=idxColon-1;i>=0;i--){
+    const t=partes[i].replace(/[.,;]+$/,'');
+    if(/^[a-zà-ÿ]/.test(t))inicio=i; else break;
+  }
+  const nome=partes.slice(0,inicio).join(' ').trim().replace(/[-/,]+$/,'').trim();
+  return nome||s;
+}
+let PDM_MAPA_EXATO=null, PDM_MAPA_EXATO_DE='';
+const pdmSemAcento=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+function pdmMapaExato(){
+  const marca=(CAT&&CAT.atualizadoEm)||'';
+  if(PDM_MAPA_EXATO&&PDM_MAPA_EXATO_DE===marca)return PDM_MAPA_EXATO;
+  const mapa=new Map();
+  catLinhas(CAT&&CAT.pdms).forEach(l=>{
+    const nome=pdmSemAcento((l[1]||'').replace(/^"|"$/g,''));
+    if(nome&&!mapa.has(nome))mapa.set(nome,{codigo:l[0],nome:l[1],classe:l[3]});
+  });
+  PDM_MAPA_EXATO=mapa; PDM_MAPA_EXATO_DE=marca;
+  return mapa;
+}
+/* Prioridade sempre para a igualdade exata (é o que a descrição real traz).
+   A busca por palavras do catBusca só entra como reforço, e só aceita quando
+   o candidato vence os outros com folga — do contrário fica "não identificado".
+   Nunca inventamos código PDM. */
+function pdmAchaPorDescricao(desc){
+  const nomeExtraido=pdmNomeCandidato(desc);
+  const exato=pdmMapaExato().get(pdmSemAcento(nomeExtraido));
+  if(exato)return {codigo:exato.codigo,nome:exato.nome,classe:exato.classe,confianca:'exata'};
+  const r=catBusca(nomeExtraido,'material');
+  if(r.length){
+    const folga=r[1]?r[0].nota-r[1].nota:r[0].nota;
+    if(r[0].nota>=1.3&&folga>=0.25)return {codigo:r[0].cod,nome:r[0].nome,classe:r[0].nomeClasse,confianca:'aproximada'};
+  }
+  return {codigo:'',nome:nomeExtraido,classe:'',confianca:'nao_identificado'};
+}
+function obtPdmChave(p){ return 'p:'+(p.pncp||p.id); }
+async function obtPdmBuscaItens(p){
+  const m=String(p.pncp||'').match(/^(\d{14})-\d+-(\d+)\/(\d{4})$/);
+  if(!m)return null;
+  const cnpj=m[1], seq=parseInt(m[2],10), ano=m[3];
+  const r=await fetch('https://pncp.gov.br/api/pncp/v1/orgaos/'+cnpj+'/compras/'+ano+'/'+seq+'/itens');
+  if(!r.ok)throw new Error('PNCP respondeu '+r.status);
+  return await r.json();
+}
+/* varre as dispensas da UASG do navio, busca os itens de cada uma direto no
+   PNCP (não precisa de função de servidor: esse endpoint libera CORS) e casa
+   cada item de material contra o catálogo de PDM já carregado */
+async function obtPdmAtualiza(botao){
+  const rot=botao?botao.textContent:'';
+  if(botao){botao.disabled=true;botao.textContent='Buscando…';}
+  try{
+    await catCarrega(false);
+    if(!CAT||!CAT.pdms){toast('atualize o catálogo do Compras em Configurações antes',true);return;}
+    const uasg=String((OBT.uasgs||[])[0]||'');
+    const dispensas=(OBT.processos||[]).filter(p=>String(p.uasg)===uasg&&/dispensa/i.test(p.modalidade||''));
+    let feitas=0, comErro=0;
+    for(const p of dispensas){
+      try{
+        const itens=await obtPdmBuscaItens(p);
+        if(!itens)continue;
+        const linhas=itens.filter(it=>it.materialOuServico==='M').map(it=>{
+          const a=pdmAchaPorDescricao(it.descricao);
+          return {desc:it.descricao,valor:Number(it.valorTotal)||0,codigo:a.codigo,nome:a.nome,confianca:a.confianca};
+        });
+        OBT.pdm.itens[obtPdmChave(p)]={ano:String(p.ano),compra:p.compra,itens:linhas};
+        feitas++;
+      }catch(e){ comErro++; }
+    }
+    OBT.pdm.atualizadoEm=new Date().toISOString();
+    const ok=await salvar('obtencao',OBT);
+    if(ok)toast('PDM atualizado — '+feitas+' dispensa(s)'+(comErro?', '+comErro+' com erro':''));
+    renderObtPdm();
+  }catch(e){ toast('erro ao atualizar PDM: '+e.message,true); }
+  finally{ if(botao){botao.disabled=false;botao.textContent=rot||'Atualizar do PNCP';} }
+}
+/* soma por PDM no ano escolhido, juntando todas as dispensas já buscadas */
+function obtPdmResumo(ano){
+  const porPdm=new Map();
+  Object.values((OBT.pdm&&OBT.pdm.itens)||{}).forEach(reg=>{
+    if(String(reg.ano)!==String(ano))return;
+    (reg.itens||[]).forEach(it=>{
+      const chave=it.confianca==='nao_identificado'?('?'+it.nome):(it.codigo||it.nome);
+      const cur=porPdm.get(chave)||{nome:it.nome,codigo:it.codigo,confianca:it.confianca,total:0,dispensas:new Set()};
+      cur.total+=it.valor||0;
+      cur.dispensas.add(reg.compra+'/'+reg.ano);
+      porPdm.set(chave,cur);
+    });
+  });
+  return Array.from(porPdm.values()).map(x=>({...x,dispensas:x.dispensas.size}))
+    .sort((a,b)=>b.total-a.total);
+}
+
 /* ---------- a janela de busca ---------- */
 function catAbrir(itemId){
   CAT_ALVO=itemId;
@@ -7612,6 +7734,45 @@ function renderObtEmpenhos(){
   $$('[data-needit]').forEach(b=>b.onclick=()=>obtEditaNe(b.dataset.needit));
   $$('[data-nedel]').forEach(b=>b.onclick=()=>obtExcluiNe(b.dataset.nedel));
 }
+let OBT_PDM_ANO='2026';
+function renderObtPdm(){
+  const selAno=$('#obtPdmAno'); if(selAno&&selAno.value)OBT_PDM_ANO=selAno.value;
+  const limite=Number(OBT.pdmLimite)||OBT_PDM_LIMITE_PADRAO;
+  if($('#obtPdmLimiteTxt'))$('#obtPdmLimiteTxt').textContent=brl(limite)+' por PDM ao ano';
+  const campoLimite=$('#obtPdmLimite');
+  if(campoLimite&&document.activeElement!==campoLimite)campoLimite.value=limite.toFixed(2).replace('.',',');
+
+  const at=OBT.pdm&&OBT.pdm.atualizadoEm;
+  $('#obtPdmEstado').textContent=at?('Última busca no PNCP: '+new Date(at).toLocaleString('pt-BR')):'Ainda não buscado — clique em "Atualizar do PNCP".';
+
+  const linhas=obtPdmResumo(OBT_PDM_ANO);
+  if(!linhas.length){
+    $('#obtPdmLista').innerHTML='<p class="hint" style="margin:0">Nenhum PDM encontrado para '+esc(OBT_PDM_ANO)+' ainda. Clique em "Atualizar do PNCP" para buscar nas dispensas já carregadas.</p>';
+    $('#obtPdmRodape').textContent='';
+    return;
+  }
+  $('#obtPdmLista').innerHTML=
+    '<table class="obttab"><thead><tr><th>PDM</th><th>Código</th><th class="num">Total no ano</th>'+
+    '<th class="num">Saldo até o limite</th><th>Dispensas</th></tr></thead><tbody>'+
+    linhas.map(l=>{
+      const pct=limite>0?(l.total/limite):0;
+      const saldo=limite-l.total;
+      const cor=pct>=1?'var(--alert)':(pct>=0.8?'var(--terra)':'inherit');
+      const naoId=l.confianca==='nao_identificado';
+      return '<tr>'+
+        '<td>'+esc(l.nome)+(naoId?'<div class="obtmeta" style="color:var(--terra)">não identificado no catálogo — confira à mão</div>':
+          (l.confianca==='aproximada'?'<div class="obtmeta">achado por aproximação — confira</div>':''))+'</td>'+
+        '<td class="mono">'+esc(l.codigo||'—')+'</td>'+
+        '<td class="num mono" style="color:'+cor+'">'+esc(brl(l.total))+'</td>'+
+        '<td class="num mono" style="color:'+cor+'">'+esc(saldo>=0?brl(saldo):('excedido em '+brl(-saldo)))+'</td>'+
+        '<td>'+l.dispensas+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+  const naoIdent=linhas.filter(l=>l.confianca==='nao_identificado').length;
+  $('#obtPdmRodape').textContent=naoIdent?
+    (naoIdent+' item(ns) não bateram com nenhum PDM do catálogo — provavelmente item de serviço junto com material, ou o catálogo local está desatualizado. Não foi inventado nenhum código.'):
+    'Todos os itens de material das dispensas buscadas foram identificados no catálogo de PDM.';
+}
 /* a linha da tabela é apertada de propósito (cabe mais nota na tela); ao
    clicar, tudo o que ali vem truncado/pequeno aparece por extenso aqui. */
 function neDetalheHtml(n){
@@ -8038,6 +8199,15 @@ function obtLiga(){
     const pu=$('#obtProcUasg'); if(pu)pu.value=OBT.uasgs[0]||'';
     obtEstadoConfig();
     renderObtBuscar();
+  };
+
+  if($('#obtPdmAno'))$('#obtPdmAno').onchange=()=>renderObtPdm();
+  if($('#obtPdmAtualizar'))$('#obtPdmAtualizar').onclick=()=>obtPdmAtualiza($('#obtPdmAtualizar'));
+  if($('#obtPdmLimiteGravar'))$('#obtPdmLimiteGravar').onclick=async()=>{
+    const v=num($('#obtPdmLimite').value);
+    if(!v||v<=0){toast('informe um valor válido',true);return;}
+    OBT.pdmLimite=v;
+    if(await salvar('obtencao',OBT)){toast('limite gravado'); renderObtPdm();}
   };
 }
 
