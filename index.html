@@ -2671,11 +2671,6 @@ body.semvideo .sp-foto{display:block}
       <div id="obtPorFase" class="obtfases"></div>
     </div>
     <div class="card reveal">
-      <h2>Exige atenção <span class="n" id="nObtAtencao">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Dispensa parada há mais de 30 dias sem resultado, e nota de empenho emitida há mais de 45 dias sem entrega confirmada.</p>
-      <div class="scroller" id="obtAtencao"></div>
-    </div>
-    <div class="card reveal">
       <h2>Últimos processos <span class="n" id="nObtRecentes">0</span></h2>
       <div class="scroller" id="obtRecentes"></div>
     </div>
@@ -4564,6 +4559,7 @@ const OBT_UASG_NOME={'784515':'AvHoFlu Rio Tocantins','784810':'CeIMBe'};
 
 let OBT_SUB='radar', OBT_PROC_SUB='outras', OBT_CH12_SUB='dispensa', OBT_EDIT_NE=null, OBT_ATA_ABERTA=null, OBT_BUSCANDO=false;
 let OBT_NE_LOTE=[];
+let OBT_NE_ABERTA='';
 const OBT_PROC_ABAS=['outras','atas'];
 const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais'];
 
@@ -5000,59 +4996,6 @@ function renderObtRadar(){
     const antes=s.onchange;
     s.onchange=async()=>{ await antes(); renderObtRadar(); };
   });
-
-  /* ---- exige atenção ---- */
-  /* A chave é o número de controle do PNCP, não o id interno: o id é recriado
-     a cada sincronização e o aviso dispensado voltaria sozinho. */
-  const avisos=[];
-  /* parte do conjunto INTEIRO, não do já filtrado: senão o aviso escondido
-     deixaria de existir e não haveria como trazê-lo de volta */
-  tramiteTudo.filter(p=>{const d=obtDiasAte(p.publicado);return d!==null&&d<-30;}).forEach(p=>{
-    const d=Math.abs(obtDiasAte(p.publicado));
-    avisos.push({pri:-d,tipo:'Dispensa',cls:d>60?'red':'out',chave:'p:'+(p.pncp||p.id),
-      titulo:(p.modalidade||'')+' '+p.compra+'/'+p.ano+' — '+(p.objeto||'').slice(0,70),
-      quando:obtBr(p.publicado),
-      regra:'publicada há '+d+' dias, sem homologação'+(p.fase?' · fase marcada: '+p.fase:' · fase não informada'),
-      link:p.linkPncp});
-  });
-  OBT.nes.filter(n=>n.situacao==='emitida').filter(n=>{const d=obtDiasAte(n.data);return d!==null&&d<-45;}).forEach(n=>{
-    const d=Math.abs(obtDiasAte(n.data));
-    avisos.push({pri:-d,tipo:'Empenho',cls:d>90?'red':'out',chave:'n:'+(n.numero||n.id),
-      titulo:'NE '+n.numero+' — '+(n.fornecedor||'favorecido não informado'),
-      quando:obtBr(n.data),regra:'emitida há '+d+' dias, sem entrega confirmada',link:''});
-  });
-  avisos.sort((a,b)=>a.pri-b.pri);
-
-  const escondidos=new Set(OBT.ignorados||[]);
-  const visiveis=avisos.filter(v=>!escondidos.has(v.chave));
-  const nOcultos=avisos.length-visiveis.length;
-
-  $('#nObtAtencao').textContent=visiveis.length;
-  $('#obtAtencao').innerHTML=(visiveis.length?
-    ('<table><thead><tr><th>Situação</th><th>O quê</th><th>Data</th><th>Por que aparece aqui</th><th></th></tr></thead><tbody>'+
-     visiveis.slice(0,40).map(v=>'<tr>'+
-       '<td><span class="pill '+v.cls+'">'+esc(v.tipo)+'</span></td>'+
-       '<td>'+(v.link?'<a class="obtlink" href="'+esc(v.link)+'" target="_blank" rel="noopener">'+esc(v.titulo)+'</a>':'<b>'+esc(v.titulo)+'</b>')+'</td>'+
-       '<td class="mono" style="white-space:nowrap">'+esc(v.quando)+'</td>'+
-       '<td class="obtmeta">'+esc(v.regra)+'</td>'+
-       '<td><button class="obtxis" data-somir="'+esc(v.chave)+'" title="tirar este aviso daqui">tirar daqui</button></td>'+
-       '</tr>').join('')+
-     '</tbody></table>')
-    :'<p class="hint" style="margin:0">Nada exigindo atenção.</p>')+
-    (nOcultos?'<p class="obtocultos">'+nOcultos+' aviso'+(nOcultos>1?'s':'')+' que você tirou daqui. '+
-      '<button id="obtVoltaAvisos">Trazer de volta</button></p>':'');
-
-  $$('[data-somir]').forEach(b=>b.onclick=async()=>{
-    OBT.ignorados=[...new Set([...(OBT.ignorados||[]),b.dataset.somir])];
-    if(await salvar('obtencao',OBT))toast('aviso tirado do radar');
-    renderObtRadar();
-  });
-  const volta=$('#obtVoltaAvisos');
-  if(volta)volta.onclick=async()=>{
-    OBT.ignorados=[];
-    if(await salvar('obtencao',OBT))toast('avisos de volta');
-    renderObtRadar();
-  };
 
   const recentes=meus.slice(0,12);
   $('#nObtRecentes').textContent=recentes.length;
@@ -7644,7 +7587,7 @@ function renderObtEmpenhos(){
   $('#obtListaNe').innerHTML=lista.length?
     ('<table class="obttab"><thead><tr><th>Nota</th><th>Data</th><th>Favorecido</th>'+
      '<th>Dispensa/Pregão</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead><tbody>'+
-     lista.map(n=>'<tr>'+
+     lista.map(n=>'<tr class="obtlinha" data-neabre="'+esc(n.id)+'">'+
        '<td class="mono" style="white-space:nowrap"><b>'+esc(n.numero||'—')+'</b>'+
          (n.ug?'<div class="obtmeta">UG '+esc(n.ug)+'</div>':'')+'</td>'+
        '<td class="mono" style="white-space:nowrap">'+esc(obtBr(n.data))+'</td>'+
@@ -7658,11 +7601,39 @@ function renderObtEmpenhos(){
        '<td style="white-space:nowrap">'+
          '<button class="mini" data-needit="'+esc(n.id)+'">editar</button> '+
          '<button class="mini del" data-nedel="'+esc(n.id)+'">excluir</button></td>'+
-     '</tr>').join('')+'</tbody></table>')
+     '</tr>'+(OBT_NE_ABERTA===n.id?'<tr><td colspan="7">'+neDetalheHtml(n)+'</td></tr>':'')).join('')+'</tbody></table>')
     :'<p class="hint" style="margin:0">Nenhuma nota lançada ainda.</p>';
 
+  $$('[data-neabre]').forEach(tr=>tr.onclick=e=>{
+    if(e.target.closest('button'))return;
+    OBT_NE_ABERTA=OBT_NE_ABERTA===tr.dataset.neabre?'':tr.dataset.neabre;
+    renderObtEmpenhos();
+  });
   $$('[data-needit]').forEach(b=>b.onclick=()=>obtEditaNe(b.dataset.needit));
   $$('[data-nedel]').forEach(b=>b.onclick=()=>obtExcluiNe(b.dataset.nedel));
+}
+/* a linha da tabela é apertada de propósito (cabe mais nota na tela); ao
+   clicar, tudo o que ali vem truncado/pequeno aparece por extenso aqui. */
+function neDetalheHtml(n){
+  const sol=solParaLigar(n.numero,n.ata);
+  const disp=n.processo&&dispensaPorNup(n.processo);
+  const linhas=[
+    ['Número da NE',n.numero],['UG emitente',n.ug],['Data',obtBr(n.data)],
+    ['CNPJ do favorecido',n.cnpj],['Favorecido',n.fornecedor],['Valor',obtMoeda(n.valor)],
+    ['Dispensa/Pregão',n.ata],['NUP',n.processo?obtNup(n.processo):''],
+    ['Situação',OBT_SIT_NE[n.situacao]||n.situacao],['Observação',n.obs],
+    ['Origem',n.fonte==='pdf'?'lançada a partir do PDF da NE':'lançada à mão'],
+  ];
+  const extras=[];
+  if(sol)extras.push('Vinculada à SOLEMP <b>'+esc(sol.numero)+'</b> ('+esc(sol.fornecedor||'sem fornecedor')+', etapa: '+esc(solEtapaRot(sol.etapa))+')');
+  if(disp)extras.push('Dispensa eletrônica: <b>'+esc(disp.objeto||'')+'</b>');
+  if(n.complUasg&&n.complUasg!==obtUasgNavio())extras.push('Ata/pregão de outra UASG: PE '+esc(n.complPregao)+' (UASG '+esc(n.complUasg)+' — '+esc(obtUasgNome(n.complUasg))+')');
+  return '<div class="card" style="margin:6px 0;background:transparent;box-shadow:none;border:1px solid var(--line)">'+
+    '<div class="row" style="flex-wrap:wrap">'+
+    linhas.map(([rot,val])=>'<div style="flex:1 1 220px;min-width:180px"><label style="display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">'+esc(rot)+'</label><div style="font-size:14px">'+(esc(val||'')||'<span class="obtfalta">—</span>')+'</div></div>').join('')+
+    '</div>'+
+    (extras.length?'<p class="hint" style="margin:12px 0 0">'+extras.join(' · ')+'</p>':'')+
+    '</div>';
 }
 
 function obtLimpaFormNe(){
