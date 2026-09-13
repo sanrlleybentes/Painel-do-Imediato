@@ -2398,6 +2398,7 @@ body.semvideo .sp-foto{display:block}
     <div class="subtabs" id="subObtCh12">
       <button data-ch12="dispensa" aria-selected="true">Dispensa Eletrônica</button>
       <button data-ch12="solemp" aria-selected="false">Controle SOLEMP</button>
+      <button data-ch12="empenhos" aria-selected="false">Notas de Empenho</button>
       <button data-ch12="materiais" aria-selected="false">Controle de Materiais e Serviços</button>
     </div>
 
@@ -2563,6 +2564,64 @@ body.semvideo .sp-foto{display:block}
     </div>
   </div><!-- fim de #obtch12-solemp -->
 
+  <!-- ======= NOTAS DE EMPENHO ======= -->
+  <div id="obtch12-empenhos" class="hidden">
+    <div class="kpis" id="obtKpisNe"></div>
+    <div class="card reveal">
+      <h2>Lançar nota de empenho</h2>
+      <p class="hint" style="margin:0 0 12px">O SIAFI não tem API pública, então a NE entra por aqui — digitada, ou colada do PDF. O campo <b>colar</b> aceita o texto inteiro da nota: ele separa número, favorecedor e valor sozinho.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:1 1 100%"><label>Colar o texto da nota de empenho (opcional)</label>
+          <textarea id="obtNeColar" rows="3" placeholder="Cole aqui o conteúdo do PDF da NE — 2026NE001446, CNPJ, valor…"></textarea></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:8px">
+        <div style="flex:0 1 auto"><button class="btn ghost" id="obtNeLer">Separar os campos</button></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:12px">
+        <div style="flex:1 1 150px"><label>Número da NE</label><input type="text" id="obtNeNum" placeholder="2026NE001446"></div>
+        <div style="flex:1 1 130px"><label>UG emitente</label><input type="text" id="obtNeUg" placeholder="784810"></div>
+        <div style="flex:1 1 150px"><label>Data</label>
+          <input type="text" class="datebr" id="obtNeDataBr" placeholder="dd/mm/aaaa" autocomplete="off">
+          <input type="date" id="obtNeData" class="hidden"></div>
+        <div style="flex:1 1 160px"><label>CNPJ do favorecido</label><input type="text" id="obtNeCnpj" placeholder="00.000.000/0001-00"></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:2 1 240px"><label>Favorecido</label><input type="text" id="obtNeForn" placeholder="razão social"></div>
+        <div style="flex:1 1 140px"><label>Valor</label><input type="text" id="obtNeValor" placeholder="0,00"></div>
+        <div style="flex:1 1 160px"><label>Ata / processo</label><input type="text" id="obtNeAta" placeholder="00199/2024 ou NUP"></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:1 1 170px"><label>Situação</label>
+          <select id="obtNeSit">
+            <option value="emitida">Emitida</option>
+            <option value="entregue">Material entregue</option>
+            <option value="liquidada">Liquidada</option>
+            <option value="paga">Paga</option>
+            <option value="anulada">Anulada</option>
+          </select></div>
+        <div style="flex:2 1 240px"><label>Observação</label><input type="text" id="obtNeObs" placeholder="opcional"></div>
+        <div style="flex:0 1 auto"><button class="btn" id="obtNeGravar">Gravar</button></div>
+        <div style="flex:0 1 auto"><button class="btn ghost hidden" id="obtNeCancelar">Cancelar edição</button></div>
+      </div>
+    </div>
+    <div class="card reveal">
+      <h2>Notas lançadas <span class="n" id="nObtNe">0</span></h2>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:2 1 240px"><label>Procurar</label><input type="text" id="obtNeBusca" placeholder="número, favorecido, ata" autocomplete="off"></div>
+        <div style="flex:0 1 180px"><label>Situação</label>
+          <select id="obtNeFiltro">
+            <option value="">Todas</option>
+            <option value="emitida">Emitida</option>
+            <option value="entregue">Entregue</option>
+            <option value="liquidada">Liquidada</option>
+            <option value="paga">Paga</option>
+            <option value="anulada">Anulada</option>
+          </select></div>
+      </div>
+      <div class="scroller" id="obtListaNe" style="margin-top:14px"></div>
+    </div>
+  </div><!-- fim de #obtch12-empenhos -->
+
   <!-- ---------- CONTROLE DE MATERIAIS E SERVIÇOS ---------- -->
   <div id="obtch12-materiais" class="hidden">
     <div class="card reveal">
@@ -2604,7 +2663,6 @@ body.semvideo .sp-foto{display:block}
     <div class="subtabs" id="subObtProc">
       <button data-pr="outras" aria-selected="true">Outras UASGs</button>
       <button data-pr="atas" aria-selected="false">Atas e pregões</button>
-      <button data-pr="empenhos" aria-selected="false">Notas de empenho</button>
     </div>
 
   <!-- ======= OUTRAS UASGs: busca ao vivo no governo ======= -->
@@ -2737,63 +2795,6 @@ body.semvideo .sp-foto{display:block}
     </div>
   </div>
 
-  <!-- ======= NOTAS DE EMPENHO ======= -->
-  <div id="obtproc-empenhos" class="hidden">
-    <div class="kpis" id="obtKpisNe"></div>
-    <div class="card reveal">
-      <h2>Lançar nota de empenho</h2>
-      <p class="hint" style="margin:0 0 12px">O SIAFI não tem API pública, então a NE entra por aqui — digitada, ou colada do PDF. O campo <b>colar</b> aceita o texto inteiro da nota: ele separa número, favorecedor e valor sozinho.</p>
-      <div class="row" style="align-items:flex-end">
-        <div style="flex:1 1 100%"><label>Colar o texto da nota de empenho (opcional)</label>
-          <textarea id="obtNeColar" rows="3" placeholder="Cole aqui o conteúdo do PDF da NE — 2026NE001446, CNPJ, valor…"></textarea></div>
-      </div>
-      <div class="row" style="align-items:flex-end;margin-top:8px">
-        <div style="flex:0 1 auto"><button class="btn ghost" id="obtNeLer">Separar os campos</button></div>
-      </div>
-      <div class="row" style="align-items:flex-end;margin-top:12px">
-        <div style="flex:1 1 150px"><label>Número da NE</label><input type="text" id="obtNeNum" placeholder="2026NE001446"></div>
-        <div style="flex:1 1 130px"><label>UG emitente</label><input type="text" id="obtNeUg" placeholder="784810"></div>
-        <div style="flex:1 1 150px"><label>Data</label>
-          <input type="text" class="datebr" id="obtNeDataBr" placeholder="dd/mm/aaaa" autocomplete="off">
-          <input type="date" id="obtNeData" class="hidden"></div>
-        <div style="flex:1 1 160px"><label>CNPJ do favorecido</label><input type="text" id="obtNeCnpj" placeholder="00.000.000/0001-00"></div>
-      </div>
-      <div class="row" style="align-items:flex-end;margin-top:10px">
-        <div style="flex:2 1 240px"><label>Favorecido</label><input type="text" id="obtNeForn" placeholder="razão social"></div>
-        <div style="flex:1 1 140px"><label>Valor</label><input type="text" id="obtNeValor" placeholder="0,00"></div>
-        <div style="flex:1 1 160px"><label>Ata / processo</label><input type="text" id="obtNeAta" placeholder="00199/2024 ou NUP"></div>
-      </div>
-      <div class="row" style="align-items:flex-end;margin-top:10px">
-        <div style="flex:1 1 170px"><label>Situação</label>
-          <select id="obtNeSit">
-            <option value="emitida">Emitida</option>
-            <option value="entregue">Material entregue</option>
-            <option value="liquidada">Liquidada</option>
-            <option value="paga">Paga</option>
-            <option value="anulada">Anulada</option>
-          </select></div>
-        <div style="flex:2 1 240px"><label>Observação</label><input type="text" id="obtNeObs" placeholder="opcional"></div>
-        <div style="flex:0 1 auto"><button class="btn" id="obtNeGravar">Gravar</button></div>
-        <div style="flex:0 1 auto"><button class="btn ghost hidden" id="obtNeCancelar">Cancelar edição</button></div>
-      </div>
-    </div>
-    <div class="card reveal">
-      <h2>Notas lançadas <span class="n" id="nObtNe">0</span></h2>
-      <div class="row" style="align-items:flex-end">
-        <div style="flex:2 1 240px"><label>Procurar</label><input type="text" id="obtNeBusca" placeholder="número, favorecido, ata" autocomplete="off"></div>
-        <div style="flex:0 1 180px"><label>Situação</label>
-          <select id="obtNeFiltro">
-            <option value="">Todas</option>
-            <option value="emitida">Emitida</option>
-            <option value="entregue">Entregue</option>
-            <option value="liquidada">Liquidada</option>
-            <option value="paga">Paga</option>
-            <option value="anulada">Anulada</option>
-          </select></div>
-      </div>
-      <div class="scroller" id="obtListaNe" style="margin-top:14px"></div>
-    </div>
-  </div>
   </div><!-- fim de #obt-processos -->
 
   <!-- ---------- CONFIGURAÇÃO ---------- -->
@@ -4533,8 +4534,8 @@ const OBT_SIT_NE={emitida:'Emitida',entregue:'Entregue',liquidada:'Liquidada',pa
 const OBT_UASG_NOME={'784515':'AvHoFlu Rio Tocantins','784810':'CeIMBe'};
 
 let OBT_SUB='radar', OBT_PROC_SUB='outras', OBT_CH12_SUB='dispensa', OBT_EDIT_NE=null, OBT_ATA_ABERTA=null, OBT_BUSCANDO=false;
-const OBT_PROC_ABAS=['outras','atas','empenhos'];
-const OBT_CH12_ABAS=['dispensa','solemp','materiais'];
+const OBT_PROC_ABAS=['outras','atas'];
+const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais'];
 
 function obtVazio(){
   return {uasgs:['784515'],uasgsAta:['784810'],processos:[],atas:[],nes:[],solemps:[],dispensas:[],
@@ -4772,11 +4773,11 @@ function renderObtencao(){
   if(OBT_SUB==='processos'){
     if(OBT_PROC_SUB==='outras')renderObtProcessosFora();
     else if(OBT_PROC_SUB==='atas')renderObtAtas();
-    else if(OBT_PROC_SUB==='empenhos')renderObtEmpenhos();
   }
   if(OBT_SUB==='controleh12'){
     if(OBT_CH12_SUB==='dispensa')renderDispensa();
     else if(OBT_CH12_SUB==='solemp'){renderSolemps();renderObtProcessos();}
+    else if(OBT_CH12_SUB==='empenhos')renderObtEmpenhos();
     /* 'materiais' ainda não tem o que renderizar — módulo por construir */
   }
   /* a busca na base do governo mora dentro da Configuração: é ajuste de
@@ -7700,9 +7701,7 @@ function obtLiga(){
     renderObtencao();
   });
 
-  /* ---- as três faces de Processos ----
-     Outras UASGs é processo em si; atas e empenhos são o que sai dele.
-     Ficam na mesma barra porque é a mesma pergunta em três recortes. */
+  /* ---- as duas faces de Processos ---- */
   $$('#subObtProc button').forEach(b=>b.onclick=()=>{
     OBT_PROC_SUB=b.dataset.pr;
     $$('#subObtProc button').forEach(o=>o.setAttribute('aria-selected',o===b));
@@ -7712,7 +7711,7 @@ function obtLiga(){
     renderObtencao();
   });
 
-  /* ---- as três frentes do Controle H12 ---- */
+  /* ---- as quatro frentes do Controle H12 ---- */
   $$('#subObtCh12 button').forEach(b=>b.onclick=()=>{
     OBT_CH12_SUB=b.dataset.ch12;
     $$('#subObtCh12 button').forEach(o=>o.setAttribute('aria-selected',o===b));
