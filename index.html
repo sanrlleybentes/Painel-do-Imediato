@@ -2569,9 +2569,14 @@ body.semvideo .sp-foto{display:block}
     <div class="kpis" id="obtKpisNe"></div>
     <div class="card reveal">
       <h2>Lançar nota de empenho</h2>
-      <p class="hint" style="margin:0 0 12px">O SIAFI não tem API pública, então a NE entra por aqui — digitada, ou colada do PDF. O campo <b>colar</b> aceita o texto inteiro da nota: ele separa número, favorecedor e valor sozinho.</p>
+      <p class="hint" style="margin:0 0 12px">O SIAFI não tem API pública, então a NE entra por aqui — carregando o PDF de impressão, ou colando o texto. Os dois separam número, favorecedor e valor sozinhos, e ligam a nota à SOLEMP correspondente quando ela já está lançada.</p>
       <div class="row" style="align-items:flex-end">
-        <div style="flex:1 1 100%"><label>Colar o texto da nota de empenho (opcional)</label>
+        <div style="flex:0 1 auto"><button class="btn" id="obtNePdfBtn">Carregar PDF da NE</button>
+          <input type="file" id="obtNePdf" accept=".pdf" class="hidden"></div>
+        <div style="flex:1 1 auto"><p class="hint" style="margin:0">Lê o PDF de impressão do SIAFI direto no navegador — nada é enviado a servidor nenhum.</p></div>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:1 1 100%"><label>Ou colar o texto da nota de empenho (opcional)</label>
           <textarea id="obtNeColar" rows="3" placeholder="Cole aqui o conteúdo do PDF da NE — 2026NE001446, CNPJ, valor…"></textarea></div>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:8px">
@@ -2588,7 +2593,8 @@ body.semvideo .sp-foto{display:block}
       <div class="row" style="align-items:flex-end;margin-top:10px">
         <div style="flex:2 1 240px"><label>Favorecido</label><input type="text" id="obtNeForn" placeholder="razão social"></div>
         <div style="flex:1 1 140px"><label>Valor</label><input type="text" id="obtNeValor" placeholder="0,00"></div>
-        <div style="flex:1 1 160px"><label>Ata / processo</label><input type="text" id="obtNeAta" placeholder="00199/2024 ou NUP"></div>
+        <div style="flex:1 1 160px"><label>Ata / processo</label><input type="text" id="obtNeAta" placeholder="00199/2024 ou NUP">
+          <input type="hidden" id="obtNeProcesso"></div>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:10px">
         <div style="flex:1 1 170px"><label>Situação</label>
@@ -4763,6 +4769,66 @@ function obtLeNe(txt){
   const mAta=t.match(/\b(\d{5}\/20\d{2})\b/);
   if(mAta)r.ata=mAta[1];
   return r;
+}
+
+/* ---- leitura do PDF oficial da NE (impressão do SIAFI) ----
+   Layout estável — testado nas 19 NEs reais do navio: cabeçalho com
+   Ano/Tipo/Número, linha de Data de Emissão/Processo/Valor, bloco
+   Favorecido com Código (CNPJ, às vezes mascarando um CPF de PF) e Nome,
+   e a Descrição citando "SOLICITACAO DE EMPENHO (SOLEMP) - <uasg>-NNNN/AAAA".
+   `linhas` vem de textoDoPdf() — mesmo extrator já usado pelo DANFE. */
+function lerNotaEmpenhoPdf(linhas){
+  const t=linhas.join('\n');
+  const r={};
+  const mNum=t.match(/\b(20\d{2})\s+NE\s+(\d{1,6})\b/);
+  if(mNum)r.numero=mNum[1]+'NE'+mNum[2].padStart(6,'0');
+  const mUg=t.match(/\bUG Emitente\b[\s\S]{0,200}?\n(\d{6})\s+\S/);
+  if(mUg)r.ug=mUg[1];
+  const mEmis=t.match(/\b(\d{2}\/\d{2}\/\d{4})\s+\S+\s+([\d.]+\/\d{4}-\d{2})\s+[\d,]+\s+([\d.,]+)\s*$/m);
+  if(mEmis){ r.data=mEmis[1].split('/').reverse().join('-'); r.processo=mEmis[2]; r.valor=num(mEmis[3]); }
+  const mFav=t.match(/Favorecido\s*\n\s*C[oó0]digo\s+Nome\s*\n\s*([\d./-]{11,20})\s+(.+)/);
+  if(mFav){ r.cnpj=obtCnpjFmt(mFav[1]); r.fornecedor=mFav[2].trim(); }
+  /* o número da SOLEMP mora dentro da Descrição, com o prefixo da UASG na frente */
+  const mSol=t.match(/SOLEMP\)\s*-\s*\d+-(\d{4}\/\d{4})/i);
+  if(mSol)r.solemp=mSol[1];
+  /* "Informação Complementar" é o número de controle do PREGÃO (ou outra
+     licitação) que originou o item — 17 dígitos: UASG(6) + código da
+     modalidade/sequência(5) + nº do certame(2) + ano(4). Confirmado em
+     NEs reais: 78481005900282024 = UASG 784810 (CeIMBe), PE 28/2024.
+     Quando a UASG aqui não é a do navio, a nota veio de ata de OUTRA UASG,
+     não de uma dispensa própria — é informação que vale a pena avisar. */
+  const mCompl=t.match(/Informa[çc][ãa]o Complementar\s*\n\s*(\d{15,18})/);
+  if(mCompl){
+    const c=mCompl[1];
+    r.complUasg=c.slice(0,6);
+    r.complPregao=String(+c.slice(-6,-4))+'/'+c.slice(-4);
+  }
+  if(!r.numero)throw new Error('não reconheci o layout — confira se é mesmo o PDF de impressão da NE do SIAFI');
+  return r;
+}
+/* compara NE ignorando zeros à esquerda: a semente da planilha guardou
+   '2026NE1446', o PDF do SIAFI imprime '2026NE001446' — é a mesma nota */
+function neNormaliza(numero){
+  const m=String(numero||'').match(/^(\d{4})NE0*(\d+)$/i);
+  return m?m[1]+'NE'+m[2]:'';
+}
+function solPorNe(numero){
+  const alvo=neNormaliza(numero);
+  return alvo&&(OBT.solemps||[]).find(s=>neNormaliza(s.ne)===alvo);
+}
+/* liga pelo nº da NE quando a SOLEMP já tem o campo `ne` preenchido; senão
+   cai para o nº da própria SOLEMP (extraído da Descrição do PDF, ou já
+   digitado em Ata/Processo) — cobre as SOLEMPs da planilha antiga que
+   nunca tiveram o nº da NE anotado. */
+function solParaLigar(numero,numeroSolemp){
+  return (numero&&solPorNe(numero))||
+    (numeroSolemp&&(OBT.solemps||[]).find(s=>s.numero===numeroSolemp))||null;
+}
+/* a Nota de Empenho traz "Processo" — é o mesmo NUP da dispensa eletrônica
+   que a originou. É o segundo elo da corrente, junto do da SOLEMP. */
+function dispensaPorNup(nup){
+  const alvo=obtNup(nup);
+  return alvo&&(OBT.processos||[]).find(p=>obtNup(p.nup)===alvo);
 }
 
 /* ═════════════ render ═════════════ */
@@ -7567,7 +7633,8 @@ function renderObtEmpenhos(){
          (n.ug?'<div class="obtmeta">UG '+esc(n.ug)+'</div>':'')+'</td>'+
        '<td class="mono" style="white-space:nowrap">'+esc(obtBr(n.data))+'</td>'+
        '<td>'+esc(n.fornecedor||'—')+'<div class="obtmeta mono">'+esc(n.cnpj||'')+'</div></td>'+
-       '<td class="mono">'+esc(n.ata||'—')+'</td>'+
+       '<td class="mono">'+esc(n.ata||'—')+(n.processo?'<div class="obtmeta mono">'+esc(obtNup(n.processo))+
+         (dispensaPorNup(n.processo)?' — '+esc(dispensaPorNup(n.processo).objeto||'').slice(0,40):'')+'</div>':'')+'</td>'+
        '<td class="num mono">'+esc(obtMoeda(n.valor))+'</td>'+
        '<td><span class="pill '+(n.situacao==='anulada'?'red':(n.situacao==='emitida'?'out':'in'))+'">'+
          esc(OBT_SIT_NE[n.situacao]||n.situacao)+'</span>'+
@@ -7583,7 +7650,7 @@ function renderObtEmpenhos(){
 }
 
 function obtLimpaFormNe(){
-  ['obtNeNum','obtNeUg','obtNeCnpj','obtNeForn','obtNeValor','obtNeAta','obtNeObs','obtNeColar']
+  ['obtNeNum','obtNeUg','obtNeCnpj','obtNeForn','obtNeValor','obtNeAta','obtNeProcesso','obtNeObs','obtNeColar']
     .forEach(id=>{const e=$('#'+id);if(e)e.value='';});
   setDataDia('obtNeData','');
   $('#obtNeSit').value='emitida';
@@ -7598,7 +7665,7 @@ function obtEditaNe(id){
   setDataDia('obtNeData',n.data||'');
   $('#obtNeCnpj').value=n.cnpj||''; $('#obtNeForn').value=n.fornecedor||'';
   $('#obtNeValor').value=n.valor?String(n.valor).replace('.',','):'';
-  $('#obtNeAta').value=n.ata||''; $('#obtNeObs').value=n.obs||'';
+  $('#obtNeAta').value=n.ata||''; $('#obtNeProcesso').value=n.processo||''; $('#obtNeObs').value=n.obs||'';
   $('#obtNeSit').value=n.situacao||'emitida';
   $('#obtNeCancelar').classList.remove('hidden');
   $('#obtNeGravar').textContent='Gravar alteração';
@@ -7611,6 +7678,40 @@ async function obtExcluiNe(id){
     if(await salvar('obtencao',OBT))toast('nota excluída');
     renderObtEmpenhos();
   });
+}
+/* usado tanto por "Separar os campos" (texto colado) quanto por "Carregar
+   PDF da NE": preenche o formulário e liga a nota ao que já está no site —
+   a SOLEMP dona dela (pelo nº da NE ou da própria SOLEMP) no campo
+   Ata/Processo, e a dispensa eletrônica que a originou (pelo NUP do
+   "Processo" impresso na NE, guardado à parte pra não pisar no que o
+   usuário já tenha digitado em Ata/Processo). */
+function obtPreencheFormNe(r){
+  if(r.numero)$('#obtNeNum').value=r.numero;
+  if(r.ug)$('#obtNeUg').value=r.ug;
+  if(r.data)setDataDia('obtNeData',r.data);
+  if(r.cnpj)$('#obtNeCnpj').value=r.cnpj;
+  if(r.fornecedor)$('#obtNeForn').value=r.fornecedor;
+  if(r.valor)$('#obtNeValor').value=String(q2(r.valor)).replace('.',',');
+  if(r.processo)$('#obtNeProcesso').value=r.processo;
+  const sol=solParaLigar(r.numero,r.solemp);
+  if(sol)$('#obtNeAta').value=sol.numero;
+  else if(r.solemp)$('#obtNeAta').value=r.solemp;
+  else if(r.ata)$('#obtNeAta').value=r.ata;
+  const disp=r.processo&&dispensaPorNup(r.processo);
+  /* a modalidade "Global" da NE não distingue dispensa própria de ata de
+     outra UASG — só a Informação Complementar avisa isso. Quando é de fora,
+     vale registrar na Observação (só se ainda estiver vazia). */
+  const deOutraUasg=r.complUasg&&r.complUasg!==obtUasgNavio();
+  if(deOutraUasg&&!$('#obtNeObs').value.trim())
+    $('#obtNeObs').value='Ata/pregão PE '+r.complPregao+' da UASG '+r.complUasg+' ('+obtUasgNome(r.complUasg)+')';
+  const achou=Object.keys(r).filter(k=>k!=='solemp').length;
+  const partes=[];
+  if(sol)partes.push('SOLEMP '+sol.numero+' ('+(sol.fornecedor||'sem fornecedor')+')');
+  if(disp)partes.push('dispensa "'+String(disp.objeto||'').slice(0,50)+'"');
+  if(deOutraUasg)partes.push('pregão de outra UASG ('+r.complUasg+')');
+  toast(partes.length?('separei os campos e liguei à '+partes.join(' e à '))
+    :(achou?('separei '+achou+' campo'+(achou>1?'s':'')+' — confira antes de gravar'):'não reconheci nada nesse documento'),
+    !achou);
 }
 async function obtGravaNe(){
   const numero=($('#obtNeNum').value||'').trim().toUpperCase();
@@ -7625,6 +7726,7 @@ async function obtGravaNe(){
     fornecedor:($('#obtNeForn').value||'').trim(),
     valor:valor,
     ata:($('#obtNeAta').value||'').trim(),
+    processo:($('#obtNeProcesso').value||'').trim(),
     situacao:$('#obtNeSit').value||'emitida',
     obs:($('#obtNeObs').value||'').trim(),
     fonte:'manual',
@@ -7639,7 +7741,12 @@ async function obtGravaNe(){
     }
     OBT.nes.push(reg);
   }
-  if(await salvar('obtencao',OBT))toast(OBT_EDIT_NE?'nota atualizada':'nota gravada');
+  /* fecha o elo do outro lado: a SOLEMP que ainda não tinha o nº da NE ganha
+     ele agora. Só quando está vazio — nunca pisa em algo que já foi conferido. */
+  const sol=solParaLigar(numero,reg.ata);
+  const solLigouAgora=sol&&!sol.ne;
+  if(solLigouAgora)sol.ne=numero;
+  if(await salvar('obtencao',OBT))toast((OBT_EDIT_NE?'nota atualizada':'nota gravada')+(solLigouAgora?' — SOLEMP '+sol.numero+' atualizada com o nº da NE':''));
   obtLimpaFormNe();
   renderObtEmpenhos();
 }
@@ -7837,16 +7944,19 @@ function obtLiga(){
   $('#obtNeLer').onclick=()=>{
     const t=$('#obtNeColar').value||'';
     if(!t.trim()){toast('cole o texto da nota primeiro',true);return;}
-    const r=obtLeNe(t);
-    if(r.numero)$('#obtNeNum').value=r.numero;
-    if(r.ug)$('#obtNeUg').value=r.ug;
-    if(r.data)setDataDia('obtNeData',r.data);
-    if(r.cnpj)$('#obtNeCnpj').value=r.cnpj;
-    if(r.fornecedor)$('#obtNeForn').value=r.fornecedor;
-    if(r.valor)$('#obtNeValor').value=String(q2(r.valor)).replace('.',',');
-    if(r.ata)$('#obtNeAta').value=r.ata;
-    const achou=Object.keys(r).length;
-    toast(achou?('separei '+achou+' campo'+(achou>1?'s':'')+' — confira antes de gravar'):'não reconheci nada nesse texto',!achou);
+    obtPreencheFormNe(obtLeNe(t));
+  };
+  $('#obtNePdfBtn').onclick=()=>$('#obtNePdf').click();
+  $('#obtNePdf').onchange=async()=>{
+    const f=$('#obtNePdf').files&&$('#obtNePdf').files[0];
+    $('#obtNePdf').value='';
+    if(!f)return;
+    toast('lendo o PDF…');
+    try{
+      const buf=await arquivoParaBuffer(f);
+      const linhas=await textoDoPdf(buf);
+      obtPreencheFormNe(lerNotaEmpenhoPdf(linhas));
+    }catch(e){ toast('não consegui ler esse PDF: '+e.message,true); }
   };
   $('#obtNeGravar').onclick=obtGravaNe;
   $('#obtNeCancelar').onclick=obtLimpaFormNe;
@@ -12515,20 +12625,18 @@ function lerXmlNFe(txt){
   };
 }
 
-/* ─────────── 2 · PDF com texto (DANFE) ─────────── */
+/* ─────────── 2 · PDF com texto (DANFE, e agora NE) ─────────── */
+/* Reaproveita o pdf.js já embutido (v2.16.105, usado na Inserção de DM) em
+   vez de baixar outra versão da CDN: o navio tem internet ruim/intermitente,
+   e as duas versões num mesmo window.pdfjsLib davam
+   "API version does not match the Worker version" — o worker da CDN nunca
+   chegava a ser usado, porque o embutido já preenche window.pdfjsLib antes,
+   mas o código sobrescrevia o workerSrc para a versão errada mesmo assim. */
 let _pdfjs=null;
 async function carregaPdfJs(){
   if(_pdfjs)return _pdfjs;
-  if(!window.pdfjsLib){
-    await new Promise((ok,err)=>{
-      const t=document.createElement('script');
-      t.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      t.onload=ok;t.onerror=()=>err(new Error('não foi possível carregar o leitor de PDF'));
-      document.head.appendChild(t);
-    });
-  }
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc=
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const ok=await dmGarantirWorker();
+  if(!ok)throw new Error('não foi possível carregar o leitor de PDF');
   _pdfjs=window.pdfjsLib;return _pdfjs;
 }
 async function textoDoPdf(buf){
