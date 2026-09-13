@@ -3154,7 +3154,13 @@ const q2=v=>{
   const r=t.indexOf('e')<0 ? Number(Math.round(Number(t+'e2'))+'e-2') : Math.round(a*100)/100;
   return (isFinite(r)?r:0)*sinal||0;
 };
-const num=s=>{const v=String(s==null?'':s).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
+const num=s=>{
+  /* número de verdade já está certo — tratá-lo como texto brasileiro
+     ("3897.93" -> tira o ponto -> 389793) multiplicava o valor por 10 ou
+     100 toda vez que um number reaproveitado (ex.: no lote de NE por PDF)
+     passava de novo por aqui. */
+  if(typeof s==='number')return isFinite(s)?s:0;
+  const v=String(s==null?'':s).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
   const n=parseFloat(v);return isNaN(n)?0:n;};
 const dias=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5)+1;
 const hoje=()=>ymd(new Date());
