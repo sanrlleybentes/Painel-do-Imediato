@@ -7785,7 +7785,7 @@ async function obtLoteGrava(){
   });
   if(gravadas&&await salvar('obtencao',OBT)){
     toast(gravadas+' nota'+(gravadas>1?'s':'')+' lançada'+(gravadas>1?'s':'')+
-      (puladas?' — '+puladas+' já existia'+(puladas>1?'m':'')+' e foi'+(puladas>1?'ram':'')+' ignorada'+(puladas>1?'s':''):'')+
+      (puladas?' — '+puladas+' já existia'+(puladas>1?'m':'')+' e '+(puladas>1?'foram':'foi')+' ignorada'+(puladas>1?'s':''):'')+
       (solsLigadas?' — '+solsLigadas+' SOLEMP atualizada'+(solsLigadas>1?'s':''):''));
   }else if(!gravadas){
     toast(puladas+' nota'+(puladas>1?'s':'')+' já existia'+(puladas>1?'m':'')+' — nada novo pra gravar',true);
