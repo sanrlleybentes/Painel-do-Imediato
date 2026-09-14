@@ -2414,6 +2414,7 @@ body.semvideo .sp-foto{display:block}
       <button data-ch12="solemp" aria-selected="false">Controle SOLEMP</button>
       <button data-ch12="empenhos" aria-selected="false">Notas de Empenho</button>
       <button data-ch12="materiais" aria-selected="false">Controle de PDM</button>
+      <button data-ch12="financeiro" aria-selected="false">Visão financeira</button>
     </div>
 
   <!-- ---------- DISPENSA ELETRÔNICA ---------- -->
@@ -2550,6 +2551,13 @@ body.semvideo .sp-foto{display:block}
         <div style="flex:0 1 auto"><button class="btn ghost" id="obtSolLimpa">Limpar</button></div>
         <div style="flex:0 1 auto"><button class="btn" id="obtSolNova">Nova SOLEMP</button></div>
       </div>
+      <div class="row" style="align-items:flex-end;margin-top:10px">
+        <div style="flex:1 1 220px"><label>Natureza de Despesa</label><select id="obtSolNd"></select></div>
+        <div style="flex:1 1 140px"><label>PTRES</label><select id="obtSolPtres"></select></div>
+        <div style="flex:1 1 140px"><label>Plano de Contas</label><select id="obtSolPlano"></select></div>
+        <div style="flex:1 1 260px"><label>Célula de Crédito</label><select id="obtSolCelula"></select></div>
+      </div>
+      <p class="hint" style="margin:8px 2px 0" id="obtSolFinHint"></p>
       <div class="scroller" id="obtSolLista" style="margin-top:14px"></div>
       <div class="obtmeta" id="obtSolResumo" style="margin-top:10px"></div>
     </div>
@@ -2672,6 +2680,20 @@ body.semvideo .sp-foto{display:block}
       <div class="pizzas" id="obtPdmNdGrafico"></div>
     </div>
   </div><!-- fim de #obtch12-materiais -->
+
+  <!-- ---------- VISÃO FINANCEIRA ---------- -->
+  <div id="obtch12-financeiro" class="hidden">
+    <div class="card reveal">
+      <h2>Visão financeira</h2>
+      <p class="hint" style="margin:0 0 12px">Cruza os dados financeiros de cada SOLEMP — natureza de despesa, situação no SAFin, PTRES e célula de crédito — os mesmos números do relatório do SAFin. Clique numa fatia (ou na legenda) para filtrar a lista abaixo só por ela; clique de novo pra tirar o filtro.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:0 1 160px"><label>Ano</label><select id="obtFinAno"></select></div>
+      </div>
+      <div class="pizzas" id="obtFinGraficos" style="margin-top:14px"></div>
+      <h3 style="margin:20px 0 10px">SOLEMPs <span id="obtFinFiltroTxt"></span></h3>
+      <div class="scroller" id="obtFinTabela"></div>
+    </div>
+  </div><!-- fim de #obtch12-financeiro -->
 
   </div><!-- fim de #obt-controleh12 -->
 
@@ -4585,7 +4607,7 @@ let OBT_SUB='radar', OBT_PROC_SUB='outras', OBT_CH12_SUB='dispensa', OBT_EDIT_NE
 let OBT_NE_LOTE=[];
 let OBT_NE_ABERTA='';
 const OBT_PROC_ABAS=['outras','atas'];
-const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais'];
+const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais','financeiro'];
 
 const OBT_PDM_LIMITE_PADRAO=65492.11; /* Decreto 12.807/2025, art. 75-II da Lei 14.133 — atualizado desde 1º/1/2026 */
 function obtVazio(){
@@ -4873,6 +4895,7 @@ function renderObtencao(){
     else if(OBT_CH12_SUB==='solemp'){renderSolemps();renderObtProcessos();}
     else if(OBT_CH12_SUB==='empenhos')renderObtEmpenhos();
     else if(OBT_CH12_SUB==='materiais')renderObtPdm();
+    else if(OBT_CH12_SUB==='financeiro')renderObtFinanceiro();
   }
   /* a busca na base do governo mora dentro da Configuração: é ajuste de
      máquina, não consulta do dia a dia */
@@ -5648,7 +5671,13 @@ function solNormaliza(s){
   return {id:s.id||uid(),numero:s.numero||'',dispensa:s.dispensa||'',assinada:s.assinada||'',
     ata:s.ata||'',ataItem:s.ataItem||'',ne:s.ne||'',fornecedor:s.fornecedor||'',cnpj:s.cnpj||'',
     contato:s.contato||'',entrega:s.entrega||'',nf:s.nf||'',obs:s.obs||'',
-    etapa:s.etapa||'encaminhada',itens:Array.isArray(s.itens)?s.itens:[],ts:s.ts||Date.now()};
+    etapa:s.etapa||'encaminhada',itens:Array.isArray(s.itens)?s.itens:[],ts:s.ts||Date.now(),
+    /* dados financeiros do SAFin, cruzados do relatório de SOLEMP (planilha) —
+       separados dos campos operacionais acima porque vêm de outro sistema e
+       podem não bater exatamente com a soma dos itens lançados aqui */
+    finCelula:s.finCelula||'',finNd:s.finNd||'',finPlano:s.finPlano||'',finPtres:s.finPtres||'',
+    finSituacao:s.finSituacao||'',finMes:s.finMes||'',
+    finValor:(typeof s.finValor==='number')?s.finValor:null};
 }
 /* Roda uma vez, e só com a lista vazia: quem já usa o painel não pode ver a
    planilha antiga voltar por cima do que atualizou. */
@@ -5684,11 +5713,28 @@ function solLista(){
   const q=($('#obtSolBusca')||{}).value||'';
   const ano=($('#obtSolAno')||{}).value||'';
   const et=($('#obtSolEtapa')||{}).value||'';
+  const nd=($('#obtSolNd')||{}).value||'';
+  const ptres=($('#obtSolPtres')||{}).value||'';
+  const plano=($('#obtSolPlano')||{}).value||'';
+  const celula=($('#obtSolCelula')||{}).value||'';
   return (OBT.solemps||[]).filter(s=>{
     if(ano&&solAno(s)!==ano)return false;
     if(et&&s.etapa!==et)return false;
+    if(nd&&s.finNd!==nd)return false;
+    if(ptres&&s.finPtres!==ptres)return false;
+    if(plano&&s.finPlano!==plano)return false;
+    if(celula&&s.finCelula!==celula)return false;
     return solCasa(s,q);
   }).sort((a,b)=>String(b.numero).localeCompare(String(a.numero),'pt-BR',{numeric:true}));
+}
+/* preenche os quatro filtros financeiros com os valores que realmente
+   existem nos dados — são códigos do SAFin, não um enum fixo do painel */
+function solPopulaFiltroFin(id,campo){
+  const sel=$('#'+id); if(!sel)return;
+  const atual=sel.value;
+  const valores=Array.from(new Set((OBT.solemps||[]).map(s=>s[campo]).filter(Boolean))).sort();
+  sel.innerHTML='<option value="">Todas</option>'+valores.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(valores.includes(atual))sel.value=atual;
 }
 function solPasso(s){
   const at=solEtapaIdx(s.etapa);
@@ -5768,6 +5814,16 @@ function solDetalheHtml(s){
       campo('Situação da NF','nf',s.nf,'certificada, pendente…')+
       campo('Observação','obs',s.obs,'opcional')+
     '</div>'+
+    '<h4 class="obth4">Dados financeiros (SAFin)</h4>'+
+    '<div class="row">'+
+      campo('Natureza de Despesa','finNd',s.finNd,'339030 - Material de Consumo')+
+      campo('PTRES','finPtres',s.finPtres,'236855')+
+      campo('Plano de Contas','finPlano',s.finPlano,'339030.24')+
+      campo('Célula de Crédito','finCelula',s.finCelula,'P4HNRT0.Z2.KX...')+
+    '</div>'+
+    (s.finValor!=null?'<p class="obtmeta" style="margin:10px 2px 0">Valor no SAFin: <b>'+esc(brl(s.finValor))+'</b>'+
+      (s.finSituacao?' · situação: '+esc(s.finSituacao):'')+(s.finMes?' · mês: '+esc(s.finMes):'')+
+      ' — importado do relatório, não editável aqui.</p>':'')+
     '<p class="hint" style="margin:10px 2px 0">O que você escrever aqui grava sozinho ao sair do campo.</p>'+
     '<div class="row" style="margin-top:12px">'+
       '<div style="flex:0 1 auto"><button class="mini" data-soledit="'+esc(s.id)+'">Editar tudo</button></div>'+
@@ -5790,6 +5846,10 @@ function renderSolemps(){
       SOL_ETAPAS.map(e=>'<option value="'+e.v+'">'+esc(e.l)+'</option>').join('');
     selE.dataset.pronto='1';
   }
+  solPopulaFiltroFin('obtSolNd','finNd');
+  solPopulaFiltroFin('obtSolPtres','finPtres');
+  solPopulaFiltroFin('obtSolPlano','finPlano');
+  solPopulaFiltroFin('obtSolCelula','finCelula');
 
   const todas=OBT.solemps;
   const anoSel=($('#obtSolAno')||{}).value||'';
@@ -7888,6 +7948,108 @@ function pdmNdRoscaHtml(fatias){
       '<text x="65" y="78" text-anchor="middle" class="anel-sub">no ano</text>'+
     '</svg><div class="pizza-leg">'+leg+'</div></div></div>';
 }
+
+/* ═════════════ Visão financeira (SOLEMP × SAFin) ═════════════
+   Célula de crédito, ND, plano de contas, PTRES, situação e mês vêm do
+   relatório do SAFin (planilha), cruzados com a SOLEMP pelo número — são
+   dados financeiros, por isso `finValor` (o empenhado de verdade) é usado
+   nos gráficos, não a soma dos itens lançados à mão (`solTotal`), que pode
+   não bater exatamente (aditivo, rascunho sem item lançado, etc). */
+const FIN_PALETTE=['var(--bordo)','var(--terra)','var(--brass)','var(--alert)','var(--dest)',
+  '#4A7A8C','#6B8F71','#8A6A2B','#A2520C','#557040','#B0402D','#8C7A2E'];
+const finCor=i=>FIN_PALETTE[i%FIN_PALETTE.length];
+let OBT_FIN_ANO='', OBT_FIN_FILTRO=null;
+function finAgrupa(campo,ano){
+  const porChave=new Map();
+  (OBT.solemps||[]).forEach(s=>{
+    if(s.finValor==null)return;
+    if(ano&&solAno(s)!==ano)return;
+    const k=s[campo]||'—';
+    const cur=porChave.get(k)||{chave:k,total:0,qtd:0};
+    cur.total+=s.finValor; cur.qtd++;
+    porChave.set(k,cur);
+  });
+  return Array.from(porChave.values()).sort((a,b)=>b.total-a.total);
+}
+function finRoscaHtml(titulo,campo,linhas){
+  const total=linhas.reduce((a,b)=>a+b.total,0);
+  const R=52, C=2*Math.PI*R, folga=linhas.length>1?3.5:0;
+  let acc=0, arcos='';
+  linhas.forEach((l,i)=>{
+    if(!l.total)return;
+    const frac=l.total/total, comp=Math.max(0,C*frac-folga);
+    const cor=finCor(i);
+    const sel=!!(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===l.chave);
+    arcos+='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+cor+'" stroke-width="'+(sel?16:13)+'" stroke-linecap="round"'+
+      ' stroke-dasharray="'+comp.toFixed(1)+' '+(C-comp).toFixed(1)+'"'+
+      ' stroke-dashoffset="'+(-C*acc).toFixed(1)+'" transform="rotate(-90 65 65)" class="anel-arco"'+
+      ' data-finfatia="'+campo+'|'+esc(l.chave)+'" style="cursor:pointer">'+
+      '<title>'+esc(l.chave+' — '+brl(l.total))+'</title></circle>';
+    acc+=frac;
+  });
+  if(!total)arcos='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="13"/>';
+  const leg=linhas.map((l,i)=>{
+    const pc=total?Math.round(l.total/total*100):0;
+    const sel=!!(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===l.chave);
+    return '<div class="li" data-finfatia="'+campo+'|'+esc(l.chave)+'" style="cursor:pointer'+(sel?';font-weight:700':'')+'">'+
+      '<span class="dot" style="background:'+finCor(i)+'"></span>'+
+      '<span class="li-tx" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(l.chave)+'</span>'+
+      '<b class="li-pc">'+pc+'%</b><span class="li-n">('+esc(brl(l.total))+')</span></div>';
+  }).join('');
+  return '<div class="pcard anel"><h3>'+esc(titulo)+'</h3>'+
+    '<div class="anel-wrap"><svg viewBox="0 0 130 130" class="anel-svg">'+
+      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="13"/>'+arcos+
+      '<text x="65" y="62" text-anchor="middle" class="anel-num" style="font-size:11px">'+esc(brl(total))+'</text>'+
+      '<text x="65" y="78" text-anchor="middle" class="anel-sub">no período</text>'+
+    '</svg><div class="pizza-leg">'+leg+'</div></div></div>';
+}
+function finTabelaHtml(){
+  let linhas=(OBT.solemps||[]).filter(s=>s.finValor!=null);
+  if(OBT_FIN_ANO)linhas=linhas.filter(s=>solAno(s)===OBT_FIN_ANO);
+  if(OBT_FIN_FILTRO)linhas=linhas.filter(s=>(s[OBT_FIN_FILTRO.campo]||'—')===OBT_FIN_FILTRO.valor);
+  linhas=linhas.sort((a,b)=>String(b.numero).localeCompare(String(a.numero),'pt-BR',{numeric:true}));
+  if(!linhas.length)return '<p class="hint" style="margin:0">Nenhuma SOLEMP com dado financeiro'+(OBT_FIN_FILTRO?' nesse filtro':'')+'.</p>';
+  return '<table class="obttab"><thead><tr><th>SOLEMP</th><th>Situação</th><th>ND</th><th>PTRES</th>'+
+    '<th>Célula de Crédito</th><th class="num">Valor</th></tr></thead><tbody>'+
+    linhas.map(s=>'<tr><td class="mono">'+esc(s.numero)+'</td><td>'+esc(s.finSituacao||'—')+'</td>'+
+      '<td>'+esc(s.finNd||'—')+'</td><td class="mono">'+esc(s.finPtres||'—')+'</td>'+
+      '<td class="mono" style="font-size:11px">'+esc(s.finCelula||'—')+'</td>'+
+      '<td class="num mono">'+esc(brl(s.finValor))+'</td></tr>').join('')+
+    '</tbody></table>';
+}
+function renderObtFinanceiro(){
+  const selAno=$('#obtFinAno');
+  if(selAno&&!selAno.dataset.pronto){
+    const anos=solAnos(), atual=String(new Date().getFullYear());
+    selAno.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>'<option>'+a+'</option>').join('');
+    if(anos.includes(atual))selAno.value=atual;
+    selAno.dataset.pronto='1';
+  }
+  if(selAno)OBT_FIN_ANO=selAno.value;
+
+  const comDado=(OBT.solemps||[]).filter(s=>s.finValor!=null&&(!OBT_FIN_ANO||solAno(s)===OBT_FIN_ANO));
+  if(!comDado.length){
+    $('#obtFinGraficos').innerHTML='<p class="hint" style="margin:0">Nenhuma SOLEMP com dado financeiro importado ainda'+(OBT_FIN_ANO?' para '+esc(OBT_FIN_ANO):'')+'.</p>';
+    $('#obtFinTabela').innerHTML=''; $('#obtFinFiltroTxt').textContent='';
+    return;
+  }
+  $('#obtFinGraficos').innerHTML=
+    finRoscaHtml('Por natureza de despesa','finNd',finAgrupa('finNd',OBT_FIN_ANO))+
+    finRoscaHtml('Por situação (SAFin)','finSituacao',finAgrupa('finSituacao',OBT_FIN_ANO))+
+    finRoscaHtml('Por PTRES','finPtres',finAgrupa('finPtres',OBT_FIN_ANO))+
+    finRoscaHtml('Por célula de crédito','finCelula',finAgrupa('finCelula',OBT_FIN_ANO))+
+    finRoscaHtml('Evolução mensal','finMes',finAgrupa('finMes',OBT_FIN_ANO));
+  $('#obtFinTabela').innerHTML=finTabelaHtml();
+  $('#obtFinFiltroTxt').textContent=OBT_FIN_FILTRO?('— filtrando por '+OBT_FIN_FILTRO.valor):'';
+
+  $$('[data-finfatia]').forEach(el=>el.onclick=()=>{
+    const idx=el.dataset.finfatia.indexOf('|');
+    const campo=el.dataset.finfatia.slice(0,idx), valor=el.dataset.finfatia.slice(idx+1);
+    OBT_FIN_FILTRO=(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===valor)?null:{campo,valor};
+    renderObtFinanceiro();
+  });
+}
+
 /* a linha da tabela é apertada de propósito (cabe mais nota na tela); ao
    clicar, tudo o que ali vem truncado/pequeno aparece por extenso aqui. */
 function neDetalheHtml(n){
@@ -8207,7 +8369,7 @@ function obtLiga(){
   };
 
   /* ---- controle de SOLEMP ---- */
-  ['obtSolBusca','obtSolAno','obtSolEtapa'].forEach(id=>{
+  ['obtSolBusca','obtSolAno','obtSolEtapa','obtSolNd','obtSolPtres','obtSolPlano','obtSolCelula'].forEach(id=>{
     const e=$('#'+id);
     if(e)e.addEventListener('input',()=>{
       if(id==='obtSolEtapa')SOL_FILTRO_ETAPA=e.value;
@@ -8216,7 +8378,7 @@ function obtLiga(){
   });
   const bSl=$('#obtSolLimpa');
   if(bSl)bSl.onclick=()=>{
-    ['obtSolBusca','obtSolAno','obtSolEtapa'].forEach(id=>{const e=$('#'+id);if(e)e.value='';});
+    ['obtSolBusca','obtSolAno','obtSolEtapa','obtSolNd','obtSolPtres','obtSolPlano','obtSolCelula'].forEach(id=>{const e=$('#'+id);if(e)e.value='';});
     SOL_FILTRO_ETAPA='';
     renderSolemps();
   };
