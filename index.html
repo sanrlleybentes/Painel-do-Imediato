@@ -2625,12 +2625,12 @@ body.semvideo .sp-foto{display:block}
             <option value="anulada">Anulada</option>
           </select></div>
         <div style="flex:1 1 200px"><label>Natureza de Despesa</label>
-          <select id="obtNeNd">
-            <option value="">não informada</option>
+          <input type="text" id="obtNeNd" list="obtNdOpcoes" placeholder="339030" maxlength="6">
+          <datalist id="obtNdOpcoes">
             <option value="339030">339030 — Material de Consumo</option>
             <option value="339039">339039 — Outros Serviços de Terceiros PJ</option>
             <option value="449052">449052 — Equipamentos e Material Permanente</option>
-          </select></div>
+          </datalist></div>
         <div style="flex:2 1 240px"><label>Observação</label><input type="text" id="obtNeObs" placeholder="opcional"></div>
         <div style="flex:0 1 auto"><button class="btn" id="obtNeGravar">Gravar</button></div>
         <div style="flex:0 1 auto"><button class="btn ghost hidden" id="obtNeCancelar">Cancelar edição</button></div>
@@ -4825,11 +4825,12 @@ function lerNotaEmpenhoPdf(linhas){
     r.complUasg=c.slice(0,6);
     r.complPregao=String(+c.slice(-6,-4))+'/'+c.slice(-4);
   }
-  /* Natureza de Despesa: tentativa best-effort — o layout de impressão do
-     SIAFI varia; quando não bate, o campo fica em branco e se preenche à
-     mão na conferência do lote. */
-  const mNd=t.match(/Natureza\s*(?:de\s*)?Despesa\D{0,40}?(\d{2}\.?\d{2}\.?\d{2}\.?\d{2})/i);
-  if(mNd)r.nd=mNd[1].replace(/\D/g,'');
+  /* Natureza de Despesa: fica na "Lista de Itens" do PDF, logo abaixo do
+     rótulo "Natureza de Despesa" — "449052 - EQUIPAMENTOS E MATERIAL
+     PERMANENTE". Confirmado contra o PDF real de impressão do SIAFI. Se o
+     layout mudar e não bater, fica em branco pra conferir à mão. */
+  const mNd=t.match(/Natureza de Despesa[\s\S]{0,150}?(\d{6})\s*-\s*[A-ZÀ-Ü]/);
+  if(mNd)r.nd=mNd[1];
   if(!r.numero)throw new Error('não reconheci o layout — confira se é mesmo o PDF de impressão da NE do SIAFI');
   return r;
 }
@@ -8051,10 +8052,8 @@ function obtLoteItemHtml(c,i){
       '<div style="flex:1 1 170px"><label>Situação</label><select data-lote="'+i+'|situacao">'+
         Object.keys(OBT_SIT_NE).map(v=>'<option value="'+v+'"'+(c.situacao===v?' selected':'')+'>'+esc(OBT_SIT_NE[v])+'</option>').join('')+
       '</select></div>'+
-      '<div style="flex:1 1 200px"><label>Natureza de Despesa</label><select data-lote="'+i+'|nd">'+
-        '<option value="">não informada</option>'+
-        ['339030','339039','449052'].map(v=>'<option value="'+v+'"'+(c.nd===v?' selected':'')+'>'+v+'</option>').join('')+
-      '</select></div>'+
+      '<div style="flex:1 1 200px"><label>Natureza de Despesa</label>'+
+        '<input type="text" data-lote="'+i+'|nd" list="obtNdOpcoes" maxlength="6" value="'+esc(c.nd||'')+'"></div>'+
       '<div style="flex:2 1 240px"><label>Observação</label><input type="text" data-lote="'+i+'|obs" value="'+esc(c.obs||'')+'"></div>'+
     '</div>'+
     (hint.length?'<p class="hint" style="margin:10px 0 0">Vinculado à '+esc(hint.join(' · '))+'.</p>':'')+
