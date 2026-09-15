@@ -8130,6 +8130,7 @@ function obtCamposNe(r){
   return {
     numero:r.numero||'',ug:r.ug||'',data:r.data||'',cnpj:r.cnpj||'',fornecedor:r.fornecedor||'',
     valor:r.valor||0,ata,solemp:(sol?sol.numero:r.solemp)||'',processo:r.processo||'',situacao:'emitida',obs,
+    nd:r.nd||'',
     complUasg:r.complUasg||'',complPregao:r.complPregao||'',
     _sol:sol?sol.numero+' ('+(sol.fornecedor||'sem fornecedor')+')':'',
     _disp:disp?String(disp.objeto||'').slice(0,50):'',_deOutraUasg:deOutraUasg
