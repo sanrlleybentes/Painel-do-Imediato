@@ -9760,7 +9760,7 @@ $('#eAdd').onclick=async()=>{
     }else{
       if(tipo==='desembarque'||tipo==='destaque_saida')CREW.militares=CREW.militares.filter(v=>v.id!==id);
       if(tipo==='destaque_ida'){x.om=om;x.status='terra';x.motivo='Saída Destaque';x.desde=Date.now();}
-      if(tipo==='destaque_volta'){x.status='bordo';x.motivo='Regresso Destaque';x.desde=Date.now();}
+      if(tipo==='destaque_volta'){x.status='bordo';x.om='';x.motivo='Regresso Destaque';x.desde=Date.now();}
       /* só o destacamento tira o militar de bordo. Estágio sem destacamento
          não mexe no status: ele continua da casa e continua na escala. */
       if(tipo==='curso_ida'&&destacado){x.om=om;x.status='terra';x.motivo='Curso'+(curso?': '+curso:'');x.desde=Date.now();}
