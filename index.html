@@ -3636,6 +3636,7 @@ async function load(first){
     if(e.fim===undefined)e.fim='';
     if(e.pend===undefined)e.pend='';
   });
+  ativaMovimentosVencidos();
   MED=m.medicamentos||{itens:[]};
   TAF=m.taf||{anos:{}};
   if(!TAF.anos)TAF.anos={};
@@ -8201,7 +8202,8 @@ function obtLoteItemHtml(c,i){
     '<div class="row" style="align-items:flex-end">'+
       '<div style="flex:1 1 150px"><label>Número da NE</label><input type="text" data-lote="'+i+'|numero" value="'+esc(c.numero||'')+'"></div>'+
       '<div style="flex:1 1 130px"><label>UG emitente</label><input type="text" data-lote="'+i+'|ug" value="'+esc(c.ug||'')+'"></div>'+
-      '<div style="flex:1 1 150px"><label>Data</label><input type="date" data-lote="'+i+'|data" value="'+esc(c.data||'')+'"></div>'+
+      '<div style="flex:1 1 150px"><label>Data</label><input type="hidden" id="loteData'+i+'" data-lote="'+i+'|data" value="'+esc(c.data||'')+'">'+
+        '<input type="text" id="loteData'+i+'Br" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
       '<div style="flex:1 1 160px"><label>CNPJ do favorecido</label><input type="text" data-lote="'+i+'|cnpj" value="'+esc(c.cnpj||'')+'"></div>'+
     '</div>'+
     '<div class="row" style="align-items:flex-end;margin-top:10px">'+
@@ -8231,6 +8233,7 @@ function renderObtNeLote(){
     const [i,campo]=inp.dataset.lote.split('|');
     OBT_NE_LOTE[+i][campo]=campo==='valor'?num(inp.value):inp.value;
   });
+  OBT_NE_LOTE.forEach((c,i)=>{ ligaCalDia('loteData'+i); setDataDia('loteData'+i,c.data||''); });
   $$('[data-lotech]').forEach(ck=>ck.onchange=()=>{OBT_NE_LOTE[+ck.dataset.lotech]._incluir=ck.checked;});
   $$('[data-loterm]').forEach(b=>b.onclick=()=>{OBT_NE_LOTE.splice(+b.dataset.loterm,1);renderObtNeLote();});
 }
@@ -9759,11 +9762,16 @@ $('#eAdd').onclick=async()=>{
       CREW.militares.push(x);id=x.id;
     }else{
       if(tipo==='desembarque'||tipo==='destaque_saida')CREW.militares=CREW.militares.filter(v=>v.id!==id);
-      if(tipo==='destaque_ida'){x.om=om;x.status='terra';x.motivo='Saída Destaque';x.desde=Date.now();}
+      /* Data futura: o militar ainda está a bordo até o destaque/curso
+         começar de verdade — marcar "em terra" e pendurar a OM no nome
+         antes da hora dava a entender que ele já tinha ido embora, ou que
+         continuava vinculado quando na real ainda nem saiu. ativaMovimentosVencidos()
+         aplica sozinho assim que a data chegar (Movimentação, ao abrir). */
+      if(tipo==='destaque_ida'&&data<=hoje()){x.om=om;x.status='terra';x.motivo='Saída Destaque';x.desde=Date.now();}
       if(tipo==='destaque_volta'){x.status='bordo';x.om='';x.motivo='Regresso Destaque';x.desde=Date.now();}
       /* só o destacamento tira o militar de bordo. Estágio sem destacamento
          não mexe no status: ele continua da casa e continua na escala. */
-      if(tipo==='curso_ida'&&destacado){x.om=om;x.status='terra';x.motivo='Curso'+(curso?': '+curso:'');x.desde=Date.now();}
+      if(tipo==='curso_ida'&&destacado&&data<=hoje()){x.om=om;x.status='terra';x.motivo='Curso'+(curso?': '+curso:'');x.desde=Date.now();}
       if(tipo==='curso_volta'){x.status='bordo';x.om='';x.motivo='Regresso de Curso';x.desde=Date.now();}
       if(tipo==='destaque_entrada'){x.grupo='destacado';x.om=om||x.om;}
       if(tipo==='efetivacao'){x.grupo='tripulacao';x.om='';x.status='bordo';x.motivo='Efetivação';x.desde=Date.now();}
@@ -9771,18 +9779,43 @@ $('#eAdd').onclick=async()=>{
     CREW.atualizado=Date.now();
     const fim=tipoTemPeriodo(tipo)?($('#eFim').value||''):'';
     if(tipoTemPeriodo(tipo)&&fim&&fim<data){toast('O fim do destaque não pode ser antes do início.',true);return;}
+    const precisaAtivar=(tipo==='destaque_ida'||(tipo==='curso_ida'&&destacado));
     EFE.eventos.push({id:uid(),ts:Date.now(),data,fim,tipo,mil:id,posto:x.posto,nome:x.nome,nip:x.nip||'',
       completo:x.completo||'',om,doc:$('#eDoc').value.trim(),msgref:$('#eMsgRef').value.trim(),
       obs:$('#eObs').value.trim(),por:$('#ePor').value.trim(),
+      ativado:precisaAtivar?(data<=hoje()):undefined,
       curso:ehCurso(tipo)?curso:'', destacado:tipo==='curso_ida'?!!destacado:undefined,
       pend:(tipoTemPeriodo(tipo)&&fim)?'aberto':''});
     const ok=(await salvar('crew',CREW))&&(await salvar('efetivo',EFE));
     ['#eOm','#eDoc','#eMsgRef','#eObs','#eNPosto','#eNNip','#eNComp','#eNNome','#eCurso'].forEach(s=>{if($(s))$(s).value='';});
     setDataDia('eFim','');
     $('#eMil').value='';milOptions();ajustaNovoWrap();renderEfe();renderPessoal();
-    if(ok)toast('Movimento registrado.');
+    if(ok)toast(precisaAtivar&&data>hoje()?
+      'Movimento registrado — agendado para '+brDate(data)+'; ele continua a bordo até lá.':
+      'Movimento registrado.');
   }finally{btn.disabled=false;btn.textContent='Registrar movimento';}
 };
+/* ═══════════ ativa sozinho o destaque/curso agendado pra data futura ═══════════
+   Registrar hoje um destaque que só começa daqui a um mês não pode tirar o
+   militar de bordo (nem pendurar a OM no nome) antes da hora — ele fica
+   "bordo" com o evento marcado ativado:false até a data chegar. Sem servidor
+   rodando à meia-noite, quem aplica é a primeira carga do painel no dia ou
+   depois — chamada uma vez por load(), silenciosa. */
+function ativaMovimentosVencidos(){
+  let mudou=false;
+  (EFE.eventos||[]).forEach(e=>{
+    if(e.ativado!==false)return;
+    if(e.data>hoje())return;
+    const x=milPorId(e.mil); if(!x)return;
+    if(e.tipo==='destaque_ida'||(e.tipo==='curso_ida'&&e.destacado)){
+      x.om=e.om||x.om; x.status='terra';
+      x.motivo=e.tipo==='curso_ida'?('Curso'+(e.curso?': '+e.curso:'')):'Saída Destaque';
+      x.desde=Date.now();
+    }
+    e.ativado=true; mudou=true;
+  });
+  if(mudou){ CREW.atualizado=Date.now(); salvar('crew',CREW); salvar('efetivo',EFE); }
+}
 /* ═══════════ destaques com prazo: pendência de encerramento ═══════════
    Quando o fim do período chega, o movimento vira pendência. Nada muda no
    cadastro até o Imediato confirmar: tripulante volta ao quadro, militar de
@@ -9868,10 +9901,11 @@ function abrirProrrogacao(e){
   host.innerHTML='<div class="backdrop"><div class="modal"><h3>Prorrogar destaque</h3>'+
     '<p class="sub">'+esc((e.posto||'')+' '+(e.nome||''))+' — destaque de '+brDate(e.data)+' a '+brDate(e.fim)+'.</p>'+
     '<div class="fields"><div><label>Novo fim do destaque</label>'+
-    '<input type="date" id="prorrFim" value="'+esc(e.fim||'')+'"></div>'+
+    '<input type="hidden" id="prorrFim"><input type="text" id="prorrFimBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
     '<div><label>Observação</label><input type="text" id="prorrObs" placeholder="Ex.: Prorrogado por Msg 121435Z AGO26"></div></div>'+
     '<div class="actions"><button class="btn ghost" id="prorrNo">Cancelar</button>'+
     '<button class="btn" id="prorrOk">Prorrogar</button></div></div></div>';
+  ligaCalDia('prorrFim'); setDataDia('prorrFim',e.fim||'');
   $('#prorrNo').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=ev=>{if(ev.target===host.querySelector('.backdrop'))host.innerHTML='';};
   $('#prorrOk').onclick=async()=>{
@@ -9896,8 +9930,8 @@ function abrirEditMovimento(id){
     '<p class="sub">'+esc((e.posto||'')+' '+(e.nome||''))+' — '+esc(TIPO_EFE[e.tipo]||e.tipo)+
     '. Corrige o registro; não mexe no cadastro do militar.</p><div class="fields">'+
     '<div class="row"><div><label>'+(comPer?(curso?'Início do curso':'Início do destaque'):'Data')+'</label>'+
-      '<input type="date" id="edData" value="'+esc(e.data||'')+'"></div>'+
-    (comPer?'<div><label>'+(curso?'Fim previsto do curso':'Fim do destaque')+'</label><input type="date" id="edFim" value="'+esc(e.fim||'')+'"></div>':'')+
+      '<input type="hidden" id="edData"><input type="text" id="edDataBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+    (comPer?'<div><label>'+(curso?'Fim previsto do curso':'Fim do destaque')+'</label><input type="hidden" id="edFim"><input type="text" id="edFimBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>':'')+
     '</div>'+
     (curso?'<div class="row"><div style="flex:1 1 260px"><label>Curso ou estágio</label>'+
       '<input type="text" id="edCurso" value="'+esc(e.curso||'')+'"></div>'+
@@ -9916,6 +9950,8 @@ function abrirEditMovimento(id){
       '</select></div>':'')+
     '</div><div class="actions"><button class="btn ghost" id="edNo">Cancelar</button>'+
     '<button class="btn" id="edOk">Salvar alterações</button></div></div></div>';
+  ligaCalDia('edData'); setDataDia('edData',e.data||'');
+  if(comPer){ligaCalDia('edFim'); setDataDia('edFim',e.fim||'');}
   $('#edNo').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=ev=>{if(ev.target===host.querySelector('.backdrop'))host.innerHTML='';};
   $('#edOk').onclick=async()=>{
@@ -10078,17 +10114,19 @@ function abrirConcluirIS(id){
       ['Apto','Apto com restrições','Inapto temporariamente','Inapto']
       .map(o=>'<option'+(r.resultado===o?' selected':'')+'>'+o+'</option>').join('')+'</select></div>'+
     '<div><label>MSG REF</label><input type="text" id="icMsg" value="'+esc(r.msgref||'')+'" placeholder="Ex.: Msg 121435Z AGO26"></div></div>'+
-    '<div class="row"><div><label>Data da conclusão</label><input type="date" id="icData" value="'+esc(r.concluidaEm||hoje())+'"></div>'+
-    '<div><label>Novo vencimento</label><input type="date" id="icVenc" value="'+esc(r.venc||'')+'"></div></div>'+
+    '<div class="row"><div><label>Data da conclusão</label><input type="hidden" id="icData"><input type="text" id="icDataBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+    '<div><label>Novo vencimento</label><input type="hidden" id="icVenc"><input type="text" id="icVencBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div></div>'+
     '<p class="hint" style="margin:0">Controle Trienal: o vencimento costuma cair três anos depois. <button type="button" class="mini" id="icMais3">Somar 3 anos à conclusão</button></p>'+
     '<div><label>Observação</label><input type="text" id="icObs" value="'+esc(r.obs||'')+'"></div>'+
     '</div><div class="actions"><button class="btn ghost" id="icNo">Cancelar</button>'+
     '<button class="btn" id="icOk">Concluir inspeção</button></div></div></div>';
+  ligaCalDia('icData'); setDataDia('icData',r.concluidaEm||hoje());
+  ligaCalDia('icVenc'); setDataDia('icVenc',r.venc||'');
   $('#icNo').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
   $('#icMais3').onclick=()=>{
     const d=$('#icData').value||hoje();
-    $('#icVenc').value=addMeses(d,36);
+    setDataDia('icVenc',addMeses(d,36));
   };
   $('#icOk').onclick=async()=>{
     const msg=$('#icMsg').value.trim();
@@ -10108,16 +10146,18 @@ function abrirEditIS(id){
   host.innerHTML='<div class="backdrop"><div class="modal"><h3>Editar inspeção</h3>'+
     '<p class="sub">'+esc(nomeDe(r.mil))+' — '+esc(r.tipo||'Controle Trienal')+'</p><div class="fields">'+
     '<div class="row"><div><label>Número SEIS</label><input type="text" id="ieSeis" value="'+esc(r.seis||'')+'"></div>'+
-    '<div><label>Aberta em</label><input type="date" id="ieData" value="'+esc(r.data||'')+'"></div></div>'+
+    '<div><label>Aberta em</label><input type="hidden" id="ieData"><input type="text" id="ieDataBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div></div>'+
     '<div class="row"><div><label>Etapa</label><select id="ieEtapa">'+
       Object.keys(IS_ETAPAS).map(k=>'<option value="'+k+'"'+((r.etapa||'aberta')===k?' selected':'')+'>'+IS_ETAPAS[k]+'</option>').join('')+
       '</select></div>'+
-    '<div><label>Vencimento</label><input type="date" id="ieVenc" value="'+esc(r.venc||'')+'"></div></div>'+
+    '<div><label>Vencimento</label><input type="hidden" id="ieVenc"><input type="text" id="ieVencBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div></div>'+
     '<div class="row"><div><label>Resultado</label><input type="text" id="ieRes" value="'+esc(r.resultado||'')+'" placeholder="Ex.: Apto"></div>'+
     '<div><label>MSG REF</label><input type="text" id="ieMsg" value="'+esc(r.msgref||'')+'"></div></div>'+
     '<div><label>Observação</label><input type="text" id="ieObs" value="'+esc(r.obs||'')+'"></div>'+
     '</div><div class="actions"><button class="btn ghost" id="ieNo">Cancelar</button>'+
     '<button class="btn" id="ieOk">Salvar alterações</button></div></div></div>';
+  ligaCalDia('ieData'); setDataDia('ieData',r.data||'');
+  ligaCalDia('ieVenc'); setDataDia('ieVenc',r.venc||'');
   $('#ieNo').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
   $('#ieOk').onclick=async()=>{
@@ -13847,7 +13887,8 @@ function renderNotasLidas(){
         '<div><label>Fornecedor</label><input type="text" data-c="'+d.id+'|fornecedor" value="'+esc(d.fornecedor||'')+'"></div>'+
         '<div style="flex:0 1 180px"><label>CNPJ</label><input type="text" data-c="'+d.id+'|cnpj" value="'+esc(d.cnpj||'')+'"></div>'+
         '<div style="flex:0 1 140px"><label>Nota nº</label><input type="text" data-c="'+d.id+'|nf" value="'+esc(d.nf||'')+'"></div>'+
-        '<div style="flex:0 1 150px"><label>Data</label><input type="date" data-c="'+d.id+'|data" value="'+esc(d.data||hoje())+'"></div>'+
+        '<div style="flex:0 1 150px"><label>Data</label><input type="hidden" id="nfData'+d.id+'" data-c="'+d.id+'|data" value="'+esc(d.data||hoje())+'">'+
+          '<input type="text" id="nfData'+d.id+'Br" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
       '</div>'+
       '<div class="scroller" style="margin-top:12px"><table class="nfitens"><thead><tr>'+
         '<th>Item</th><th style="width:120px">Categoria</th><th class="num" style="width:90px">Qtd</th>'+
@@ -13870,6 +13911,7 @@ function renderNotasLidas(){
     const d=NF_LIDAS.find(x=>x.id===id);if(!d)return;
     d[campo]=(campo==='total')?numBR(el.value):el.value;
   });
+  NF_LIDAS.forEach(d=>{ ligaCalDia('nfData'+d.id); setDataDia('nfData'+d.id,d.data||hoje()); });
   $$('#nfResultado [data-i]').forEach(el=>el.onchange=()=>{
     const [id,k,campo]=el.dataset.i.split('|');
     const d=NF_LIDAS.find(x=>x.id===id);if(!d)return;
@@ -14123,8 +14165,8 @@ function abrirComissao(id){
   host.innerHTML='<div class="backdrop"><div class="modal"><h3>'+(id?'Editar comissão':'Nova comissão')+'</h3>'+
     '<p class="sub">O valor por militar multiplicado pelo efetivo é o orçamento previsto da comissão.</p><div class="fields">'+
     '<div><label>Nome</label><input type="text" id="cmNome" value="'+esc(c.nome||'')+'" placeholder="Ex.: Comissão Rio Tocantins 2026/2"></div>'+
-    '<div class="row"><div><label>Início</label><input type="date" id="cmIni" value="'+esc(c.ini||'')+'"></div>'+
-    '<div><label>Término (em branco = em curso)</label><input type="date" id="cmFim" value="'+esc(c.fim||'')+'"></div></div>'+
+    '<div class="row"><div><label>Início</label><input type="hidden" id="cmIni"><input type="text" id="cmIniBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+    '<div><label>Término (em branco = em curso)</label><input type="hidden" id="cmFim"><input type="text" id="cmFimBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div></div>'+
     '<div class="row"><div><label>Militares municiados</label><input type="number" id="cmMil" value="'+(+c.militares||0)+'"></div>'+
     '<div><label>Valor por militar (R$)</label><input type="text" id="cmVal" value="'+String(+c.valorPorMilitar||0).replace('.',',')+'"></div></div>'+
     '<p class="hint" style="margin:0" id="cmPrev"></p>'+
@@ -14133,6 +14175,8 @@ function abrirComissao(id){
   const prev=()=>{const m=+$('#cmMil').value||0,v=numBR($('#cmVal').value);
     $('#cmPrev').innerHTML='Orçamento previsto: <b>'+brl(m*v)+'</b>'+(m&&v?' ('+m+' × '+brl(v)+')':'');};
   ['cmMil','cmVal'].forEach(x=>$('#'+x).addEventListener('input',prev)); prev();
+  ligaCalDia('cmIni'); setDataDia('cmIni',c.ini||'');
+  ligaCalDia('cmFim'); setDataDia('cmFim',c.fim||'');
   $('#cmNo').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
   if($('#cmDel'))$('#cmDel').onclick=()=>confirmar('Excluir comissão',
@@ -14868,12 +14912,13 @@ function abrirEditPaiol(id){
     '<div class="row"><div><label>Quantidade</label><input type="text" id="pe_qtd" value="'+esc(String(+it.qtd||0).replace('.',','))+'"></div>'+
     '<div><label>Mínimo</label><input type="text" id="pe_min" value="'+esc(String(+it.min||0).replace('.',','))+'"></div>'+
     '<div><label>Preço unitário</label><input type="text" id="pe_preco" value="'+esc(String(+it.preco||0).replace('.',','))+'"></div></div>'+
-    '<div class="row"><div><label>Validade</label><input type="date" id="pe_val" value="'+esc(it.val||'')+'"></div>'+
+    '<div class="row"><div><label>Validade</label><input type="hidden" id="pe_val"><input type="text" id="pe_valBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
     '<div><label>Código de barras</label><input type="text" id="pe_ean" value="'+esc(it.ean||'')+'"></div></div>'+
     '</div><div class="actions">'+
     '<button class="btn ghost" id="pe_del" style="color:var(--alert)">Excluir item</button>'+
     '<button class="btn ghost" id="pe_no">Cancelar</button>'+
     '<button class="btn" id="pe_ok">Salvar</button></div></div></div>';
+  ligaCalDia('pe_val'); setDataDia('pe_val',it.val||'');
   $('#pe_no').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
   $('#pe_del').onclick=()=>confirmar('Excluir do paiol',
