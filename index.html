@@ -495,8 +495,8 @@ select.obtfase{min-width:210px;font-size:12px}
   font-family:var(--mono);font-size:9px;color:var(--brass);letter-spacing:.06em;white-space:nowrap;pointer-events:none}
 .progNome{position:sticky;left:0;background:linear-gradient(90deg,rgba(15,42,40,.16),var(--steel-800) 70%);
   z-index:1;display:flex;align-items:center;border-left:3px solid var(--petroleo);
-  padding:0 8px;font-size:12.5px;font-weight:600;font-family:var(--display);letter-spacing:.03em;text-transform:uppercase;
-  border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  padding:4px 8px;font-size:12.5px;font-weight:600;font-family:var(--display);letter-spacing:.03em;text-transform:uppercase;
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);white-space:normal;line-height:1.2;overflow:hidden}
 .progTrack{position:relative;height:34px;border-bottom:1px solid var(--line);background-image:var(--progGridLines)}
 .progSeg{position:absolute;top:7px;height:20px;border-radius:10px;cursor:pointer;border:1px solid var(--brass);padding:0 8px;
   display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:var(--mono);font-size:10.5px;
@@ -675,8 +675,8 @@ tbody tr:hover{background:rgba(204,162,90,.06)}
   .diarioServ{gap:8px}
   .diarioNome{min-width:100%;font-size:10.5px}
   .diarioSlots select{min-width:132px}
-  .progGrid{grid-template-columns:92px 1fr}
-  .progNome{font-size:11.5px}
+  .progGrid{grid-template-columns:104px 1fr}
+  .progNome{font-size:10.5px}
   .acts{justify-content:flex-start}
   .chips{gap:6px}
   .chip{padding:7px 11px;font-size:12px}
@@ -11071,6 +11071,7 @@ function progFmtCurto(iso){
   return pad(+iso.slice(8,10))+' '+MES3[+iso.slice(5,7)-1].toLowerCase();
 }
 const PROG_LARGURA_PX=4500;         /* largura total da régua — dá espaço pra cada dia sem amontoar */
+let PROG_ULTIMO_ANO_SCROLL='';      /* rola até hoje só na primeira vez que o ano aparece, não a cada rerender */
 function renderProgramadas(){
   const ano=$('#fAno').value||String(new Date().getFullYear());
   const anoNum=+ano;
@@ -11137,6 +11138,17 @@ function renderProgramadas(){
     });
     g+='</div>';
     host.innerHTML=g;
+
+    /* abre direto no dia de hoje — senão é rolar de janeiro até o mês atual
+       toda vez que a tela é aberta. Só na primeira vez que o ano aparece:
+       se o Imediato já rolou pra outro trecho, um rerender (editar período,
+       por ex.) não deve puxar a régua de volta pra hoje. */
+    if(mostraHoje&&PROG_ULTIMO_ANO_SCROLL!==ano){
+      PROG_ULTIMO_ANO_SCROLL=ano;
+      const nomeCol=112;
+      const hojeX=nomeCol+hojePct/100*PROG_LARGURA_PX;
+      host.scrollLeft=Math.max(0,hojeX-host.clientWidth*0.4);
+    }
 
     $$('#progWrap .progSeg').forEach(el=>el.addEventListener('click',e=>{
       e.stopPropagation();
