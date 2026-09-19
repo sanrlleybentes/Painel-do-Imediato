@@ -3637,6 +3637,7 @@ async function load(first){
     if(e.pend===undefined)e.pend='';
   });
   ativaMovimentosVencidos();
+  await sincronizaStatusQuantoca();
   MED=m.medicamentos||{itens:[]};
   TAF=m.taf||{anos:{}};
   if(!TAF.anos)TAF.anos={};
@@ -9815,6 +9816,43 @@ function ativaMovimentosVencidos(){
     e.ativado=true; mudou=true;
   });
   if(mudou){ CREW.atualizado=Date.now(); salvar('crew',CREW); salvar('efetivo',EFE); }
+}
+/* ═══════════ "a bordo"/"em terra" vem do QUANTOCA ═══════════
+   O QUANTOCA tem o controle de entrada/saída do dia a dia (liberação,
+   trânsito), gravado em bordo_movimentos — uma tabela que este painel não
+   escreve, só lê. Quem manda no "a bordo"/"em terra" é sempre esse
+   histórico, mesmo para quem está destacado no papel aqui: ele pode ter
+   voltado ao navio para pegar algo, por exemplo, e isso tem que aparecer.
+   Mesmo algoritmo do QUANTOCA (statusPorMovimentos/aplicaStatus): decrescente,
+   para no primeiro 'saida'/'entrada' de cada um. Só ajusta o que aparece
+   nesta carga — quem grava em bordo_movimentos e no status de verdade
+   continua sendo o QUANTOCA. */
+async function statusPorMovimentosQuantoca(){
+  let linhas;
+  try{ linhas=await sb('bordo_movimentos?select=militar_id,nip,acao,motivo,por,ts&order=ts.desc&limit=5000'); }
+  catch(e){ return null; }
+  if(!linhas)return null;
+  const porId={}, porNip={};
+  const acumula=(bolsa,chave,r)=>{
+    if(!chave)return;
+    const atual=bolsa[chave]||(bolsa[chave]={status:null,desde:null,motivo:'',por:'',resolvido:false});
+    if(atual.desde===null){ atual.desde=new Date(r.ts).getTime(); atual.motivo=r.motivo||''; atual.por=r.por||''; }
+    if(!atual.resolvido){
+      if(r.acao==='saida'){atual.status='terra';atual.resolvido=true;}
+      else if(r.acao==='entrada'){atual.status='bordo';atual.resolvido=true;}
+    }
+  };
+  linhas.forEach(r=>{acumula(porId,r.militar_id,r);acumula(porNip,r.nip,r);});
+  return {porId,porNip};
+}
+async function sincronizaStatusQuantoca(){
+  const mapa=await statusPorMovimentosQuantoca();
+  if(!mapa||!CREW||!CREW.militares)return;
+  CREW.militares.forEach(x=>{
+    const m=mapa.porId[x.id]||(x.nip?mapa.porNip[x.nip]:null);
+    if(!m||!m.status)return;
+    x.status=m.status; if(m.desde)x.desde=m.desde; x.motivo=m.motivo; x.por=m.por;
+  });
 }
 /* ═══════════ destaques com prazo: pendência de encerramento ═══════════
    Quando o fim do período chega, o movimento vira pendência. Nada muda no
