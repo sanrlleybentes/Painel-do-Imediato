@@ -2549,6 +2549,8 @@ body.semvideo .sp-foto{display:block}
         <div style="flex:0 1 150px"><label>Ano</label><select id="obtSolAno"></select></div>
         <div style="flex:0 1 190px"><label>Etapa</label><select id="obtSolEtapa"></select></div>
         <div style="flex:0 1 auto"><button class="btn ghost" id="obtSolLimpa">Limpar</button></div>
+        <div style="flex:0 1 auto"><button class="btn ghost" id="obtSolRelBtn">Inserir Relatório</button>
+          <input type="file" id="obtSolRelInput" accept="application/pdf" class="hidden"></div>
         <div style="flex:0 1 auto"><button class="btn" id="obtSolNova">Nova SOLEMP</button></div>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:10px">
@@ -2648,14 +2650,6 @@ body.semvideo .sp-foto{display:block}
       <h2>Notas lançadas <span class="n" id="nObtNe">0</span></h2>
       <div class="row" style="align-items:flex-end">
         <div style="flex:2 1 240px"><label>Procurar</label><input type="text" id="obtNeBusca" placeholder="número, favorecido, dispensa/pregão, SOLEMP" autocomplete="off"></div>
-        <div style="flex:0 1 180px"><label>Situação</label>
-          <select id="obtNeFiltro">
-            <option value="">Todas</option>
-            <option value="emitida">Emitida</option>
-            <option value="entregue">Entregue</option>
-            <option value="paga">Paga</option>
-            <option value="anulada">Anulada</option>
-          </select></div>
       </div>
       <div class="scroller" id="obtListaNe" style="margin-top:14px"></div>
     </div>
@@ -5738,6 +5732,106 @@ function solPopulaFiltroFin(id,campo){
   sel.innerHTML='<option value="">Todas</option>'+valores.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   if(valores.includes(atual))sel.value=atual;
 }
+
+/* ═══════════ "Inserir Relatório": lê o PDF "SOLEMP Cadastradas" do SAFin ═══════════
+   Mesmo dado que antes vinha por planilha (Célula de Crédito, ND, Plano de
+   Contas, PTRES, Situação, Valor), agora direto do PDF que o SAFin exporta,
+   sem precisar converter nada à mão. */
+const OBT_ND_NOMES_REL={'339030':'Material de Consumo','339039':'Outros Serv. Terceiros - PJ','449052':'Equip. e Mat. Permanente'};
+function solNdTexto(cod){ return cod?(cod+(OBT_ND_NOMES_REL[cod]?' - '+OBT_ND_NOMES_REL[cod]:'')):''; }
+/* Cada SOLEMP no relatório vira uma linha da tabela com o número
+   "84515-NNNN/AAAA" como âncora — é o ponto mais confiável pra separar
+   uma linha da outra. Situação, célula, plano de contas e PTRES vêm
+   IMEDIATAMENTE ANTES do número na mesma linha da tabela (ficam em
+   branco nas SOLEMP em Rascunho, que ainda não têm classificação
+   orçamentária). O valor de cada SOLEMP é o que aparece na primeira
+   linha "SUBTOTAL" seguinte — mais confiável que somar os itens, que
+   quebram em várias linhas quando a SOLEMP tem mais de um. */
+function solParseRelatorioTexto(t){
+  const situacoes=[...t.matchAll(/\b(Rascunho|Empenhada|Conferida)\b/g)].map(m=>({v:m[1],i:m.index}));
+  const subtotais=[...t.matchAll(/SUBTOTAL\s+([\d.]+,\d{2})/g)].map(m=>({v:m[1],i:m.index}));
+  const solemps=[...t.matchAll(/84515-(\d{4}\/\d{4})/g)];
+  return solemps.map(m=>{
+    const pos=m.index, numero=m[1];
+    const antes=situacoes.filter(s=>s.i<pos), situacao=antes[antes.length-1];
+    const subtotal=subtotais.find(s=>s.i>pos);
+    const inicio=situacao?situacao.i+situacao.v.length:Math.max(0,pos-200);
+    const janela=t.slice(inicio,pos);
+    const mCelula=janela.match(/\b([A-Z0-9]+\.[A-Z0-9]+\.[A-Z0-9]+\.\d+\.(\d{6}))\b/);
+    let resto=mCelula?janela.replace(mCelula[0],' '):janela;
+    let plano='', nd=mCelula?mCelula[2]:'';
+    const mPlano=resto.match(/\b(\d{6})\.(\d{2})\b/);
+    if(mPlano){ plano=mPlano[1]+'.'+mPlano[2]; if(!nd)nd=mPlano[1]; resto=resto.replace(mPlano[0],' '); }
+    else{
+      const mPlano8=resto.match(/\b(\d{8})\b/);
+      if(mPlano8){ plano=mPlano8[1].slice(0,6)+'.'+mPlano8[1].slice(6); if(!nd)nd=mPlano8[1].slice(0,6); resto=resto.replace(mPlano8[0],' '); }
+    }
+    const mPtres=resto.match(/\b(\d{6})\b/);
+    const mData=janela.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return {
+      numero, situacao:situacao?situacao.v:'',
+      data:mData?mData[3]+'-'+mData[2]+'-'+mData[1]:'',
+      finCelula:mCelula?mCelula[1]:'', finNd:solNdTexto(nd), finPlano:plano,
+      finPtres:mPtres?mPtres[1]:'', finValor:subtotal?num(subtotal.v):null,
+    };
+  });
+}
+function solLerRelatorioArquivo(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      try{
+        const linhas=await textoDoPdf(fr.result);
+        resolve(solParseRelatorioTexto(linhas.join('\n')));
+      }catch(e){reject(e);}
+    };
+    fr.onerror=()=>reject(new Error('não consegui ler o arquivo'));
+    fr.readAsArrayBuffer(file);
+  });
+}
+function solAbrirPreviaRelatorio(linhas){
+  const porNumero=new Map();
+  (OBT.solemps||[]).forEach(s=>porNumero.set(s.numero,s));
+  const naoAchadas=linhas.filter(l=>!porNumero.has(l.numero));
+  const MAPA_ETAPA_REL={'Rascunho':'encaminhada','Conferida':'conferida','Empenhada':'empenhada'};
+  const host=$('#modalHost');
+  host.innerHTML='<div class="backdrop"><div class="modal" style="max-width:760px"><h3>Conferir relatório do SAFin</h3>'+
+    '<p class="sub">'+linhas.length+' SOLEMP no relatório — '+(linhas.length-naoAchadas.length)+' já cadastradas aqui serão atualizadas'+
+    (naoAchadas.length?', '+naoAchadas.length+' ainda não existem no site':'')+'.</p>'+
+    (naoAchadas.length?'<label style="display:flex;gap:8px;align-items:center;margin:0 0 12px;font-size:13px">'+
+      '<input type="checkbox" id="relCriarFaltantes"> criar também as '+naoAchadas.length+' que ainda não existem (sem itens lançados, só o financeiro)</label>':'')+
+    '<div class="scroller" style="max-height:340px"><table class="obttab"><thead><tr><th>SOLEMP</th><th>Situação</th>'+
+    '<th>ND</th><th class="num">Valor</th><th></th></tr></thead><tbody>'+
+    linhas.map(l=>{
+      const existe=porNumero.has(l.numero);
+      return '<tr'+(existe?'':' style="opacity:.6"')+'><td class="mono">'+esc(l.numero)+'</td>'+
+        '<td>'+esc(l.situacao)+'</td><td>'+esc(l.finNd||'—')+'</td><td class="num mono">'+esc(brl(l.finValor))+'</td>'+
+        '<td>'+(existe?'':'<span class="pill red">não existe</span>')+'</td></tr>';
+    }).join('')+
+    '</tbody></table></div>'+
+    '<div class="actions"><button class="btn ghost" id="relCancelar">Cancelar</button>'+
+    '<button class="btn" id="relAplicar">Aplicar atualização</button></div></div></div>';
+  $('#relCancelar').onclick=()=>host.innerHTML='';
+  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+  $('#relAplicar').onclick=async()=>{
+    const criarFaltantes=$('#relCriarFaltantes')?$('#relCriarFaltantes').checked:false;
+    let atualizadas=0, criadas=0;
+    linhas.forEach(l=>{
+      let s=porNumero.get(l.numero);
+      if(!s){
+        if(!criarFaltantes)return;
+        s=solNormaliza({numero:l.numero,etapa:MAPA_ETAPA_REL[l.situacao]||'encaminhada'});
+        OBT.solemps.push(s); porNumero.set(l.numero,s); criadas++;
+      }else atualizadas++;
+      s.finCelula=l.finCelula; s.finNd=l.finNd; s.finPlano=l.finPlano; s.finPtres=l.finPtres;
+      s.finSituacao=l.situacao; s.finMes=l.data?l.data.slice(0,7):''; s.finValor=l.finValor;
+    });
+    const ok=await salvar('obtencao',OBT);
+    host.innerHTML='';
+    toast(ok?(atualizadas+' SOLEMP atualizada(s)'+(criadas?', '+criadas+' criada(s)':'')):'Não foi possível gravar.',!ok);
+    renderSolemps();
+  };
+}
 function solPasso(s){
   const at=solEtapaIdx(s.etapa);
   return '<div class="solpasso">'+SOL_ETAPAS.map((e,i)=>
@@ -5756,20 +5850,19 @@ function solDispensaPregao(s){
     return {texto:'PE '+ne.complPregao+' (UASG '+ne.complUasg+')',pregao:true};
   const disp=ne.processo&&dispensaPorNup(ne.processo);
   if(disp)return {texto:(disp.modalidade||'Dispensa')+' '+disp.compra+'/'+disp.ano,pregao:false};
-  if(ne.processo)return {texto:obtNup(ne.processo),pregao:false};
+  /* a dispensa pode não estar (mais) na base sincronizada de processos,
+     mas a própria NE já guarda o texto resolvido no campo `ata` desde que
+     foi lançada — não precisa recalcular pra achar de novo. */
+  if(ne.ata)return {texto:ne.ata,pregao:false};
   return null;
 }
 function solLinhaHtml(s){
   const tot=solTotal(s), n=(s.itens||[]).length;
   const primeiro=n?String(s.itens[0].desc||''):'—';
-  const assin=String(s.assinada||'').toUpperCase();
-  const pillAs=assin==='SIM'?'<span class="pill in">assinada</span>'
-    :(assin==='NÃO'||assin==='NAO'?'<span class="pill red">não assinada</span>':'');
   const dp=solDispensaPregao(s);
   return '<tr class="obtlinha" data-sol="'+esc(s.id)+'">'+
     '<td class="mono">'+esc(s.numero||'—')+'</td>'+
-    '<td>'+(dp?'<span class="mono">'+esc(dp.texto)+'</span> ':'')+pillAs+
-      (!dp&&!pillAs?'<span class="obtfalta">—</span>':'')+'</td>'+
+    '<td>'+(dp?'<span class="mono">'+esc(dp.texto)+'</span>':'<span class="obtfalta">—</span>')+'</td>'+
     '<td class="mono">'+(s.ne?esc(s.ne):'<span class="obtfalta">sem empenho</span>')+'</td>'+
     '<td>'+esc(s.fornecedor||'—')+
       (s.cnpj?'<div class="obtmeta">'+esc(obtCnpjFmt(s.cnpj))+'</div>':'')+'</td>'+
@@ -7801,18 +7894,12 @@ function renderObtEmpenhos(){
   renderObtNeLote();
   const nes=OBT.nes;
   const total=nes.filter(n=>n.situacao!=='anulada').reduce((s,n)=>s+(Number(n.valor)||0),0);
-  const abertas=nes.filter(n=>n.situacao==='emitida');
-  const pagas=nes.filter(n=>n.situacao==='paga');
   $('#obtKpisNe').innerHTML=
     '<div class="kpi"><span>Notas lançadas</span><b>'+nes.length+'</b></div>'+
-    '<div class="kpi"><span>Valor empenhado</span><b style="font-size:17px">'+brl(total)+'</b></div>'+
-    '<div class="kpi"><span>Sem entrega</span><b style="color:'+(abertas.length?'var(--terra)':'inherit')+'">'+abertas.length+'</b></div>'+
-    '<div class="kpi"><span>Pagas</span><b>'+pagas.length+'</b></div>';
+    '<div class="kpi"><span>Valor empenhado</span><b style="font-size:17px">'+brl(total)+'</b></div>';
 
   const q=($('#obtNeBusca')||{}).value||'';
-  const f=($('#obtNeFiltro')||{}).value||'';
   const lista=nes.filter(n=>{
-    if(f&&n.situacao!==f)return false;
     if(q&&!(obtTem(n.numero,q)||obtTem(n.fornecedor,q)||obtTem(n.ata,q)||obtTem(n.solemp,q)||obtTem(n.cnpj,q)))return false;
     return true;
   }).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
@@ -7973,9 +8060,10 @@ function finAgrupa(campo,ano){
   });
   return Array.from(porChave.values()).sort((a,b)=>b.total-a.total);
 }
-function finRoscaHtml(titulo,campo,linhas){
+function finRoscaHtml(titulo,campo,linhas,soCodigo){
   const total=linhas.reduce((a,b)=>a+b.total,0);
   const R=52, C=2*Math.PI*R, folga=linhas.length>1?3.5:0;
+  const rotuloDe=l=>soCodigo?String(l.chave).split(' - ')[0]:l.chave;
   let acc=0, arcos='';
   linhas.forEach((l,i)=>{
     if(!l.total)return;
@@ -7995,7 +8083,7 @@ function finRoscaHtml(titulo,campo,linhas){
     const sel=!!(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===l.chave);
     return '<div class="li" data-finfatia="'+campo+'|'+esc(l.chave)+'" style="cursor:pointer'+(sel?';font-weight:700':'')+'">'+
       '<span class="dot" style="background:'+finCor(i)+'"></span>'+
-      '<span class="li-tx" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(l.chave)+'</span>'+
+      '<span class="li-tx" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(rotuloDe(l))+'</span>'+
       '<b class="li-pc">'+pc+'%</b><span class="li-n">('+esc(brl(l.total))+')</span></div>';
   }).join('');
   return '<div class="pcard anel"><h3>'+esc(titulo)+'</h3>'+
@@ -8036,11 +8124,9 @@ function renderObtFinanceiro(){
     return;
   }
   $('#obtFinGraficos').innerHTML=
-    finRoscaHtml('Por natureza de despesa','finNd',finAgrupa('finNd',OBT_FIN_ANO))+
+    finRoscaHtml('Por natureza de despesa','finNd',finAgrupa('finNd',OBT_FIN_ANO),true)+
     finRoscaHtml('Por situação (SAFin)','finSituacao',finAgrupa('finSituacao',OBT_FIN_ANO))+
-    finRoscaHtml('Por PTRES','finPtres',finAgrupa('finPtres',OBT_FIN_ANO))+
-    finRoscaHtml('Por célula de crédito','finCelula',finAgrupa('finCelula',OBT_FIN_ANO))+
-    finRoscaHtml('Evolução mensal','finMes',finAgrupa('finMes',OBT_FIN_ANO));
+    finRoscaHtml('Por célula de crédito','finCelula',finAgrupa('finCelula',OBT_FIN_ANO));
   $('#obtFinTabela').innerHTML=finTabelaHtml();
   $('#obtFinFiltroTxt').textContent=OBT_FIN_FILTRO?('— filtrando por '+OBT_FIN_FILTRO.valor):'';
 
@@ -8390,6 +8476,22 @@ function obtLiga(){
   const bSn=$('#obtSolNova');
   if(bSn)bSn.onclick=()=>solAbrirForm('');
 
+  const bRel=$('#obtSolRelBtn'), iRel=$('#obtSolRelInput');
+  if(bRel&&iRel){
+    bRel.onclick=()=>iRel.click();
+    iRel.onchange=async()=>{
+      const file=iRel.files[0]; iRel.value='';
+      if(!file)return;
+      const rot=bRel.textContent; bRel.disabled=true; bRel.textContent='Lendo…';
+      try{
+        const linhas=await solLerRelatorioArquivo(file);
+        if(!linhas.length)toast('não achei nenhuma SOLEMP nesse PDF — confira se é o relatório certo',true);
+        else solAbrirPreviaRelatorio(linhas);
+      }catch(err){ toast('erro ao ler o PDF: '+(err&&err.message||'desconhecido'),true); }
+      finally{ bRel.disabled=false; bRel.textContent=rot; }
+    };
+  }
+
   /* ---- configuração, atrás de senha ---- */
   const entrar=()=>{
     const dig=($('#obtCfgSenha')||{}).value||'';
@@ -8440,9 +8542,7 @@ function obtLiga(){
   /* a gerenciadora configurada é o caso comum nos dois campos de UASG */
   const ger=(OBT&&OBT.uasgsAta&&OBT.uasgsAta[0])||'784810';
   $('#obtAtaUasgBusca').value=ger; $('#obtAtaNumUasg').value=ger;
-  ['obtNeBusca','obtNeFiltro'].forEach(id=>{
-    const e=$('#'+id); if(e)e.addEventListener('input',renderObtEmpenhos);
-  });
+  const bNeBusca=$('#obtNeBusca'); if(bNeBusca)bNeBusca.addEventListener('input',renderObtEmpenhos);
 
   ligaCalDia('obtNeData'); ligaCalDia('obtDesde');
   obtLigaDataDigitada('obtNeData'); obtLigaDataDigitada('obtDesde');
