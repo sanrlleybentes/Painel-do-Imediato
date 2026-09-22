@@ -5747,18 +5747,24 @@ function solNdTexto(cod){ return cod?(cod+(OBT_ND_NOMES_REL[cod]?' - '+OBT_ND_NO
    orçamentária). O valor de cada SOLEMP é o que aparece na primeira
    linha "SUBTOTAL" seguinte — mais confiável que somar os itens, que
    quebram em várias linhas quando a SOLEMP tem mais de um. */
-function solParseRelatorioTexto(t){
-  const situacoes=[...t.matchAll(/\b(Rascunho|Empenhada|Conferida)\b/g)].map(m=>({v:m[1],i:m.index}));
-  const subtotais=[...t.matchAll(/SUBTOTAL\s+([\d.]+,\d{2})/g)].map(m=>({v:m[1],i:m.index}));
-  const solemps=[...t.matchAll(/84515-(\d{4}\/\d{4})/g)];
-  return solemps.map(m=>{
-    const pos=m.index, numero=m[1];
-    const antes=situacoes.filter(s=>s.i<pos), situacao=antes[antes.length-1];
-    const subtotal=subtotais.find(s=>s.i>pos);
-    const inicio=situacao?situacao.i+situacao.v.length:Math.max(0,pos-200);
-    const janela=t.slice(inicio,pos);
-    const mCelula=janela.match(/\b([A-Z0-9]+\.[A-Z0-9]+\.[A-Z0-9]+\.\d+\.(\d{6}))\b/);
-    let resto=mCelula?janela.replace(mCelula[0],' '):janela;
+/* Trabalha linha a linha (não em texto achatado) porque, quando a
+   descrição de um item quebra em duas linhas, o valor fica colado no
+   FIM da primeira linha e o resto da descrição vem sozinho na linha de
+   baixo — "ITEM 3 DO GRUPO G1 - UNIDADE 1.140,00" / "DISCO". Uma linha
+   sem nenhum valor é sempre continuação do item anterior; o texto antes
+   de cada valor numa linha é a descrição de um item novo. Confirmado
+   contra o PDF real do SAFin, item por item. */
+function solParseRelatorioLinhas(linhas){
+  const out=[];
+  for(let i=0;i<linhas.length;i++){
+    const mSol=linhas[i].match(/84515-(\d{4}\/\d{4})/);
+    if(!mSol)continue;
+    const numero=mSol[1];
+    const antesDoSolemp=linhas[i].slice(0,mSol.index);
+    const mSit=antesDoSolemp.match(/\b(Rascunho|Empenhada|Conferida)\b/);
+    const situacao=mSit?mSit[1]:'';
+    const mCelula=antesDoSolemp.match(/\b([A-Z0-9]+\.[A-Z0-9]+\.[A-Z0-9]+\.\d+\.(\d{6}))\b/);
+    let resto=mCelula?antesDoSolemp.replace(mCelula[0],' '):antesDoSolemp;
     let plano='', nd=mCelula?mCelula[2]:'';
     const mPlano=resto.match(/\b(\d{6})\.(\d{2})\b/);
     if(mPlano){ plano=mPlano[1]+'.'+mPlano[2]; if(!nd)nd=mPlano[1]; resto=resto.replace(mPlano[0],' '); }
@@ -5767,14 +5773,41 @@ function solParseRelatorioTexto(t){
       if(mPlano8){ plano=mPlano8[1].slice(0,6)+'.'+mPlano8[1].slice(6); if(!nd)nd=mPlano8[1].slice(0,6); resto=resto.replace(mPlano8[0],' '); }
     }
     const mPtres=resto.match(/\b(\d{6})\b/);
-    const mData=janela.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    return {
-      numero, situacao:situacao?situacao.v:'',
+    const mData=antesDoSolemp.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+
+    const itens=[]; let ultimoItem=null;
+    /* só conta como valor quando o número está no FIM da linha — uma
+       medida no meio da descrição ("ESPESSURA MÍNIMA DE 0,30 MM,
+       ADEQUADO...") tem o mesmo formato de dinheiro, mas segue com mais
+       texto depois; o valor de verdade nunca tem nada atrás dele na
+       linha. */
+    const processaLinha=txt=>{
+      const m=txt.match(/^(.*?)\s*(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/);
+      if(!m){
+        if(ultimoItem&&txt.trim())ultimoItem.desc=(ultimoItem.desc+' '+txt.trim()).replace(/\s+/g,' ').trim();
+        return;
+      }
+      const desc=m[1].replace(/\s+/g,' ').trim();
+      if(desc){ ultimoItem={desc,qtd:1,valor:num(m[2])}; itens.push(ultimoItem); }
+      else if(ultimoItem){ ultimoItem.valor=num(m[2]); }
+    };
+    processaLinha(linhas[i].slice(mSol.index+mSol[0].length));
+    let subtotal=null;
+    for(let j=i+1;j<linhas.length;j++){
+      const mSub=linhas[j].match(/SUBTOTAL\s+([\d.]+,\d{2})/);
+      if(mSub){ subtotal=num(mSub[1]); break; }
+      if(/84515-\d{4}\/\d{4}/.test(linhas[j]))break; /* nunca deveria faltar SUBTOTAL, mas não passa por cima da próxima SOLEMP */
+      processaLinha(linhas[j]);
+    }
+    out.push({
+      numero, situacao,
       data:mData?mData[3]+'-'+mData[2]+'-'+mData[1]:'',
       finCelula:mCelula?mCelula[1]:'', finNd:solNdTexto(nd), finPlano:plano,
-      finPtres:mPtres?mPtres[1]:'', finValor:subtotal?num(subtotal.v):null,
-    };
-  });
+      finPtres:mPtres?mPtres[1]:'', finValor:subtotal,
+      itens,
+    });
+  }
+  return out;
 }
 function solLerRelatorioArquivo(file){
   return new Promise((resolve,reject)=>{
@@ -5782,49 +5815,70 @@ function solLerRelatorioArquivo(file){
     fr.onload=async()=>{
       try{
         const linhas=await textoDoPdf(fr.result);
-        resolve(solParseRelatorioTexto(linhas.join('\n')));
+        resolve(solParseRelatorioLinhas(linhas));
       }catch(e){reject(e);}
     };
     fr.onerror=()=>reject(new Error('não consegui ler o arquivo'));
     fr.readAsArrayBuffer(file);
   });
 }
+const MAPA_ETAPA_REL={'Rascunho':'encaminhada','Conferida':'conferida','Empenhada':'empenhada'};
+/* linha de detalhe de UMA SOLEMP do relatório, com tudo que foi lido —
+   pra conferir de verdade antes de aplicar, não só espiar duas colunas */
+function relLinhaHtml(l,i,existeAntes,semItensAntes){
+  const itensTxt=l.itens.length?
+    l.itens.map(it=>esc(it.desc)+' <span class="mono">'+esc(brl(it.valor))+'</span>').join('<br>'):
+    '<span class="obtfalta">nenhum item lido</span>';
+  return '<tr><td style="vertical-align:top;padding-top:10px"><input type="checkbox" class="relchk" data-reli="'+i+'" checked></td>'+
+    '<td class="mono" style="vertical-align:top;padding-top:10px">'+esc(l.numero)+
+      (existeAntes?'':'<div><span class="pill red">novo</span></div>')+'</td>'+
+    '<td style="vertical-align:top;padding-top:10px">'+esc(l.situacao||'—')+
+      '<div class="obtmeta">'+esc(obtBr(l.data))+'</div></td>'+
+    '<td style="vertical-align:top;padding-top:10px">'+esc(l.finNd||'—')+
+      (l.finPtres?'<div class="obtmeta">PTRES '+esc(l.finPtres)+'</div>':'')+
+      (l.finCelula?'<div class="obtmeta mono" style="font-size:10.5px">'+esc(l.finCelula)+'</div>':'')+'</td>'+
+    '<td style="vertical-align:top;padding-top:10px;max-width:280px">'+itensTxt+
+      (existeAntes&&!semItensAntes?'<div class="obtmeta" style="color:var(--terra)">já tem item lançado — não mexe</div>':'')+'</td>'+
+    '<td class="num mono" style="vertical-align:top;padding-top:10px">'+esc(brl(l.finValor))+'</td></tr>';
+}
 function solAbrirPreviaRelatorio(linhas){
   const porNumero=new Map();
   (OBT.solemps||[]).forEach(s=>porNumero.set(s.numero,s));
   const naoAchadas=linhas.filter(l=>!porNumero.has(l.numero));
-  const MAPA_ETAPA_REL={'Rascunho':'encaminhada','Conferida':'conferida','Empenhada':'empenhada'};
   const host=$('#modalHost');
-  host.innerHTML='<div class="backdrop"><div class="modal" style="max-width:760px"><h3>Conferir relatório do SAFin</h3>'+
-    '<p class="sub">'+linhas.length+' SOLEMP no relatório — '+(linhas.length-naoAchadas.length)+' já cadastradas aqui serão atualizadas'+
-    (naoAchadas.length?', '+naoAchadas.length+' ainda não existem no site':'')+'.</p>'+
-    (naoAchadas.length?'<label style="display:flex;gap:8px;align-items:center;margin:0 0 12px;font-size:13px">'+
-      '<input type="checkbox" id="relCriarFaltantes"> criar também as '+naoAchadas.length+' que ainda não existem (sem itens lançados, só o financeiro)</label>':'')+
-    '<div class="scroller" style="max-height:340px"><table class="obttab"><thead><tr><th>SOLEMP</th><th>Situação</th>'+
-    '<th>ND</th><th class="num">Valor</th><th></th></tr></thead><tbody>'+
-    linhas.map(l=>{
-      const existe=porNumero.has(l.numero);
-      return '<tr'+(existe?'':' style="opacity:.6"')+'><td class="mono">'+esc(l.numero)+'</td>'+
-        '<td>'+esc(l.situacao)+'</td><td>'+esc(l.finNd||'—')+'</td><td class="num mono">'+esc(brl(l.finValor))+'</td>'+
-        '<td>'+(existe?'':'<span class="pill red">não existe</span>')+'</td></tr>';
+  host.innerHTML='<div class="backdrop"><div class="modal" style="max-width:980px"><h3>Conferir relatório do SAFin</h3>'+
+    '<p class="sub">'+linhas.length+' SOLEMP no relatório — '+(linhas.length-naoAchadas.length)+' já cadastradas, '+
+    naoAchadas.length+' novas. Desmarque quem você não quiser aplicar agora.</p>'+
+    '<div class="row" style="margin:0 0 10px">'+
+      '<button type="button" class="mini" id="relTodas">Marcar todas</button> '+
+      '<button type="button" class="mini" id="relNenhuma">Desmarcar todas</button></div>'+
+    '<div class="scroller" style="max-height:420px"><table class="obttab"><thead><tr><th></th><th>SOLEMP</th><th>Situação</th>'+
+    '<th>ND / PTRES / Célula</th><th>Itens</th><th class="num">Valor</th></tr></thead><tbody>'+
+    linhas.map((l,i)=>{
+      const s=porNumero.get(l.numero);
+      return relLinhaHtml(l,i,!!s,!s||!(s.itens||[]).length);
     }).join('')+
     '</tbody></table></div>'+
     '<div class="actions"><button class="btn ghost" id="relCancelar">Cancelar</button>'+
-    '<button class="btn" id="relAplicar">Aplicar atualização</button></div></div></div>';
+    '<button class="btn" id="relAplicar">Aplicar selecionadas</button></div></div></div>';
   $('#relCancelar').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+  $('#relTodas').onclick=()=>$$('.relchk').forEach(c=>c.checked=true);
+  $('#relNenhuma').onclick=()=>$$('.relchk').forEach(c=>c.checked=false);
   $('#relAplicar').onclick=async()=>{
-    const criarFaltantes=$('#relCriarFaltantes')?$('#relCriarFaltantes').checked:false;
+    const marcadas=new Set($$('.relchk').filter(c=>c.checked).map(c=>+c.dataset.reli));
+    if(!marcadas.size){toast('marque ao menos uma SOLEMP',true);return;}
     let atualizadas=0, criadas=0;
-    linhas.forEach(l=>{
+    linhas.forEach((l,i)=>{
+      if(!marcadas.has(i))return;
       let s=porNumero.get(l.numero);
       if(!s){
-        if(!criarFaltantes)return;
         s=solNormaliza({numero:l.numero,etapa:MAPA_ETAPA_REL[l.situacao]||'encaminhada'});
         OBT.solemps.push(s); porNumero.set(l.numero,s); criadas++;
       }else atualizadas++;
       s.finCelula=l.finCelula; s.finNd=l.finNd; s.finPlano=l.finPlano; s.finPtres=l.finPtres;
       s.finSituacao=l.situacao; s.finMes=l.data?l.data.slice(0,7):''; s.finValor=l.finValor;
+      if((!s.itens||!s.itens.length)&&l.itens.length)s.itens=l.itens;
     });
     const ok=await salvar('obtencao',OBT);
     host.innerHTML='';
