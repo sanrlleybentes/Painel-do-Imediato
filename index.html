@@ -5869,7 +5869,8 @@ function solLinhaHtml(s){
     '<td>'+esc(primeiro.length>44?primeiro.slice(0,44)+'…':primeiro)+
       (n>1?'<div class="obtmeta">e mais '+(n-1)+' '+(n-1>1?'itens':'item')+'</div>':'')+'</td>'+
     '<td class="num">'+brl(tot)+'</td>'+
-    '<td>'+solPasso(s)+'<div class="obtmeta">'+esc(solEtapaRot(s.etapa))+'</div></td></tr>';
+    '<td>'+solPasso(s)+'<div class="obtmeta">'+esc(solEtapaRot(s.etapa))+'</div></td>'+
+    '<td><button class="mini del" data-soldelrow="'+esc(s.id)+'">excluir</button></td></tr>';
 }
 function solEloHtml(rot,valor,falta){
   return '<div class="solelo'+(valor?'':' vazio')+'"><span>'+esc(rot)+'</span><b>'+
@@ -5900,7 +5901,7 @@ function solDetalheHtml(s){
     '<div style="flex:1 1 240px"><label>'+esc(rot)+'</label>'+
     '<input type="text" data-solcampo="'+esc(s.id)+'|'+campoNome+'" value="'+esc(valor||'')+
     '" placeholder="'+esc(dica||'')+'"></div>';
-  return '<tr class="obtdet"><td colspan="7"><div class="obtdetbox">'+cadeia+
+  return '<tr class="obtdet"><td colspan="8"><div class="obtdetbox">'+cadeia+
     '<h4 class="obth4">Itens</h4>'+itens+
     (s.contato?'<p class="obtmeta" style="margin:0 0 12px">Contato: '+esc(s.contato)+'</p>':'')+
     '<h4 class="obth4">Acompanhamento</h4>'+
@@ -5977,7 +5978,7 @@ function renderSolemps(){
   $('#obtSolLista').innerHTML=lista.length?
     '<table class="soltab"><thead><tr><th style="width:100px">SOLEMP</th><th style="width:150px">Dispensa/Pregão</th>'+
     '<th style="width:110px">Empenho</th><th style="width:170px">Fornecedor</th><th>Itens</th>'+
-    '<th class="num" style="width:110px">Valor</th><th style="width:150px">Etapa</th></tr></thead><tbody>'+
+    '<th class="num" style="width:110px">Valor</th><th style="width:150px">Etapa</th><th></th></tr></thead><tbody>'+
     lista.slice(0,300).map(s=>solLinhaHtml(s)+(SOL_ABERTA===s.id?solDetalheHtml(s):'')).join('')+
     '</tbody></table>'
     :'<p class="hint" style="margin:0">'+(todas.length?'Nenhuma SOLEMP com esses filtros.'
@@ -6015,9 +6016,10 @@ function solLigaLista(){
     if(await salvar('obtencao',OBT))toast('anotação gravada');
   });
   $$('button[data-soledit]').forEach(b=>b.onclick=e=>{e.stopPropagation();solAbrirForm(b.dataset.soledit);});
-  $$('button[data-soldel]').forEach(b=>b.onclick=e=>{
+  $$('button[data-soldel],button[data-soldelrow]').forEach(b=>b.onclick=e=>{
     e.stopPropagation();
-    const s=(OBT.solemps||[]).find(x=>x.id===b.dataset.soldel); if(!s)return;
+    const id=b.dataset.soldel||b.dataset.soldelrow;
+    const s=(OBT.solemps||[]).find(x=>x.id===id); if(!s)return;
     confirmar('Excluir a SOLEMP '+s.numero+'?','Some da lista com todos os itens. Não dá para desfazer.',async()=>{
       OBT.solemps=OBT.solemps.filter(x=>x.id!==s.id);
       SOL_ABERTA='';
