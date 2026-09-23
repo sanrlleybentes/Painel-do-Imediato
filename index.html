@@ -5827,22 +5827,39 @@ function solLerRelatorioArquivo(file){
   });
 }
 const MAPA_ETAPA_REL={'Rascunho':'encaminhada','Conferida':'conferida','Empenhada':'empenhada'};
+/* o relatório só enxerga as 3 primeiras etapas (encaminhada/conferida/
+   empenhada) — "material entregue" e "NF certificada" são controle do
+   navio e o SAFin não sabe disso. Só evolui, nunca retrocede: se o
+   Imediato já marcou uma etapa mais adiante que a do relatório (inclusive
+   entregue/certificada), o relatório não mexe. */
+function solEtapaRelEvolui(etapaAtual,situacaoRel){
+  const nova=MAPA_ETAPA_REL[situacaoRel];
+  if(!nova)return null;
+  return solEtapaIdx(nova)>solEtapaIdx(etapaAtual)?nova:null;
+}
 /* linha de detalhe de UMA SOLEMP do relatório, com tudo que foi lido —
    pra conferir de verdade antes de aplicar, não só espiar duas colunas */
-function relLinhaHtml(l,i,existeAntes,semItensAntes){
+function relLinhaHtml(l,i,s,semItensAntes){
   const itensTxt=l.itens.length?
     l.itens.map(it=>esc(it.desc)+' <span class="mono">'+esc(brl(it.valor))+'</span>').join('<br>'):
     '<span class="obtfalta">nenhum item lido</span>';
+  const novaEtapa=s?solEtapaRelEvolui(s.etapa,l.situacao):null;
+  let etapaTxt='';
+  if(s){
+    etapaTxt=novaEtapa?
+      '<div class="obtmeta" style="color:var(--bordo)">etapa evolui: '+esc(solEtapaRot(s.etapa))+' → '+esc(solEtapaRot(novaEtapa))+'</div>':
+      '<div class="obtmeta">etapa atual: '+esc(solEtapaRot(s.etapa))+' (sem mudança)</div>';
+  }
   return '<tr><td style="vertical-align:top;padding-top:10px"><input type="checkbox" class="relchk" data-reli="'+i+'" checked></td>'+
     '<td class="mono" style="vertical-align:top;padding-top:10px">'+esc(l.numero)+
-      (existeAntes?'':'<div><span class="pill red">novo</span></div>')+'</td>'+
+      (s?'':'<div><span class="pill red">novo</span></div>')+'</td>'+
     '<td style="vertical-align:top;padding-top:10px">'+esc(l.situacao||'—')+
-      '<div class="obtmeta">'+esc(obtBr(l.data))+'</div></td>'+
+      '<div class="obtmeta">'+esc(obtBr(l.data))+'</div>'+etapaTxt+'</td>'+
     '<td style="vertical-align:top;padding-top:10px">'+esc(l.finNd||'—')+
       (l.finPtres?'<div class="obtmeta">PTRES '+esc(l.finPtres)+'</div>':'')+
       (l.finCelula?'<div class="obtmeta mono" style="font-size:10.5px">'+esc(l.finCelula)+'</div>':'')+'</td>'+
     '<td style="vertical-align:top;padding-top:10px;max-width:280px">'+itensTxt+
-      (existeAntes&&!semItensAntes?'<div class="obtmeta" style="color:var(--terra)">já tem item lançado — não mexe</div>':'')+'</td>'+
+      (s&&!semItensAntes?'<div class="obtmeta" style="color:var(--terra)">já tem item lançado — não mexe</div>':'')+'</td>'+
     '<td class="num mono" style="vertical-align:top;padding-top:10px">'+esc(brl(l.finValor))+'</td></tr>';
 }
 function solAbrirPreviaRelatorio(linhas){
@@ -5860,7 +5877,7 @@ function solAbrirPreviaRelatorio(linhas){
     '<th>ND / PTRES / Célula</th><th>Itens</th><th class="num">Valor</th></tr></thead><tbody>'+
     linhas.map((l,i)=>{
       const s=porNumero.get(l.numero);
-      return relLinhaHtml(l,i,!!s,!s||!(s.itens||[]).length);
+      return relLinhaHtml(l,i,s,!s||!(s.itens||[]).length);
     }).join('')+
     '</tbody></table></div>'+
     '<div class="actions"><button class="btn ghost" id="relCancelar">Cancelar</button>'+
@@ -5872,21 +5889,25 @@ function solAbrirPreviaRelatorio(linhas){
   $('#relAplicar').onclick=async()=>{
     const marcadas=new Set($$('.relchk').filter(c=>c.checked).map(c=>+c.dataset.reli));
     if(!marcadas.size){toast('marque ao menos uma SOLEMP',true);return;}
-    let atualizadas=0, criadas=0;
+    let atualizadas=0, criadas=0, evoluidas=0;
     linhas.forEach((l,i)=>{
       if(!marcadas.has(i))return;
       let s=porNumero.get(l.numero);
       if(!s){
         s=solNormaliza({numero:l.numero,etapa:MAPA_ETAPA_REL[l.situacao]||'encaminhada'});
         OBT.solemps.push(s); porNumero.set(l.numero,s); criadas++;
-      }else atualizadas++;
+      }else{
+        atualizadas++;
+        const novaEtapa=solEtapaRelEvolui(s.etapa,l.situacao);
+        if(novaEtapa){ s.etapa=novaEtapa; s.ts=Date.now(); evoluidas++; }
+      }
       s.finCelula=l.finCelula; s.finNd=l.finNd; s.finPlano=l.finPlano; s.finPtres=l.finPtres;
       s.finSituacao=l.situacao; s.finMes=l.data?l.data.slice(0,7):''; s.finValor=l.finValor;
       if((!s.itens||!s.itens.length)&&l.itens.length)s.itens=l.itens;
     });
     const ok=await salvar('obtencao',OBT);
     host.innerHTML='';
-    toast(ok?(atualizadas+' SOLEMP atualizada(s)'+(criadas?', '+criadas+' criada(s)':'')):'Não foi possível gravar.',!ok);
+    toast(ok?(atualizadas+' SOLEMP atualizada(s)'+(evoluidas?', '+evoluidas+' com etapa evoluída':'')+(criadas?', '+criadas+' criada(s)':'')):'Não foi possível gravar.',!ok);
     renderSolemps();
   };
 }
