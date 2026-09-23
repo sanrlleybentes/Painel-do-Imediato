@@ -179,6 +179,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--brass);outline-o
 .kpi b{display:block;font-family:var(--mono);font-size:24px;font-weight:500;margin-top:4px}
 
 .pizzas{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.pizzas .pcard-full{grid-column:1/-1}
+.pizzas .pcard-full .anel-wrap{justify-content:center}
+.pizzas .pcard-full .pizza-leg{flex:1 1 420px;max-width:520px}
 .pizzas .pcard{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(251,246,233,.96));border:1px solid var(--glass-border);
   backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);
   border-radius:4px;padding:14px;overflow:hidden}
@@ -3647,6 +3650,7 @@ async function load(first){
   if(m.obtencao&&Array.isArray(m.obtencao.dispensas))OBT.dispensas=m.obtencao.dispensas;
   if(!OBT.dispensas)OBT.dispensas=[];
   if(solSemeia())salvar('obtencao',OBT);
+  preencheFornecedorDasSolemps();
   let cfgMudou=false;
   if(!CFG.autId){const sanrlley=CREW.militares.find(x=>x.nip==='17.0054.18');if(sanrlley){CFG.autId=sanrlley.id;cfgMudou=true;}}
   if(!CFG.detalhistaId){const candido=CREW.militares.find(x=>x.nip==='19.0075.07');if(candido){CFG.detalhistaId=candido.id;cfgMudou=true;}}
@@ -8116,9 +8120,10 @@ function finAgrupa(campo,ano){
   });
   return Array.from(porChave.values()).sort((a,b)=>b.total-a.total);
 }
-function finRoscaHtml(titulo,campo,linhas,soCodigo){
+function finRoscaHtml(titulo,campo,linhas,soCodigo,largo){
   const total=linhas.reduce((a,b)=>a+b.total,0);
-  const R=52, C=2*Math.PI*R, folga=linhas.length>1?3.5:0;
+  const R=largo?78:64, esp=largo?19:15, C=2*Math.PI*R, folga=linhas.length>1?3.5:0;
+  const cx=R+16, tam=cx*2;
   const rotuloDe=l=>soCodigo?String(l.chave).split(' - ')[0]:l.chave;
   let acc=0, arcos='';
   linhas.forEach((l,i)=>{
@@ -8126,27 +8131,27 @@ function finRoscaHtml(titulo,campo,linhas,soCodigo){
     const frac=l.total/total, comp=Math.max(0,C*frac-folga);
     const cor=finCor(i);
     const sel=!!(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===l.chave);
-    arcos+='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+cor+'" stroke-width="'+(sel?16:13)+'" stroke-linecap="round"'+
+    arcos+='<circle cx="'+cx+'" cy="'+cx+'" r="'+R+'" fill="none" stroke="'+cor+'" stroke-width="'+(sel?esp+3:esp)+'" stroke-linecap="round"'+
       ' stroke-dasharray="'+comp.toFixed(1)+' '+(C-comp).toFixed(1)+'"'+
-      ' stroke-dashoffset="'+(-C*acc).toFixed(1)+'" transform="rotate(-90 65 65)" class="anel-arco"'+
+      ' stroke-dashoffset="'+(-C*acc).toFixed(1)+'" transform="rotate(-90 '+cx+' '+cx+')" class="anel-arco"'+
       ' data-finfatia="'+campo+'|'+esc(l.chave)+'" style="cursor:pointer">'+
       '<title>'+esc(l.chave+' — '+brl(l.total))+'</title></circle>';
     acc+=frac;
   });
-  if(!total)arcos='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="13"/>';
+  if(!total)arcos='<circle cx="'+cx+'" cy="'+cx+'" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="'+esp+'"/>';
   const leg=linhas.map((l,i)=>{
     const pc=total?Math.round(l.total/total*100):0;
     const sel=!!(OBT_FIN_FILTRO&&OBT_FIN_FILTRO.campo===campo&&OBT_FIN_FILTRO.valor===l.chave);
     return '<div class="li" data-finfatia="'+campo+'|'+esc(l.chave)+'" style="cursor:pointer'+(sel?';font-weight:700':'')+'">'+
       '<span class="dot" style="background:'+finCor(i)+'"></span>'+
-      '<span class="li-tx" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(rotuloDe(l))+'</span>'+
+      '<span class="li-tx" style="max-width:'+(largo?360:170)+'px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(rotuloDe(l))+'</span>'+
       '<b class="li-pc">'+pc+'%</b><span class="li-n">('+esc(brl(l.total))+')</span></div>';
   }).join('');
-  return '<div class="pcard anel"><h3>'+esc(titulo)+'</h3>'+
-    '<div class="anel-wrap"><svg viewBox="0 0 130 130" class="anel-svg">'+
-      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="13"/>'+arcos+
-      '<text x="65" y="62" text-anchor="middle" class="anel-num" style="font-size:11px">'+esc(brl(total))+'</text>'+
-      '<text x="65" y="78" text-anchor="middle" class="anel-sub">no período</text>'+
+  return '<div class="pcard anel'+(largo?' pcard-full':'')+'"><h3>'+esc(titulo)+'</h3>'+
+    '<div class="anel-wrap"><svg viewBox="0 0 '+tam+' '+tam+'" class="anel-svg" style="width:'+(largo?220:150)+'px;height:'+(largo?220:150)+'px">'+
+      '<circle cx="'+cx+'" cy="'+cx+'" r="'+R+'" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="'+esp+'"/>'+arcos+
+      '<text x="'+cx+'" y="'+(cx-3)+'" text-anchor="middle" class="anel-num" style="font-size:'+(largo?14:11)+'px">'+esc(brl(total))+'</text>'+
+      '<text x="'+cx+'" y="'+(cx+14)+'" text-anchor="middle" class="anel-sub">no período</text>'+
     '</svg><div class="pizza-leg">'+leg+'</div></div></div>';
 }
 function finTabelaHtml(){
@@ -8182,7 +8187,7 @@ function renderObtFinanceiro(){
   $('#obtFinGraficos').innerHTML=
     finRoscaHtml('Por natureza de despesa','finNd',finAgrupa('finNd',OBT_FIN_ANO),true)+
     finRoscaHtml('Por situação (SAFin)','finSituacao',finAgrupa('finSituacao',OBT_FIN_ANO))+
-    finRoscaHtml('Por célula de crédito','finCelula',finAgrupa('finCelula',OBT_FIN_ANO));
+    finRoscaHtml('Por célula de crédito','finCelula',finAgrupa('finCelula',OBT_FIN_ANO),false,true);
   $('#obtFinTabela').innerHTML=finTabelaHtml();
   $('#obtFinFiltroTxt').textContent=OBT_FIN_FILTRO?('— filtrando por '+OBT_FIN_FILTRO.valor):'';
 
@@ -8295,10 +8300,29 @@ function obtRegNeDeCampos(c,id){
 }
 /* fecha o elo do outro lado: a SOLEMP que ainda não tinha o nº da NE ganha
    ele agora. Só quando está vazio — nunca pisa em algo que já foi conferido. */
+/* fecha o elo do outro lado E aproveita pra copiar fornecedor/CNPJ da NE
+   pra SOLEMP, se ela ainda não tinha — o relatório do SAFin não traz
+   fornecedor nenhum, quem sabe isso é sempre a Nota de Empenho. */
 function obtLigaSolemp(reg){
   const sol=solParaLigar(reg.numero,reg.solemp);
-  if(sol&&!sol.ne){ sol.ne=reg.numero; return sol; }
-  return null;
+  if(!sol)return null;
+  let mudou=false;
+  if(!sol.ne){ sol.ne=reg.numero; mudou=true; }
+  if(!sol.fornecedor&&reg.fornecedor){ sol.fornecedor=reg.fornecedor; mudou=true; }
+  if(!sol.cnpj&&reg.cnpj){ sol.cnpj=reg.cnpj; mudou=true; }
+  return mudou?sol:null;
+}
+/* varredura: SOLEMP com NE vinculada mas sem fornecedor — acontecia com
+   toda NE lançada antes desse acerto. Roda uma vez por carga do painel;
+   nunca sobrescreve fornecedor já preenchido. */
+function preencheFornecedorDasSolemps(){
+  let mudou=false;
+  (OBT.solemps||[]).forEach(s=>{
+    if(s.fornecedor||!s.ne)return;
+    const ne=(OBT.nes||[]).find(n=>neNormaliza(n.numero)===neNormaliza(s.ne));
+    if(ne&&ne.fornecedor){ s.fornecedor=ne.fornecedor; if(!s.cnpj&&ne.cnpj)s.cnpj=ne.cnpj; mudou=true; }
+  });
+  if(mudou)salvar('obtencao',OBT);
 }
 async function obtGravaNe(){
   const numero=($('#obtNeNum').value||'').trim().toUpperCase();
