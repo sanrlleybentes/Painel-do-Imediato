@@ -1977,6 +1977,7 @@ body.semvideo .sp-foto{display:block}
     <button data-sub="gastos" aria-selected="true">Gastos</button>
     <button data-sub="paiol" aria-selected="false">Paiol</button>
     <button data-sub="cardapio" aria-selected="false">Cardápio</button>
+    <button data-sub="planejamento" aria-selected="false">Planejamento</button>
     <button data-sub="mcontrole" aria-selected="false">Controle Geral</button>
   </div>
 
@@ -2152,6 +2153,43 @@ body.semvideo .sp-foto{display:block}
       <h2>Gastos do mês</h2>
       <div class="row" style="margin-bottom:12px"><div style="flex:0 1 200px"><label>Competência</label><input type="hidden" id="gMes"><input type="text" id="gMesBr" class="datebr" inputmode="numeric" placeholder="MM/AAAA" maxlength="7" readonly></div></div>
       <div class="scroller" id="listGastos"></div>
+    </div>
+  </div>
+
+  <div id="sub-planejamento" class="hidden">
+    <div class="card reveal">
+      <h2>Planejamento de comiss&atilde;o</h2>
+      <p class="hint" style="margin:0 0 12px">Informe quantos dias e quantos militares a pr&oacute;xima comiss&atilde;o vai ter. O painel estima o gasto total e por categoria a partir do hist&oacute;rico das comiss&otilde;es anteriores &mdash; e fica mais certeiro a cada comiss&atilde;o encerrada.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:0 1 140px"><label>Dias</label><input type="number" id="plDias" min="1" step="1" inputmode="numeric"></div>
+        <div style="flex:0 1 140px"><label>Militares</label><input type="number" id="plMil" min="1" step="1" inputmode="numeric"></div>
+        <div style="flex:0 1 200px"><label>Verba prevista (opcional)</label><input type="text" id="plVerba" placeholder="0,00" inputmode="decimal"></div>
+      </div>
+      <div class="kpis" id="plKpis" style="margin-top:16px"></div>
+      <div id="plAviso" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card reveal">
+      <h2>Por categoria</h2>
+      <p class="hint" style="margin:0 0 12px">Clique numa fatia, na legenda ou numa barra para ver de onde veio a estimativa daquela categoria. O tra&ccedil;o sobre a barra &eacute; a faixa prov&aacute;vel.</p>
+      <div id="plRosca"></div>
+      <div id="plBarras" style="margin-top:14px"></div>
+      <div class="scroller" id="plTabela" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card reveal hidden" id="plDetalheCard">
+      <h2 id="plDetalheTit">Categoria</h2>
+      <div id="plDetalhe"></div>
+    </div>
+
+    <div class="card reveal">
+      <h2>Base e confiabilidade</h2>
+      <p class="hint" style="margin:0 0 12px">Comiss&otilde;es usadas no c&aacute;lculo. As encerradas entram por padr&atilde;o; a que est&aacute; em curso fica de fora porque ainda n&atilde;o fechou.</p>
+      <div id="plBase"></div>
+      <div id="plTeste" style="margin-top:14px"></div>
+      <details style="margin-top:14px"><summary class="hint" style="cursor:pointer">Como o c&aacute;lculo &eacute; feito</summary>
+        <p class="hint" style="margin:10px 0 0">Cada comiss&atilde;o vira um gasto <b>por militar por dia</b> (gasto &divide; militares &divide; dias), separado por categoria. A estimativa &eacute; a m&eacute;dia dessas taxas, multiplicada pelos dias e militares informados. Na m&eacute;dia, comiss&atilde;o maior pesa mais (mais militares &times; dias, menos acaso) e comiss&atilde;o antiga pesa menos (o peso cai pela metade a cada ano, por causa da infla&ccedil;&atilde;o). A partir de 3 comiss&otilde;es, a que estiver muito fora da curva &eacute; descartada. A faixa prov&aacute;vel vem da varia&ccedil;&atilde;o entre as comiss&otilde;es: com uma s&oacute;, &eacute; &plusmn;30% fixo; ela estreita conforme o hist&oacute;rico cresce. As quantidades seguem a mesma conta, por unidade (kg, un, l&hellip;), somadas por categoria.</p>
+      </details>
     </div>
   </div>
 
@@ -4490,7 +4528,7 @@ $$('#subControle button').forEach(b=>b.onclick=()=>{
 $$('#subMunic button').forEach(b=>b.onclick=()=>{
   SUB=b.dataset.sub;
   $$('#subMunic button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['paiol','cardapio','gastos','mcontrole'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB));
+  ['paiol','cardapio','gastos','planejamento','mcontrole'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB));
   renderMunic();
 });
 $$('#subPainel button').forEach(b=>b.onclick=()=>{
@@ -15054,10 +15092,237 @@ if($('#mcCsv'))$('#mcCsv').onclick=()=>{
   baixarTexto(csv(rows),'Municiamento_'+((c&&c.nome)||'geral').replace(/[^\w]+/g,'_')+'.csv');
 };
 
+/* ===== municiamento — planejamento =====
+   Estima gasto e quantidade por categoria de uma comissão futura a partir
+   do histórico. Tudo vira "por militar por dia" e é projetado para os dias
+   × militares informados. Média ponderada pelo tamanho da comissão e pela
+   idade (meia-vida de 1 ano, por causa da inflação); a partir de 3
+   comissões, a que estiver fora da curva (MAD) sai da conta. */
+let PLAN_DIAS=10, PLAN_MIL=0, PLAN_VERBA=0, PLAN_CAT='', PLAN_BASE=null;
+const PLAN_MEIA_VIDA=365;
+
+function planUnidade(u){
+  u=String(u||'').trim().toLowerCase();
+  if(u==='g'||u==='gr')return ['kg',0.001];
+  if(u==='ml')return ['l',0.001];
+  if(u==='lt'||u==='litro'||u==='litros')return ['l',1];
+  return [u||'un',1];
+}
+function planEncerrada(c){ return !!(c&&c.fim&&c.fim<hoje()); }
+function planPerfil(c){
+  const dias=planEncerrada(c)?diasCom(c):diasCorridos(c);
+  const mil=+c.militares||0, md=dias*mil;
+  const cat={}, qtd={};
+  gastosDaCom(c.id).filter(g=>g.tipo!=='acerto').forEach(g=>{
+    const its=(g.itens||[]).filter(i=>+i.valorTotal>0);
+    const soma=its.reduce((a,i)=>a+(+i.valorTotal),0);
+    if(!soma){ const k=g.cat||'Outros'; cat[k]=(cat[k]||0)+(+g.valor||0); return; }
+    /* a soma das categorias tem de bater com o que saiu do caixa. Diferença
+       pequena (desconto, frete) é rateada entre os itens; nota com item
+       faltando (itens bem abaixo do total) leva o resto pra categoria dela. */
+    const valor=+g.valor||0, f=valor/soma, rateia=(f>0.5&&f<1.5)||valor<soma;
+    its.forEach(i=>{
+      const k=i.cat||'Outros', [u,m]=planUnidade(i.un);
+      cat[k]=(cat[k]||0)+(+i.valorTotal)*(rateia?f:1);
+      const o=qtd[k]||(qtd[k]={}); o[u]=(o[u]||0)+(+i.qtd||0)*m;
+    });
+    if(!rateia){ const k=g.cat||'Outros'; cat[k]=(cat[k]||0)+(valor-soma); }
+  });
+  const total=Object.values(cat).reduce((a,b)=>a+b,0);
+  const ref=planEncerrada(c)?c.fim:hoje();
+  const idade=Math.max(0,(new Date(hoje()+'T12:00:00')-new Date(ref+'T12:00:00'))/864e5);
+  return {c,dias,mil,md,total,cat,qtd,peso:md*Math.pow(0.5,idade/PLAN_MEIA_VIDA)};
+}
+function planMediana(v){
+  const s=v.slice().sort((a,b)=>a-b), n=s.length;
+  return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):0;
+}
+function planCentral(vals,pesos){
+  let idx=vals.map((_,i)=>i);
+  if(vals.length>=3){
+    const med=planMediana(vals), mad=planMediana(vals.map(v=>Math.abs(v-med)))*1.4826;
+    if(mad>0)idx=idx.filter(i=>Math.abs(vals[i]-med)<=3*mad);
+  }
+  const sw=idx.reduce((a,i)=>a+pesos[i],0);
+  return sw?idx.reduce((a,i)=>a+vals[i]*pesos[i],0)/sw:0;
+}
+/* variação relativa esperada de uma comissão pra outra — vira a faixa */
+function planDispersao(vals){
+  const n=vals.length, med=planMediana(vals);
+  if(n<=1||!med)return 0.30;
+  if(n===2)return Math.max(0.20,Math.abs(vals[0]-vals[1])/(vals[0]+vals[1]));
+  return Math.max(0.08,planMediana(vals.map(v=>Math.abs(v-med)))*1.4826/med);
+}
+function planEstima(perfis,dias,mil){
+  const md=dias*mil, n=perfis.length;
+  if(!n||!md)return null;
+  const pesos=perfis.map(p=>p.peso);
+  const taxas=perfis.map(p=>p.total/p.md);
+  const T=planCentral(taxas,pesos), relT=planDispersao(taxas);
+  const nomes=[...new Set(perfis.flatMap(p=>Object.keys(p.cat)))];
+  const brutas=nomes.map(k=>{
+    const partes=perfis.map(p=>(p.cat[k]||0)/p.total);
+    const unis=[...new Set(perfis.flatMap(p=>Object.keys(p.qtd[k]||{})))];
+    return {n:k,parte:planCentral(partes,pesos),
+      rel:n>=3?Math.max(relT,planDispersao(partes)):relT,
+      taxaQ:unis.map(u=>({u,t:planCentral(perfis.map(p=>((p.qtd[k]||{})[u]||0)/p.md),pesos)}))};
+  });
+  const somaPartes=brutas.reduce((a,c)=>a+c.parte,0)||1, total=T*md;
+  const cats=brutas.map(c=>{
+    const v=total*c.parte/somaPartes;
+    return {n:c.n,v,min:v*(1-c.rel),max:v*(1+c.rel),parte:c.parte/somaPartes,
+      qtd:c.taxaQ.map(x=>({u:x.u,q:x.t*md})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q)};
+  }).filter(c=>c.v>0).sort((a,b)=>b.v-a.v);
+  return {total,min:total*(1-relT),max:total*(1+relT),taxa:T,cats,n,
+    conf:n<=2?'baixa':(n<=5?'média':'alta')};
+}
+/* o painel testa a si mesmo: prevê cada comissão só com as outras */
+function planTeste(perfis){
+  if(perfis.length<2)return [];
+  return perfis.map((p,i)=>{
+    const e=planEstima(perfis.filter((_,j)=>j!==i),p.dias,p.mil);
+    return {nome:p.c.nome,real:p.total,prev:e?e.total:0,erro:e?(e.total-p.total)/p.total:null};
+  });
+}
+function planQtdTxt(lst){
+  return lst.length?lst.map(x=>q2(x.q).toLocaleString('pt-BR',{maximumFractionDigits:2})+' '+esc(x.u)).join(' · '):'—';
+}
+function planPct(x){ return (100*x).toFixed(1).replace('.',',')+'%'; }
+function planAttr(n){ return 'data-plancat="'+esc(n).replace(/"/g,'&quot;')+'"'; }
+function planBarrasHtml(cats){
+  const W=760, lh=36, H=cats.length*lh+8, lx=120, rx=W-130;
+  const max=Math.max.apply(null,cats.map(c=>c.max))||1;
+  const X=v=>lx+(rx-lx)*v/max;
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+cats.map((c,i)=>{
+    const y=4+i*lh, cor=corDaCat(c.n,i), m=y+lh/2-2;
+    return '<g '+planAttr(c.n)+' style="cursor:pointer">'+
+      '<rect x="0" y="'+y+'" width="'+W+'" height="'+(lh-4)+'" rx="6" fill="'+(c.n===PLAN_CAT?'rgba(204,162,90,.16)':'transparent')+'"/>'+
+      '<text x="'+(lx-10)+'" y="'+(m+4)+'" text-anchor="end" font-size="12" fill="var(--ink)">'+esc(c.n)+'</text>'+
+      '<rect x="'+lx+'" y="'+(m-8)+'" width="'+Math.max(1,X(c.v)-lx).toFixed(1)+'" height="16" rx="4" fill="'+cor+'" fill-opacity=".85"/>'+
+      '<line x1="'+X(c.min).toFixed(1)+'" y1="'+m+'" x2="'+X(c.max).toFixed(1)+'" y2="'+m+'" stroke="var(--ink)" stroke-width="1.4" opacity=".6"/>'+
+      '<line x1="'+X(c.min).toFixed(1)+'" y1="'+(m-5)+'" x2="'+X(c.min).toFixed(1)+'" y2="'+(m+5)+'" stroke="var(--ink)" stroke-width="1.4" opacity=".6"/>'+
+      '<line x1="'+X(c.max).toFixed(1)+'" y1="'+(m-5)+'" x2="'+X(c.max).toFixed(1)+'" y2="'+(m+5)+'" stroke="var(--ink)" stroke-width="1.4" opacity=".6"/>'+
+      '<text x="'+(rx+12)+'" y="'+(m+4)+'" font-size="11.5" font-family="monospace" fill="var(--ink)">'+esc(brl(c.v))+'</text>'+
+      '<title>'+esc(c.n+': '+brl(c.v)+' — faixa '+brl(c.min)+' a '+brl(c.max))+'</title></g>';
+  }).join('')+'</svg>';
+}
+function planDetalheHtml(k,perfis,e){
+  const c=e.cats.find(x=>x.n===k);
+  if(!c)return '';
+  const sw=perfis.reduce((a,p)=>a+p.peso,0)||1;
+  return '<div class="kpis" style="margin-bottom:14px">'+
+      [['Estimado',brl(c.v)],['Faixa',brl(c.min)+' a '+brl(c.max)],['Parte do total',planPct(c.parte)],
+       ['Quantidade',planQtdTxt(c.qtd)]]
+      .map(x=>'<div class="kpi"><span>'+x[0]+'</span><b style="font-size:16px">'+x[1]+'</b></div>').join('')+'</div>'+
+    '<table><thead><tr><th>Comissão</th><th class="num">Dias</th><th class="num">Militares</th>'+
+    '<th class="num">Gasto na categoria</th><th class="num">Por militar/dia</th><th>Quantidade</th><th class="num">Peso na média</th></tr></thead><tbody>'+
+    perfis.map(p=>{
+      const v=p.cat[k]||0;
+      const q=Object.entries(p.qtd[k]||{}).map(([u,q])=>({u,q})).sort((a,b)=>b.q-a.q);
+      return '<tr><td>'+esc(p.c.nome||'—')+'</td><td class="num">'+p.dias+'</td><td class="num">'+p.mil+'</td>'+
+        '<td class="num">'+brl(v)+'</td><td class="num">'+brl(v/p.md)+'</td><td>'+planQtdTxt(q)+'</td>'+
+        '<td class="num">'+(100*p.peso/sw).toFixed(0)+'%</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function renderPlanejamento(){
+  const todos=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0);
+  if(PLAN_BASE===null)PLAN_BASE=new Set(todos.filter(p=>planEncerrada(p.c)).map(p=>p.c.id));
+  if(!PLAN_MIL)PLAN_MIL=all().length||1;
+  if(document.activeElement!==$('#plDias'))$('#plDias').value=PLAN_DIAS||'';
+  if(document.activeElement!==$('#plMil'))$('#plMil').value=PLAN_MIL||'';
+
+  $('#plBase').innerHTML=todos.length?todos.map(p=>
+    '<label style="display:flex;gap:8px;align-items:baseline;margin:0 0 6px;cursor:pointer;text-transform:none;letter-spacing:0">'+
+    '<input type="checkbox" data-plbase="'+esc(p.c.id)+'"'+(PLAN_BASE.has(p.c.id)?' checked':'')+'>'+
+    '<span><b>'+esc(p.c.nome||'—')+'</b> <span class="hint">'+p.dias+' dias · '+p.mil+' militares · '+brl(p.total)+
+    ' · '+brl(p.total/p.md)+' por militar/dia'+(planEncerrada(p.c)?'':' · <span style="color:var(--terra)">em curso</span>')+'</span></span></label>').join('')
+    :'<p class="hint" style="margin:0">Nenhuma comissão com período, efetivo e gasto lançados ainda.</p>';
+
+  const base=todos.filter(p=>PLAN_BASE.has(p.c.id));
+  const teste=planTeste(base);
+  $('#plTeste').innerHTML=teste.length?
+    ('<table><thead><tr><th>Teste contra o passado</th><th class="num">Real</th><th class="num">Previsto só com as outras</th><th class="num">Erro</th></tr></thead><tbody>'+
+     teste.map(t=>'<tr><td>'+esc(t.nome||'—')+'</td><td class="num">'+brl(t.real)+'</td><td class="num">'+brl(t.prev)+'</td>'+
+       '<td class="num"><span class="mcvar '+(Math.abs(t.erro)<=0.1?'desce':(Math.abs(t.erro)<=0.25?'igual':'sobe'))+'">'+
+       (t.erro>0?'+':'')+planPct(t.erro)+'</span></td></tr>').join('')+
+     '</tbody></table><p class="hint" style="margin:8px 2px 0">Erro médio: <b>'+
+     planPct(teste.reduce((a,t)=>a+Math.abs(t.erro),0)/teste.length)+'</b>. Esse número cai conforme o histórico cresce.</p>')
+    :'<p class="hint" style="margin:0">Com duas comissões ou mais na base, o painel testa a si mesmo: prevê cada comissão usando só as outras e mostra o erro. Hoje há '+base.length+'.</p>';
+
+  const e=planEstima(base,PLAN_DIAS,PLAN_MIL);
+  const vazio=['#plRosca','#plBarras','#plTabela','#plAviso'];
+  if(!e){
+    $('#plKpis').innerHTML='';
+    vazio.forEach(s=>$(s).innerHTML='');
+    $('#plAviso').innerHTML='<p class="hint" style="margin:0">'+(base.length?'Informe dias e militares.':'Marque ao menos uma comissão na base, lá embaixo.')+'</p>';
+    $('#plDetalheCard').classList.add('hidden');
+    return;
+  }
+  $('#plKpis').innerHTML=[['Total estimado',brl(e.total)],['Faixa provável',brl(e.min)+' a '+brl(e.max)],
+    ['Por militar/dia',brl(e.taxa)],['Confiança',e.conf+' · '+e.n+(e.n>1?' comissões':' comissão')]]
+    .map((k,i)=>'<div class="kpi"><span>'+k[0]+'</span><b style="font-size:'+(i===1?16:19)+'px'+
+      (i===3?';color:'+(e.conf==='alta'?'var(--bordo)':(e.conf==='média'?'var(--dest)':'var(--terra)')):'')+'">'+k[1]+'</b></div>').join('');
+
+  let av='';
+  if(PLAN_VERBA>0){
+    const sobra=PLAN_VERBA-e.total;
+    av+='<p class="hint" style="margin:0 0 6px">'+(e.max<=PLAN_VERBA?'<b style="color:var(--bordo)">A verba de '+brl(PLAN_VERBA)+' cobre até o pior caso da faixa'+'</b> — sobra prevista de '+brl(sobra)+'.'
+      :(sobra>=0?'<b style="color:var(--dest)">A verba de '+brl(PLAN_VERBA)+' cobre o valor provável</b>, mas não o topo da faixa ('+brl(e.max)+'). Folga de '+brl(sobra)+'.'
+      :'<b style="color:var(--alert)">A verba de '+brl(PLAN_VERBA)+' não cobre o valor provável</b> — faltariam '+brl(-sobra)+'.'))+'</p>';
+  }
+  if(e.conf==='baixa')av+='<p class="hint" style="margin:0">Estimativa com base em '+(e.n===1?'uma só comissão':'duas comissões')+': use como ordem de grandeza. A faixa estreita a cada comissão encerrada.</p>';
+  $('#plAviso').innerHTML=av;
+
+  if(PLAN_CAT&&!e.cats.some(c=>c.n===PLAN_CAT))PLAN_CAT='';
+  $('#plRosca').innerHTML=mcRoscaHtml(e.cats.map(c=>({n:c.n,v:c.v})),e.total,corDaCat,d=>planAttr(d.n));
+  $('#plBarras').innerHTML=planBarrasHtml(e.cats);
+  $('#plTabela').innerHTML='<table><thead><tr><th>Categoria</th><th class="num">Estimado</th><th class="num">Faixa</th>'+
+    '<th class="num">% do total</th><th>Quantidade estimada</th></tr></thead><tbody>'+
+    e.cats.map(c=>'<tr '+planAttr(c.n)+' style="cursor:pointer'+(c.n===PLAN_CAT?';background:rgba(204,162,90,.16)':'')+'">'+
+      '<td>'+esc(c.n)+'</td><td class="num">'+brl(c.v)+'</td>'+
+      '<td class="num" style="font-size:11.5px">'+brl(c.min)+' a '+brl(c.max)+'</td>'+
+      '<td class="num">'+planPct(c.parte)+'</td><td>'+planQtdTxt(c.qtd)+'</td></tr>').join('')+
+    '<tr><td style="font-weight:600">Total</td><td class="num" style="font-weight:600">'+brl(e.total)+'</td>'+
+    '<td class="num" style="font-size:11.5px">'+brl(e.min)+' a '+brl(e.max)+'</td><td class="num">100%</td><td></td></tr></tbody></table>';
+
+  $('#plDetalheCard').classList.toggle('hidden',!PLAN_CAT);
+  if(PLAN_CAT){
+    $('#plDetalheTit').textContent=PLAN_CAT+' — de onde veio a estimativa';
+    $('#plDetalhe').innerHTML=planDetalheHtml(PLAN_CAT,base,e);
+  }
+}
+(()=>{
+  const host=$('#sub-planejamento');
+  if(!host)return;
+  host.addEventListener('input',ev=>{
+    const id=ev.target.id;
+    if(id==='plDias')PLAN_DIAS=Math.max(0,parseInt(ev.target.value,10)||0);
+    else if(id==='plMil')PLAN_MIL=Math.max(0,parseInt(ev.target.value,10)||0);
+    else if(id==='plVerba')PLAN_VERBA=numBR(ev.target.value)||0;
+    else return;
+    renderPlanejamento();
+  });
+  host.addEventListener('change',ev=>{
+    const id=ev.target.dataset&&ev.target.dataset.plbase;
+    if(!id)return;
+    if(ev.target.checked)PLAN_BASE.add(id); else PLAN_BASE.delete(id);
+    renderPlanejamento();
+  });
+  host.addEventListener('click',ev=>{
+    const el=ev.target.closest('[data-plancat]');
+    if(!el)return;
+    PLAN_CAT=PLAN_CAT===el.dataset.plancat?'':el.dataset.plancat;
+    renderPlanejamento();
+    const d=$('#plDetalheCard');
+    if(PLAN_CAT&&d&&d.scrollIntoView)d.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+})();
+
 /* ===== municiamento ===== */
 function renderMunic(){
   if(SUB==='paiol'){ ligaBalanco(); if(SUB_PAIOL==='balanco')renderBalanco(); else renderPaiol(); }
   if(SUB==='cardapio')renderCardapio();
+  if(SUB==='planejamento')renderPlanejamento();
   if(SUB==='gastos'){ligaDropNota();renderComissaoGastos();renderNotasLidas();renderGastos();}
   if(SUB==='mcontrole'){ if(SUB_CTRL==='municiados')renderRancho(); else renderControleMunic(); }
 }
