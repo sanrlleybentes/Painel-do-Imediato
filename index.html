@@ -756,17 +756,15 @@ tbody tr:hover{background:rgba(204,162,90,.06)}
 .pargr rect{transition:fill-opacity .16s}
 .pargr:hover rect{fill-opacity:1}
 
-/* mapa de calor diário */
-.calcab,.calgrade{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;max-width:430px}
-.calcab{margin-bottom:5px}
-.calcab div{text-align:center;font-family:var(--display);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.calcel,.calvazia{aspect-ratio:1;border-radius:7px;display:flex;align-items:flex-start;justify-content:flex-end;
-  padding:4px 5px;border:1px solid rgba(196,178,140,.09)}
-.calvazia{border-color:transparent}
-.calcel span{font-family:var(--mono);font-size:9.5px;color:var(--muted)}
-.calcel.tem{cursor:pointer;transition:transform .14s,box-shadow .16s,border-color .16s}
-.calcel.tem span{color:#06171D;font-weight:600}
-.calcel.tem:hover{transform:scale(1.08);border-color:var(--brass);box-shadow:0 4px 12px rgba(58,51,36,.18)}
+/* cesta do navio */
+.cesta{display:flex;flex-direction:column;gap:4px}
+.cestarow{display:grid;grid-template-columns:minmax(0,1.6fr) 96px minmax(0,1fr) 74px;gap:12px;align-items:center;
+  padding:7px 9px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:border-color .16s,background .16s}
+.cestarow:hover{border-color:var(--line);background:rgba(204,162,90,.06)}
+.cestarow .cn{font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cestarow .cn span{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+.cestarow .cp{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cestarow .cv{text-align:right}
 
 /* comparativo entre comissões */
 .cmpbars{display:flex;flex-direction:column;gap:9px}
@@ -777,6 +775,11 @@ tbody tr:hover{background:rgba(204,162,90,.06)}
 .cmpnome span{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:2px}
 .cmptrilho{position:relative;height:19px;border-radius:999px;background:rgba(255,255,255,.05);overflow:visible}
 .cmpg{height:100%;border-radius:999px;transition:width .5s cubic-bezier(.2,.8,.3,1)}
+.cmpg.pilha{display:flex;overflow:hidden}
+.cmpg.pilha i{display:block;height:100%}
+.cmpleg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.cmpleg span{display:inline-flex;align-items:center;gap:6px}
+.cmpleg i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .cmpmk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.75;border-radius:2px}
 .cmpval{font-family:var(--mono);font-size:12.5px;color:var(--ink);text-align:right}
 .cmpval.ruim{color:var(--alert)}
@@ -797,7 +800,8 @@ tbody tr:hover{background:rgba(204,162,90,.06)}
 @media(max-width:760px){
   .cmprow{grid-template-columns:112px 1fr 78px;gap:8px}
   .cmpnome{font-size:11.5px}
-  .calcab,.calgrade{max-width:none}
+  .cestarow{grid-template-columns:minmax(0,1fr) 70px 64px;gap:8px}
+  .cestarow .cp{display:none}
 }
 
 /* ══════════ v5 · agenda administrativa ══════════ */
@@ -2243,26 +2247,33 @@ body.semvideo .sp-foto{display:block}
     </div>
 
     <div class="card reveal">
-      <h2>Evolu&ccedil;&atilde;o e proje&ccedil;&atilde;o</h2>
-      <p class="hint" style="margin:0 0 12px">A linha cheia &eacute; o gasto acumulado; a tracejada laranja projeta o fechamento no ritmo atual; a verde horizontal &eacute; a verba. A vertical clara marca hoje.</p>
+      <h2>Custo por militar/dia, semana a semana</h2>
+      <p class="hint" style="margin:0 0 12px">Barra: o que se gastou na semana &divide; militares &divide; dias. Linha: a m&eacute;dia acumulada desde o in&iacute;cio &mdash; &eacute; ela que precisa ficar abaixo do teto di&aacute;rio (tracejado).</p>
       <div id="mcLinha"></div>
       <p id="mcProjTxt" style="margin:12px 2px 0;font-size:13px;line-height:1.6"></p>
     </div>
 
     <div class="card reveal">
-      <h2>Ritmo de compras</h2>
-      <div id="mcCalor"></div>
+      <h2>Previsto &times; realizado por categoria</h2>
+      <p class="hint" style="margin:0 0 12px">O previsto &eacute; o que o Planejamento estimaria para esta comiss&atilde;o (mesmos dias e militares), usando as outras comiss&otilde;es encerradas. Clique numa categoria para abrir os itens dela.</p>
+      <div id="mcPrevReal"></div>
     </div>
 
     <div class="card reveal">
-      <h2>Curva ABC dos itens</h2>
-      <p class="hint" style="margin:0 0 12px">Barras por item, da maior despesa para a menor, com a linha do acumulado. Onde a linha cruza os 80% est&aacute; o punhado de itens que decide o gasto da comiss&atilde;o.</p>
-      <div id="mcPareto"></div>
+      <h2>Top 10 itens</h2>
+      <p class="hint" style="margin:0 0 12px">Os itens que mais levaram dinheiro. &Eacute; neles que negociar pre&ccedil;o muda o resultado. Clique para ver o hist&oacute;rico de pre&ccedil;o por fornecedor.</p>
+      <div id="mcTop10"></div>
     </div>
 
     <div class="card reveal">
-      <h2>Esta comiss&atilde;o contra as anteriores</h2>
-      <p class="hint" style="margin:0 0 12px">O padr&atilde;o de compara&ccedil;&atilde;o &eacute; o hist&oacute;rico do pr&oacute;prio navio, n&atilde;o um n&uacute;mero de fora.</p>
+      <h2>Cesta do navio</h2>
+      <p class="hint" style="margin:0 0 12px">Os itens comprados com mais frequ&ecirc;ncia, em todo o hist&oacute;rico, e quanto o pre&ccedil;o unit&aacute;rio mudou da primeira para a &uacute;ltima compra. &Eacute; a infla&ccedil;&atilde;o do rancho do navio. Clique para o hist&oacute;rico.</p>
+      <div id="mcCesta"></div>
+    </div>
+
+    <div class="card reveal">
+      <h2>Comiss&otilde;es comparadas</h2>
+      <p class="hint" style="margin:0 0 12px">Custo por militar/dia de cada comiss&atilde;o, separado por categoria. O padr&atilde;o de compara&ccedil;&atilde;o &eacute; o hist&oacute;rico do pr&oacute;prio navio, n&atilde;o um n&uacute;mero de fora.</p>
       <div id="mcComparativo"></div>
     </div>
 
@@ -14587,144 +14598,182 @@ function mcRoscaHtml(dados,total,corFn,attr){
     '</svg><div class="pizza-leg">'+leg+'</div></div>';
 }
 
-/* ---------- evolução com projeção até o fim da comissão ---------- */
-function grafProjecao(pontos,teto,c,dTotIn,hjIn){
-  const W=760,H=230,mx=46,my=18;
-  if(!pontos.length)return {svg:'<p class="hint" style="margin:0">Sem gastos lançados.</p>',aviso:''};
-  const ini=c&&c.ini?c.ini:pontos[0].data;
-  const fim=c&&c.fim?c.fim:pontos[pontos.length-1].data;
-  const dia=iso=>Math.round((new Date(iso+'T12:00:00')-new Date(ini+'T12:00:00'))/864e5);
-  /* dTot e hj vêm em dias contados (o dia 1 é o do suspender), iguais aos que a
-     KPI "por militar/dia" usa. O eixo continua em índice, daí o -1. */
-  const dTot=Math.max(1,dTotIn||(dia(fim)+1));
-  const hj=Math.max(1,Math.min(dTot,hjIn||(dia(hoje())+1)));
-  const eixo=Math.max(1,dTot-1);
-  const gasto=pontos[pontos.length-1].acum;
-  /* ritmo médio dos dias já corridos, projetado linearmente até o último dia */
-  const ritmo=gasto/hj, projFim=ritmo*dTot;
-  const diaEstouro=(teto>0&&ritmo>0&&projFim>teto)?Math.ceil(teto/ritmo):0;
-  const isoDe=n=>{const d=new Date(ini+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d);};
-  const maxV=Math.max(teto||0,projFim,gasto)*1.06||1;
-  const X=d=>mx+(W-mx-14)*(Math.min(d,eixo)/eixo), Y=v=>H-my-(H-2*my)*(v/maxV);
-  const linha=pontos.map((p,i)=>(i?'L':'M')+X(dia(p.data)).toFixed(1)+','+Y(p.acum).toFixed(1)).join(' ');
-  const area=linha+' L'+X(dia(pontos[pontos.length-1].data)).toFixed(1)+','+(H-my)+' L'+X(dia(pontos[0].data)).toFixed(1)+','+(H-my)+' Z';
-  const grades=[0,.5,1].map(f=>'<line x1="'+mx+'" y1="'+Y(maxV*f)+'" x2="'+(W-14)+'" y2="'+Y(maxV*f)+
-    '" stroke="var(--line)" stroke-width="1" opacity=".5"/><text x="'+(mx-6)+'" y="'+(Y(maxV*f)+3)+
-    '" text-anchor="end" font-size="9" fill="var(--muted)" font-family="monospace">'+
-    (maxV*f>=1000?(maxV*f/1000).toFixed(1)+'k':Math.round(maxV*f))+'</text>').join('');
-  let svg='<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+
-    '<defs><linearGradient id="gProj" x1="0" y1="0" x2="0" y2="1">'+
-    '<stop offset="0" stop-color="#CCA25A" stop-opacity=".34"/><stop offset="1" stop-color="#CCA25A" stop-opacity="0"/></linearGradient></defs>'+grades;
-  if(teto>0)svg+='<line x1="'+mx+'" y1="'+Y(teto)+'" x2="'+(W-14)+'" y2="'+Y(teto)+
+/* ---------- custo por militar/dia, semana a semana ----------
+   Barra = gasto da semana ÷ militares ÷ dias da semana. Linha = média
+   acumulada do dia 1 até o fim da semana — é ela que tem de ficar abaixo
+   do teto diário. Compra feita antes de suspender cai na 1ª semana; o que
+   foi lançado depois do fim cai na última (e o aviso conta quanto foi). */
+function grafSemanal(lst,c,rec,projFim,teto){
+  const mil=+c.militares||0, dias=diasCom(c), corridos=diasCorridos(c);
+  if(!c.ini||!c.fim||!mil)return {svg:'<p class="hint" style="margin:0">Defina o período e o efetivo da comissão para ver o ritmo semanal.</p>',aviso:''};
+  const nSem=Math.ceil(dias/7);
+  const sem=Array.from({length:nSem},(_,k)=>({k,v:0,dias:Math.min(7,dias-7*k)}));
+  const idx=iso=>Math.round((new Date(iso+'T12:00:00')-new Date(c.ini+'T12:00:00'))/864e5);
+  let antes=0, depois=0;
+  lst.filter(g=>g.tipo!=='acerto'&&g.data).forEach(g=>{
+    const d=idx(g.data), v=+g.valor||0;
+    if(d<0){sem[0].v+=v;antes+=v;}
+    else if(d>=dias){sem[nSem-1].v+=v;depois+=v;}
+    else sem[Math.floor(d/7)].v+=v;
+  });
+  let acum=0;
+  sem.forEach(s=>{
+    acum+=s.v; s.md=s.v/mil/s.dias;
+    s.fimDia=7*s.k+s.dias; s.acum=acum/mil/s.fimDia;
+    s.futura=7*s.k>=corridos;
+  });
+  const tetoDia=(+c.valorPorMilitar||0)>0?(+c.valorPorMilitar)/dias:(rec>0?rec/mil/dias:0);
+  const feitas=sem.filter(s=>!s.futura);
+  const W=760,H=262,mx=50,my=22,base=H-44;
+  const maxV=Math.max(tetoDia,...sem.map(s=>Math.max(s.md,s.acum)))*1.15||1;
+  const bw=(W-mx-14)/nSem;
+  const Y=v=>base-(base-my)*(v/maxV), CX=k=>mx+bw*k+bw/2;
+  const iso=n=>{const d=new Date(c.ini+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d);};
+  const grades=[0,.5,1].map(f=>'<line x1="'+mx+'" y1="'+Y(maxV*f/1.15).toFixed(1)+'" x2="'+(W-14)+'" y2="'+Y(maxV*f/1.15).toFixed(1)+
+    '" stroke="var(--line)" opacity=".6"/><text x="'+(mx-6)+'" y="'+(Y(maxV*f/1.15)+3).toFixed(1)+
+    '" text-anchor="end" font-size="9" fill="var(--muted)" font-family="monospace">'+brl(maxV*f/1.15).replace('R$','').trim()+'</text>').join('');
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+grades+
+    sem.map(s=>{
+      const x=mx+bw*s.k+bw*0.18, w=bw*0.64, acima=tetoDia>0&&s.md>tetoDia;
+      const rot='S'+(s.k+1)+' · '+brDate(iso(7*s.k)).slice(0,5);
+      return '<g><rect x="'+x.toFixed(1)+'" y="'+(s.futura?my:Y(s.md)).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+
+        (s.futura?base-my:base-Y(s.md)).toFixed(1)+'" rx="5" '+
+        (s.futura?'fill="none" stroke="var(--line)" stroke-dasharray="4 4"':'fill="'+(acima?'#B0402D':'#CCA25A')+'" fill-opacity=".8"')+'/>'+
+        '<text x="'+CX(s.k).toFixed(1)+'" y="'+(H-24)+'" text-anchor="middle" font-size="9.5" font-family="monospace" fill="var(--muted)">'+esc(rot)+'</text>'+
+        (!s.futura?'<text x="'+CX(s.k).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="11" font-weight="700" font-family="monospace" fill="'+(acima?'var(--alert)':'var(--ink)')+'">'+brl(s.md)+'</text>':'')+
+        '<title>'+esc('Semana '+(s.k+1)+(s.futura?' (ainda não chegou)':' · '+brl(s.v)+' · '+brl(s.md)+' por militar/dia · média acumulada '+brl(s.acum)))+'</title></g>';
+    }).join('');
+  if(tetoDia>0)svg+='<line x1="'+mx+'" y1="'+Y(tetoDia).toFixed(1)+'" x2="'+(W-14)+'" y2="'+Y(tetoDia).toFixed(1)+
     '" stroke="var(--bordo)" stroke-width="1.6" stroke-dasharray="7 5"/>'+
-    '<text x="'+(W-16)+'" y="'+(Y(teto)-6)+'" text-anchor="end" font-size="9.5" fill="var(--bordo)" font-family="monospace">verba '+brl(teto)+'</text>';
-  svg+='<path d="'+area+'" fill="url(#gProj)"/>'+
-    '<path d="'+linha+'" fill="none" stroke="#CCA25A" stroke-width="2.6" stroke-linejoin="round"/>';
-  if(hj<dTot)svg+='<path d="M'+X(hj-1).toFixed(1)+','+Y(gasto).toFixed(1)+' L'+X(eixo).toFixed(1)+','+Y(projFim).toFixed(1)+
-    '" stroke="'+(projFim>teto&&teto>0?'#B0402D':'#A2520C')+'" stroke-width="2.2" stroke-dasharray="6 5" fill="none"/>'+
-    '<circle cx="'+X(eixo).toFixed(1)+'" cy="'+Y(projFim).toFixed(1)+'" r="4" fill="'+(projFim>teto&&teto>0?'#B0402D':'#A2520C')+'"/>'+
-    '<text x="'+(X(eixo)-6).toFixed(1)+'" y="'+(Y(projFim)-9).toFixed(1)+'" text-anchor="end" font-size="10" '+
-    'fill="'+(projFim>teto&&teto>0?'#B0402D':'#A2520C')+'" font-family="monospace">projeção '+brl(projFim)+'</text>';
-  if(diaEstouro&&diaEstouro<=dTot)svg+='<line x1="'+X(diaEstouro-1).toFixed(1)+'" y1="'+my+'" x2="'+X(diaEstouro-1).toFixed(1)+
-    '" y2="'+(H-my)+'" stroke="#B0402D" stroke-width="1.2" stroke-dasharray="3 4" opacity=".8"/>';
-  svg+='<line x1="'+X(hj-1).toFixed(1)+'" y1="'+my+'" x2="'+X(hj-1).toFixed(1)+'" y2="'+(H-my)+
-    '" stroke="var(--brass)" stroke-width="1" opacity=".55"/>'+
-    pontos.map(p=>'<circle cx="'+X(dia(p.data)).toFixed(1)+'" cy="'+Y(p.acum).toFixed(1)+'" r="3" fill="#CCA25A"><title>'+
-      esc(brDate(p.data)+' · '+brl(p.acum))+'</title></circle>').join('')+
-    '<text x="'+mx+'" y="'+(H-3)+'" font-size="9" fill="var(--muted)" font-family="monospace">'+esc(brDate(ini).slice(0,5))+'</text>'+
-    '<text x="'+(W-14)+'" y="'+(H-3)+'" text-anchor="end" font-size="9" fill="var(--muted)" font-family="monospace">'+esc(brDate(fim).slice(0,5))+'</text>'+
-    '</svg>';
+    '<text x="'+(W-16)+'" y="'+(Y(tetoDia)-6).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="var(--bordo)" font-family="monospace">teto '+brl(tetoDia)+'/dia</text>';
+  if(feitas.length)svg+='<path d="'+feitas.map((s,i)=>(i?'L':'M')+CX(s.k).toFixed(1)+','+Y(s.acum).toFixed(1)).join(' ')+
+    '" fill="none" stroke="var(--terra)" stroke-width="2.4" stroke-linejoin="round"/>'+
+    feitas.map(s=>'<circle cx="'+CX(s.k).toFixed(1)+'" cy="'+Y(s.acum).toFixed(1)+'" r="3.5" fill="var(--terra)"/>').join('');
+  svg+='</svg>';
+
+  const ult=feitas[feitas.length-1];
   let aviso='';
-  if(!c||!c.ini)aviso='<span class="hint">Defina o período da comissão para o painel projetar o fechamento.</span>';
-  else if(teto<=0)aviso='<span class="hint">Lance o recebido ou o teto por militar para o painel saber contra o que projetar.</span>';
-  else if(projFim>teto)aviso='<b style="color:var(--alert)">No ritmo de '+brl(ritmo)+' por dia, a comissão fecha em '+brl(projFim)+
-    ' — '+brl(projFim-teto)+' além da verba'+(diaEstouro&&diaEstouro<=dTot?', que se esgota em '+brDate(isoDe(diaEstouro-1)):'')+'.</b>';
-  else aviso='<b style="color:var(--bordo)">No ritmo de '+brl(ritmo)+' por dia, a comissão fecha em '+brl(projFim)+
-    ', com '+brl(teto-projFim)+' de folga.</b>';
-  return {svg:svg,aviso:aviso};
-}
-
-/* ---------- curva ABC: os poucos itens que decidem o gasto ---------- */
-function grafPareto(itens){
-  if(!itens.length)return '<p class="hint" style="margin:0">Lance notas com itens para a curva funcionar.</p>';
-  const lst=itens.slice().sort((a,b)=>b.valor-a.valor).slice(0,28);
-  const tot=itens.reduce((s,i)=>s+i.valor,0)||1;
-  const W=760,H=240,mx=44,my=18, bw=(W-mx-16)/lst.length;
-  const maxV=lst[0].valor||1;
-  let acum=0, pts=[], corte=0;
-  const barras=lst.map((o,i)=>{
-    acum+=o.valor; const pc=100*acum/tot;
-    if(!corte&&pc>=80)corte=i+1;
-    const x=mx+i*bw, h=(H-2*my)*(o.valor/maxV);
-    pts.push([x+bw/2,my+(H-2*my)*(1-pc/100)]);
-    return '<g class="pargr" data-paritem="'+esc(o.nome)+'">'+
-      '<rect x="'+(x+1.2).toFixed(1)+'" y="'+(H-my-h).toFixed(1)+'" width="'+Math.max(1,bw-2.4).toFixed(1)+
-      '" height="'+h.toFixed(1)+'" rx="3" fill="'+corDaCat(o.cat,i)+'" fill-opacity=".85"/>'+
-      '<title>'+esc(o.nome+' · '+brl(o.valor)+' · acumulado '+pc.toFixed(0)+'%')+'</title></g>';
-  }).join('');
-  const linha=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-  const y80=my+(H-2*my)*0.2;
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+
-    '<line x1="'+mx+'" y1="'+y80.toFixed(1)+'" x2="'+(W-16)+'" y2="'+y80.toFixed(1)+
-      '" stroke="var(--terra)" stroke-width="1.2" stroke-dasharray="6 5"/>'+
-    '<text x="'+(W-18)+'" y="'+(y80-6).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="var(--terra)" font-family="monospace">80% do gasto</text>'+
-    barras+
-    '<path d="'+linha+'" fill="none" stroke="var(--terra)" stroke-width="2" stroke-linejoin="round"/>'+
-    (corte?'<line x1="'+(mx+corte*bw).toFixed(1)+'" y1="'+my+'" x2="'+(mx+corte*bw).toFixed(1)+'" y2="'+(H-my)+
-      '" stroke="var(--terra)" stroke-width="1" stroke-dasharray="3 4" opacity=".8"/>':'')+
-    '</svg>'+(corte?'<p class="hint" style="margin:10px 2px 0"><b>'+corte+' iten'+(corte>1?'s':'')+
-      '</b> respondem por 80% da despesa, contra '+(itens.length-corte)+' que somam o resto. '+
-      'É neles que negociar preço muda o resultado. Clique na barra para ver o histórico.</p>':'');
-}
-
-/* ---------- ritmo de compras, dia a dia ---------- */
-function mapaCalor(lst,c){
-  const porDia={};
-  lst.forEach(g=>{ if(g.data)porDia[g.data]=(porDia[g.data]||0)+(+g.valor||0); });
-  const datas=Object.keys(porDia);
-  if(!datas.length)return '<p class="hint" style="margin:0">Sem lançamentos com data.</p>';
-  const ini=(c&&c.ini)||datas.sort()[0];
-  const fim=(c&&c.fim)||datas.sort()[datas.length-1];
-  const max=Math.max.apply(null,Object.values(porDia))||1;
-  const dias=Math.max(1,Math.round((new Date(fim+'T12:00:00')-new Date(ini+'T12:00:00'))/864e5)+1);
-  if(dias>200)return '<p class="hint" style="margin:0">Período longo demais para o mapa diário.</p>';
-  const DS=['D','S','T','Q','Q','S','S'];
-  let cel='', d=new Date(ini+'T12:00:00');
-  const vazias=d.getDay();
-  for(let i=0;i<vazias;i++)cel+='<div class="calvazia"></div>';
-  for(let i=0;i<dias;i++){
-    const iso=ymd(d), v=porDia[iso]||0;
-    const int=v?0.18+0.82*Math.sqrt(v/max):0;
-    cel+='<div class="calcel'+(v?' tem':'')+'" '+(v?'data-caldia="'+iso+'"':'')+
-      ' style="background:'+(v?'rgba(204,162,90,'+int.toFixed(2)+')':'#F4EEE0')+'" title="'+
-      esc(brDate(iso)+(v?' · '+brl(v):' · sem compra'))+'"><span>'+d.getDate()+'</span></div>';
-    d.setDate(d.getDate()+1);
+  if(ult){
+    const md=ult.acum;
+    aviso=tetoDia>0?
+      (md>tetoDia?'<b style="color:var(--alert)">Média de '+brl(md)+' por militar/dia, '+((md/tetoDia-1)*100).toFixed(0)+'% acima do teto de '+brl(tetoDia)+'.</b>'
+                 :'<b style="color:var(--bordo)">Média de '+brl(md)+' por militar/dia, dentro do teto de '+brl(tetoDia)+' ('+((1-md/tetoDia)*100).toFixed(0)+'% de folga).</b>')
+      :'Média de <b>'+brl(md)+'</b> por militar/dia. Lance o recebido ou o valor por militar para o painel comparar com o teto.';
+    if(corridos<dias&&projFim)aviso+=' No ritmo atual, a comissão fecha em <b>'+brl(projFim)+'</b>'+(teto>0?(projFim>teto?', '+brl(projFim-teto)+' além da verba.':', com '+brl(teto-projFim)+' de folga.'):'.');
   }
-  return '<div class="calcab">'+DS.map(x=>'<div>'+x+'</div>').join('')+'</div><div class="calgrade">'+cel+'</div>'+
-    '<p class="hint" style="margin:10px 2px 0">Quanto mais claro, maior a compra do dia. Clique em um dia para ver as notas.</p>';
+  if(antes)aviso+='<br><span class="hint">A semana 1 inclui '+brl(antes)+' comprados antes do início da comissão (rancho de partida).</span>';
+  if(depois)aviso+='<br><span style="color:var(--terra);font-size:12.5px">A última semana inclui '+brl(depois)+' lançados depois do fim da comissão — confira as datas dessas notas.</span>';
+  return {svg,aviso};
 }
 
-/* ---------- esta comissão contra as anteriores ---------- */
+/* ---------- previsto × realizado, por categoria ----------
+   O previsto sai do mesmo motor do Planejamento, alimentado só pelas
+   OUTRAS comissões encerradas — senão a comissão preveria a si mesma. */
+function grafPrevReal(c){
+  if(!c)return '<p class="hint" style="margin:0">Escolha uma comissão no seletor lá em cima para comparar com o previsto.</p>';
+  const p=planPerfil(c);
+  if(!p.md||!p.total)return '<p class="hint" style="margin:0">Defina o período e o efetivo da comissão.</p>';
+  const outras=comissoes().filter(x=>x.id!==c.id&&planEncerrada(x)).map(planPerfil).filter(x=>x.md>0&&x.total>0);
+  if(!outras.length)return '<p class="hint" style="margin:0">O previsto é calculado com as <b>outras</b> comissões encerradas. Hoje esta é a única com dados — a comparação aparece a partir da próxima comissão.</p>';
+  const e=planEstima(outras,p.dias,p.mil);
+  const nomes=[...new Set(e.cats.map(x=>x.n).concat(Object.keys(p.cat)))];
+  const linhas=nomes.map(n=>{
+    const pr=(e.cats.find(x=>x.n===n)||{v:0}).v, re=p.cat[n]||0;
+    return {n,pr,re,dif:pr?(re-pr)/pr:null};
+  }).sort((a,b)=>Math.max(b.pr,b.re)-Math.max(a.pr,a.re));
+  const max=Math.max(...linhas.map(l=>Math.max(l.pr,l.re)))||1;
+  const W=760, lh=44, H=linhas.length*lh+6, lx=120, rx=W-150, X=v=>lx+(rx-lx)*v/max;
+  const svg='<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+linhas.map((l,i)=>{
+    const y=4+i*lh, cor=corDaCat(l.n,i);
+    const tx=l.dif==null?'novo':((l.dif>0?'+':'')+(100*l.dif).toFixed(0)+'%');
+    const cl=l.dif==null?'var(--muted)':(l.dif>0.1?'var(--alert)':(l.dif<-0.1?'var(--bordo)':'var(--muted)'));
+    return '<g class="pargr" data-tmcat="'+esc(l.n).replace(/"/g,'&quot;')+'">'+
+      '<rect x="0" y="'+y+'" width="'+W+'" height="'+(lh-4)+'" fill="transparent"/>'+
+      '<text x="'+(lx-10)+'" y="'+(y+24)+'" text-anchor="end" font-size="12" fill="var(--ink)">'+esc(l.n)+'</text>'+
+      '<rect x="'+lx+'" y="'+(y+5)+'" width="'+Math.max(1,X(l.pr)-lx).toFixed(1)+'" height="13" rx="3" fill="none" stroke="'+cor+'" stroke-width="1.5" stroke-dasharray="4 3"/>'+
+      '<rect x="'+lx+'" y="'+(y+21)+'" width="'+Math.max(1,X(l.re)-lx).toFixed(1)+'" height="13" rx="3" fill="'+cor+'" fill-opacity=".85"/>'+
+      '<text x="'+(rx+10)+'" y="'+(y+16)+'" font-size="10.5" font-family="monospace" fill="var(--muted)">'+esc(brl(l.pr))+'</text>'+
+      '<text x="'+(rx+10)+'" y="'+(y+32)+'" font-size="10.5" font-family="monospace" fill="var(--ink)">'+esc(brl(l.re))+
+        ' <tspan fill="'+cl+'" font-weight="700">'+tx+'</tspan></text>'+
+      '<title>'+esc(l.n+' — previsto '+brl(l.pr)+', realizado '+brl(l.re))+'</title></g>';
+  }).join('')+'</svg>';
+  const dif=(p.total-e.total)/e.total;
+  const piores=linhas.filter(l=>l.dif!=null&&l.dif>0.1).slice(0,2).map(l=>l.n+' (+'+(100*l.dif).toFixed(0)+'%)');
+  return svg+'<p class="hint" style="margin:10px 2px 0">Tracejado: previsto · cheio: realizado. No total, previsto <b>'+brl(e.total)+
+    '</b> e realizado <b>'+brl(p.total)+'</b> ('+(dif>0?'+':'')+(100*dif).toFixed(0)+'%).'+
+    (piores.length?' Passou mais do previsto em '+esc(piores.join(' e '))+'.':'')+
+    ' Previsto calculado com '+outras.length+' comiss'+(outras.length>1?'ões':'ão')+' — a confiança do Planejamento vale aqui também.</p>';
+}
+
+/* ---------- top 10 itens ---------- */
+function grafTopItens(itens){
+  const lst=itens.slice().sort((a,b)=>b.valor-a.valor).slice(0,10);
+  if(!lst.length)return '<p class="hint" style="margin:0">Lance notas com itens para este quadro funcionar.</p>';
+  const tot=itens.reduce((s,i)=>s+i.valor,0)||1, max=lst[0].valor||1;
+  const W=760, lh=30, H=lst.length*lh+4, lx=250, rx=W-150, X=v=>lx+(rx-lx)*v/max;
+  const soma=lst.reduce((a,o)=>a+o.valor,0);
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+lst.map((o,i)=>{
+    const y=2+i*lh, nome=o.nome.length>34?o.nome.slice(0,33)+'…':o.nome;
+    return '<g class="pargr" data-paritem="'+esc(o.nome).replace(/"/g,'&quot;')+'">'+
+      '<rect x="0" y="'+y+'" width="'+W+'" height="'+(lh-2)+'" fill="transparent"/>'+
+      '<text x="'+(lx-10)+'" y="'+(y+18)+'" text-anchor="end" font-size="11.5" fill="var(--ink)">'+esc(nome)+'</text>'+
+      '<rect x="'+lx+'" y="'+(y+6)+'" width="'+Math.max(1,X(o.valor)-lx).toFixed(1)+'" height="16" rx="4" fill="'+corDaCat(o.cat,i)+'" fill-opacity=".82"/>'+
+      '<text x="'+(rx+10)+'" y="'+(y+18)+'" font-size="11" font-family="monospace" fill="var(--ink)">'+esc(brl(o.valor))+
+        ' <tspan fill="var(--muted)">'+(100*o.valor/tot).toFixed(1).replace('.',',')+'%</tspan></text>'+
+      '<title>'+esc(o.nome+' · '+(o.cat||'—')+' · '+brl(o.valor))+'</title></g>';
+  }).join('')+'</svg><p class="hint" style="margin:10px 2px 0">Estes 10 itens somam <b>'+brl(soma)+'</b>, '+
+    (100*soma/tot).toFixed(0)+'% de tudo que foi comprado com item detalhado.</p>';
+}
+
+/* ---------- cesta do navio: inflação do rancho ---------- */
+function grafCesta(){
+  const por={};
+  ((FOR&&FOR.precos)||[]).forEach(p=>{
+    if(!p.item||!(+p.valorUnit>0)||!p.data)return;
+    (por[p.item]=por[p.item]||{nome:p.nome||p.item,cat:p.cat,regs:[]}).regs.push({d:p.data,v:+p.valorUnit});
+  });
+  const lst=Object.values(por).map(o=>{
+    o.regs.sort((a,b)=>a.d.localeCompare(b.d));
+    const d0=o.regs[0].d, d1=o.regs[o.regs.length-1].d;
+    const med=d=>{const r=o.regs.filter(x=>x.d===d);return r.reduce((a,x)=>a+x.v,0)/r.length;};
+    return {...o,d0,d1,p0:med(d0),p1:med(d1)};
+  }).filter(o=>o.d0!==o.d1).map(o=>({...o,var_:(o.p1-o.p0)/o.p0}))
+    .sort((a,b)=>b.regs.length-a.regs.length).slice(0,10);
+  if(!lst.length)return '<p class="hint" style="margin:0">Aparece quando os mesmos itens forem comprados em datas diferentes.</p>';
+  const spark=o=>{
+    const vs=o.regs.map(r=>r.v), mn=Math.min(...vs), mx=Math.max(...vs), W=90, H=24;
+    const pts=vs.map((v,i)=>(i?'L':'M')+(2+(W-4)*(vs.length<2?0.5:i/(vs.length-1))).toFixed(1)+','+(H-3-(H-6)*((v-mn)/((mx-mn)||1))).toFixed(1)).join(' ');
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'"><path d="'+pts+'" fill="none" stroke="'+corDaCat(o.cat,0)+'" stroke-width="1.8"/></svg>';
+  };
+  const media=lst.reduce((a,o)=>a+o.var_,0)/lst.length;
+  return '<div class="cesta">'+lst.map(o=>{
+    const cls=o.var_>0.03?'sobe':(o.var_<-0.03?'desce':'igual');
+    return '<div class="cestarow" data-paritem="'+esc(o.nome).replace(/"/g,'&quot;')+'">'+
+      '<div class="cn">'+esc(o.nome)+'<span>'+o.regs.length+' compras · '+esc(o.cat||'—')+'</span></div>'+
+      '<div>'+spark(o)+'</div>'+
+      '<div class="cp">'+brl(o.p0)+' ('+brDate(o.d0).slice(0,5)+') → '+brl(o.p1)+' ('+brDate(o.d1).slice(0,5)+')</div>'+
+      '<div class="cv"><span class="mcvar '+cls+'">'+(o.var_>0?'+':'')+(100*o.var_).toFixed(1).replace('.',',')+'%</span></div></div>';
+  }).join('')+'</div><p class="hint" style="margin:10px 2px 0">Na média, a cesta '+(media>=0?'subiu':'caiu')+' <b>'+
+    Math.abs(100*media).toFixed(1).replace('.',',')+'%</b> entre a primeira e a última compra de cada item. Compara lojas diferentes também — clique no item para separar por fornecedor.</p>';
+}
+
+/* ---------- comissões comparadas, por categoria ---------- */
 function comparativoComissoes(){
-  const linhas=comissoes().map(c=>{
-    const g=gastosDaCom(c.id).reduce((a,b)=>a+(+b.valor||0),0);
-    const mil=+c.militares||0, dias=diasCom(c);
-    return {c:c,nome:c.nome||'sem nome',total:g,mil:mil,dias:dias,
-      md:(mil&&dias)?g/mil/dias:0, teto:(+c.valorPorMilitar||0)/(dias||1)};
-  }).filter(x=>x.md>0);
-  if(linhas.length<2)return '<p class="hint" style="margin:0">Com duas comissões encerradas o painel passa a comparar o custo por militar/dia entre elas.</p>';
-  const max=Math.max.apply(null,linhas.map(x=>Math.max(x.md,x.teto)))||1;
+  const linhas=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0).map(p=>({p,md:p.total/p.md,
+    teto:(+p.c.valorPorMilitar||0)/(p.dias||1)}));
+  if(linhas.length<2)return '<p class="hint" style="margin:0">Com duas comissões com período, efetivo e gasto lançados, o painel passa a comparar o custo por militar/dia entre elas, categoria por categoria. Hoje há '+linhas.length+'.</p>';
+  const cats=[...new Set(linhas.flatMap(l=>Object.keys(l.p.cat)))];
+  const max=Math.max(...linhas.map(x=>Math.max(x.md,x.teto)))||1;
   return '<div class="cmpbars">'+linhas.map(x=>{
     const acima=x.teto>0&&x.md>x.teto;
-    return '<div class="cmprow" data-cmpcom="'+x.c.id+'">'+
-      '<div class="cmpnome">'+esc(x.nome)+'<span>'+x.mil+' mil · '+x.dias+' dias</span></div>'+
-      '<div class="cmptrilho">'+
-        '<div class="cmpg" style="width:'+(100*x.md/max).toFixed(1)+'%;background:'+
-          (acima?'linear-gradient(90deg,#B0402D,#ff9a90)':'linear-gradient(90deg,#B98F42,#557040)')+'"></div>'+
-        (x.teto>0?'<div class="cmpmk" style="left:'+(100*x.teto/max).toFixed(1)+'%" title="teto '+brl(x.teto)+'/dia"></div>':'')+
-      '</div>'+
+    return '<div class="cmprow" data-cmpcom="'+x.p.c.id+'">'+
+      '<div class="cmpnome">'+esc(x.p.c.nome||'sem nome')+'<span>'+x.p.mil+' mil · '+x.p.dias+' dias</span></div>'+
+      '<div class="cmptrilho"><div class="cmpg pilha" style="width:'+(100*x.md/max).toFixed(1)+'%">'+
+        cats.map((k,i)=>{const v=(x.p.cat[k]||0)/x.p.md;return v?'<i style="flex:'+v.toFixed(4)+';background:'+corDaCat(k,i)+'" title="'+esc(k+': '+brl(v)+' por militar/dia')+'"></i>':'';}).join('')+
+      '</div>'+(x.teto>0?'<div class="cmpmk" style="left:'+(100*x.teto/max).toFixed(1)+'%" title="teto '+brl(x.teto)+'/dia"></div>':'')+'</div>'+
       '<div class="cmpval'+(acima?' ruim':'')+'">'+brl(x.md)+'</div></div>';
-  }).join('')+'</div><p class="hint" style="margin:10px 2px 0">Gasto por militar por dia. O traço vertical é o teto diário que a comissão recebeu. Clique para abrir a comissão.</p>';
+  }).join('')+'</div><div class="cmpleg">'+cats.map((k,i)=>'<span><i style="background:'+corDaCat(k,i)+'"></i>'+esc(k)+'</span>').join('')+'</div>'+
+    '<p class="hint" style="margin:10px 2px 0">O traço vertical é o teto diário da comissão. Passe o mouse num trecho da barra para ver o valor da categoria; clique para abrir a comissão.</p>';
 }
 
 /* ---------- o que merece atenção ---------- */
@@ -14790,22 +14839,6 @@ function abrirHistoricoItem(nome){
       '</tbody></table><div class="actions" style="margin-top:16px"><button class="btn" id="hiFecha">Fechar</button></div></div></div>';
   }
   $('#hiFecha').onclick=()=>host.innerHTML='';
-  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
-}
-
-/* ---------- notas de um dia ---------- */
-function abrirNotasDoDia(iso){
-  const lst=gastosDaCom(MC_COM).filter(g=>g.data===iso);
-  const tot=lst.reduce((a,b)=>a+(+b.valor||0),0);
-  const host=$('#modalHost');
-  host.innerHTML='<div class="backdrop"><div class="modal" style="max-width:640px"><h3>'+brDate(iso)+'</h3>'+
-    '<p class="sub">'+lst.length+' lançamento(s) · '+brl(tot)+'</p>'+
-    '<table><thead><tr><th>Fornecedor</th><th style="width:110px">Nota</th>'+
-    '<th class="num" style="width:120px">Valor</th></tr></thead><tbody>'+
-    lst.map(g=>'<tr><td>'+esc(g.forn||'—')+(g.itens&&g.itens.length?' <span class="badge">'+g.itens.length+' itens</span>':'')+
-      '</td><td class="mono">'+esc(g.nf||'—')+'</td><td class="num">'+brl(g.valor)+'</td></tr>').join('')+
-    '</tbody></table><div class="actions" style="margin-top:16px"><button class="btn" id="ndFecha">Fechar</button></div></div></div>';
-  $('#ndFecha').onclick=()=>host.innerHTML='';
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
 }
 
@@ -14924,15 +14957,19 @@ function renderControleMunic(){
     '</td><td class="num">100%</td><td class="num">'+(mil?brl(totCat/mil):'—')+'</td></tr>'+
     '</tbody></table>'):'';
 
-  /* evolução acumulada */
-  let acum=0;
-  const pontos=lst.filter(g=>g.data).map(g=>{acum+=(+g.valor||0);return {data:g.data,acum};});
+  /* ritmo semanal — na visão geral mostra a comissão mais recente */
   const teto=c?(rec||orc):0;
-  const pj=grafProjecao(pontos,teto,c,dias,corridos);
-  $('#mcLinha').innerHTML=pj.svg;
-  $('#mcProjTxt').innerHTML=pj.aviso;
-  /* projeção linear pelo ritmo dos dias já corridos — mesma conta do gráfico */
   const projFim=(c&&corridos)?(gasto/corridos)*(dias||corridos):0;
+  const cSem=c||comissoes().filter(x=>x.ini).sort((a,b)=>b.ini.localeCompare(a.ini))[0];
+  if(cSem){
+    const pj=grafSemanal(c?lst:gastosDaCom(cSem.id),cSem,recebidoDe(cSem),c?projFim:0,teto);
+    $('#mcLinha').innerHTML=pj.svg;
+    $('#mcProjTxt').innerHTML=(c?'':'<span class="hint">Mostrando <b>'+esc(cSem.nome||'')+'</b>, a comissão mais recente — escolha outra no seletor lá em cima.</span><br>')+pj.aviso;
+  }else{
+    $('#mcLinha').innerHTML='<p class="hint" style="margin:0">Nenhuma comissão cadastrada.</p>';
+    $('#mcProjTxt').innerHTML='';
+  }
+  $('#mcPrevReal').innerHTML=grafPrevReal(c);
 
   /* itens que mais pesam, com variação contra a média histórica */
   const itens={};
@@ -14999,8 +15036,8 @@ function renderControleMunic(){
     '</tbody></table>'):'<p class="hint" style="margin:0">Ainda não há item comprado em mais de um fornecedor.</p>';
 
   /* ---- quadros novos ---- */
-  $('#mcCalor').innerHTML=mapaCalor(lst.filter(g=>g.tipo!=='acerto'),c);
-  $('#mcPareto').innerHTML=grafPareto(Object.values(itens));
+  $('#mcTop10').innerHTML=grafTopItens(Object.values(itens));
+  $('#mcCesta').innerHTML=grafCesta();
   $('#mcComparativo').innerHTML=comparativoComissoes();
 
   /* categoria fora do padrão: compara o peso desta comissão com a média das outras */
@@ -15043,8 +15080,6 @@ document.addEventListener('click',e=>{
   if(ti){abrirHistoricoItem(ti.dataset.tmitem);return;}
   const pi=e.target.closest('[data-paritem]');
   if(pi){abrirHistoricoItem(pi.dataset.paritem);return;}
-  const cd=e.target.closest('[data-caldia]');
-  if(cd){abrirNotasDoDia(cd.dataset.caldia);return;}
   const cc=e.target.closest('[data-cmpcom]');
   if(cc){MC_COM=cc.dataset.cmpcom;MC_TM_DRILL='';renderControleMunic();
     const kp=$('#mcKpis');if(kp&&kp.scrollIntoView)kp.scrollIntoView({behavior:'smooth',block:'center'});return;}
