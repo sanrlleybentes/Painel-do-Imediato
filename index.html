@@ -3639,6 +3639,7 @@ async function load(first){
   PAI=m.paiol||{itens:[]}; GAS=m.gastos||{lancamentos:[]}; RAN=m.rancho||{estado:{},log:[]};
   FOR=m.fornecedores||{fornecedores:{},precos:[]};
   COM=m.comissoes||{itens:[]};
+  sobrasSincroniza(); comissaoAtivaSincroniza();
   CAR=m.cardapio||{semanas:{}}; DOCS=m.docs||{lista:[]}; PAP=m.papeletas||{itens:[],proximoNumero:25};
   SRV=m.servicos||null;
   if(!SRV){SRV={porto:SEED_SERVICOS_PORTO.map((n,i)=>({id:uid(),nome:n,ordem:i,elegiveis:[]})),condicao3:[],dem:[]};salvar('servicos',SRV);}
@@ -14396,9 +14397,24 @@ if($('#pbCsv'))$('#pbCsv').onclick=()=>{
    de consumo vai estourar o recebido.
    ═══════════════════════════════════════════════════════════════════════ */
 let MC_COM='';                 /* comissão escolhida no Controle Geral; '' = geral */
+let MC_COM_AUTO=true;          /* até o Imediato escolher outra, segue a vigente */
 function comissoes(){ return (COM&&COM.itens)||[]; }
 function comPorId(id){ return comissoes().find(c=>c.id===id)||null; }
 function comAtual(){ return comPorId(CFG&&CFG.comissaoAtiva)||comissoes()[0]||null; }
+/* CFG.comissaoAtiva é a comissão que o Painel e a aba Gastos mostram por
+   padrão. Enquanto o Imediato não escolher outra à mão (comissaoAuto),
+   ela segue a vigente sozinha — inclusive quando uma comissão encerra e
+   a seguinte começa. */
+function comissaoAtivaSincroniza(){
+  if(!CFG)return false;
+  if(CFG.comissaoAuto===undefined)CFG.comissaoAuto=true;
+  if(!CFG.comissaoAuto)return false;
+  const alvo=(comVigente()||{}).id||'';
+  if(CFG.comissaoAtiva===alvo)return false;
+  CFG.comissaoAtiva=alvo;
+  salvar('cfg',CFG);
+  return true;
+}
 function diasCom(c){
   if(!c||!c.ini)return 0;
   const fim=c.fim||hoje();
@@ -14417,6 +14433,47 @@ function gastosDaCom(id){
   if(!id)return l;
   return l.filter(g=>g.comissao===id);
 }
+/* a comissão em curso hoje; se nenhuma, a próxima a começar; se nenhuma,
+   a última encerrada */
+function comVigente(){
+  const t=hoje(), lst=comissoes().filter(c=>c.ini);
+  const emCurso=lst.filter(c=>c.ini<=t&&(!c.fim||c.fim>=t)).sort((a,b)=>b.ini.localeCompare(a.ini))[0];
+  if(emCurso)return emCurso;
+  const prox=lst.filter(c=>c.ini>t).sort((a,b)=>a.ini.localeCompare(b.ini))[0];
+  if(prox)return prox;
+  return lst.sort((a,b)=>(b.fim||b.ini).localeCompare(a.fim||a.ini))[0]||null;
+}
+/* sobra de comissão encerrada vira saldo da seguinte, em dois lançamentos
+   espelhados (−X na que acabou, +X na próxima) para o Geral não contar em
+   dobro. Recalculado a cada vez: nota lançada depois na comissão antiga
+   ajusta a sobra sozinha. Só sobra positiva passa adiante. */
+function sobrasSincroniza(){
+  const t=hoje(), lst=comissoes().filter(c=>c.ini).sort((a,b)=>a.ini.localeCompare(b.ini));
+  let mudou=false;
+  const igual=(a,b)=>Object.keys(a).length===Object.keys(b).length&&Object.keys(b).every(k=>a[k]===b[k]);
+  const acerta=(r,n)=>{ if(igual(r,n))return; Object.keys(r).forEach(k=>delete r[k]); Object.assign(r,n); mudou=true; };
+  const tira=(c,f)=>{ const n=(c.recebidos||[]).length; c.recebidos=(c.recebidos||[]).filter(r=>!f(r)); if(c.recebidos.length!==n)mudou=true; };
+  lst.forEach((c,i)=>{
+    c.recebidos=c.recebidos||[];
+    const prox=lst[i+1];
+    const entrou=c.recebidos.filter(r=>!r.sobraPara).reduce((a,r)=>a+(+r.valor||0),0);
+    const saldo=q2(entrou-gastosDaCom(c.id).reduce((a,g)=>a+(+g.valor||0),0));
+    const x=(c.fim&&c.fim<t&&prox&&saldo>0)?saldo:0;
+    lst.forEach(o=>{ if(o!==prox||!x)tira(o,r=>r.sobraDe===c.id); });
+    if(!x){ tira(c,r=>r.sobraPara); return; }
+    let saida=c.recebidos.find(r=>r.sobraPara);
+    if(!saida){ saida={}; c.recebidos.push(saida); }
+    const nS={data:c.fim,valor:-x,obs:'Sobra enviada para '+(prox.nome||'a próxima comissão'),sobraPara:prox.id};
+    acerta(saida,nS);
+    prox.recebidos=prox.recebidos||[];
+    let ent=prox.recebidos.find(r=>r.sobraDe===c.id);
+    if(!ent){ ent={}; prox.recebidos.push(ent); }
+    const nE={data:prox.ini,valor:x,obs:'Sobra da última comissão ('+(c.nome||'')+')',sobraDe:c.id};
+    acerta(ent,nE);
+  });
+  if(mudou)salvar('comissoes',COM);
+  return mudou;
+}
 /* ── seletores ── */
 function opcoesComissao(sel,comGeral){
   const el=$('#'+sel); if(!el)return;
@@ -14429,6 +14486,8 @@ function opcoesComissao(sel,comGeral){
   if(v!==null&&[...el.options].some(o=>o.value===v))el.value=v;
 }
 function renderComissaoGastos(){
+  sobrasSincroniza();
+  comissaoAtivaSincroniza();
   opcoesComissao('gComissao',false);
   const el=$('#gComissao'); if(!el)return;
   if(CFG.comissaoAtiva&&[...el.options].some(o=>o.value===CFG.comissaoAtiva))el.value=CFG.comissaoAtiva;
@@ -14843,6 +14902,8 @@ function abrirHistoricoItem(nome){
 }
 
 function renderControleMunic(){
+  sobrasSincroniza();
+  if(MC_COM_AUTO){ const v=comVigente(); MC_COM=v?v.id:''; }
   opcoesComissao('mcCom',true);
   const el=$('#mcCom'); if(el){ if([...el.options].some(o=>o.value===MC_COM))el.value=MC_COM; else MC_COM=el.value||''; }
   const c=comPorId(MC_COM);
@@ -14904,12 +14965,15 @@ function renderControleMunic(){
   $('#listRec').innerHTML=recs.length?('<table><thead><tr><th style="width:110px">Data</th><th>Observação</th>'+
     '<th class="num" style="width:130px">Valor</th><th style="width:80px"></th></tr></thead><tbody>'+
     recs.map((r,i)=>'<tr><td class="mono">'+brDate(r.data)+'</td><td style="color:var(--muted)">'+esc(r.obs||'—')+'</td>'+
-      '<td class="num">'+brl(r.valor)+'</td><td class="acts"><button class="mini del" data-rcdel="'+i+'">Excluir</button></td></tr>').join('')+
+      '<td class="num"'+(r.valor<0?' style="color:var(--terra)"':'')+'>'+brl(r.valor)+'</td><td class="acts">'+
+      (r.sobraDe||r.sobraPara?'<span class="hint" title="Lançado sozinho quando a comissão anterior acabou; acompanha o saldo dela">automático</span>'
+        :'<button class="mini del" data-rcdel="'+i+'">Excluir</button>')+'</td></tr>').join('')+
     '<tr><td colspan="2" style="text-align:right;font-weight:600">Total recebido</td>'+
     '<td class="num" style="color:var(--bordo)">'+brl(rec)+'</td><td></td></tr>'+
     '</tbody></table>'):'<p class="hint" style="margin:0">Nenhum recebimento lançado nesta comissão.</p>';
   $$('#listRec [data-rcdel]').forEach(b=>b.onclick=async()=>{
-    c.recebidos.splice(+b.dataset.rcdel,1);
+    const alvo=recs[+b.dataset.rcdel];   /* índice é da lista ordenada, não do array */
+    c.recebidos=c.recebidos.filter(r=>r!==alvo);
     await salvar('comissoes',COM); renderControleMunic(); toast('Recebimento excluído.');
   });
 
@@ -15081,7 +15145,7 @@ document.addEventListener('click',e=>{
   const pi=e.target.closest('[data-paritem]');
   if(pi){abrirHistoricoItem(pi.dataset.paritem);return;}
   const cc=e.target.closest('[data-cmpcom]');
-  if(cc){MC_COM=cc.dataset.cmpcom;MC_TM_DRILL='';renderControleMunic();
+  if(cc){MC_COM=cc.dataset.cmpcom;MC_COM_AUTO=false;MC_TM_DRILL='';renderControleMunic();
     const kp=$('#mcKpis');if(kp&&kp.scrollIntoView)kp.scrollIntoView({behavior:'smooth',block:'center'});return;}
   const ai=e.target.closest('[data-alrtir]');
   if(ai){
@@ -15094,11 +15158,12 @@ document.addEventListener('click',e=>{
 
 if($('#gComissao'))$('#gComissao').onchange=async()=>{
   CFG.comissaoAtiva=$('#gComissao').value;
+  CFG.comissaoAuto=false;
   await salvar('cfg',CFG);
   renderComissaoGastos();
 };
 if($('#gNovaCom'))$('#gNovaCom').onclick=()=>abrirComissao('');
-if($('#mcCom'))$('#mcCom').onchange=()=>{MC_COM=$('#mcCom').value;renderControleMunic();};
+if($('#mcCom'))$('#mcCom').onchange=()=>{MC_COM=$('#mcCom').value;MC_COM_AUTO=false;renderControleMunic();};
 if($('#mcEditar'))$('#mcEditar').onclick=()=>{
   if(!MC_COM){toast('Escolha uma comissão para editar.',true);return;}
   abrirComissao(MC_COM);
