@@ -746,12 +746,6 @@ tbody tr:hover{background:rgba(204,162,90,.06)}
 
 /* ══════════ v6 · instrumentos do municiamento ══════════ */
 .tmsvg{width:100%;height:auto;display:block}
-.tmg{cursor:pointer}
-.tmg rect{transition:fill-opacity .16s,stroke-width .16s}
-.tmg:hover rect{fill-opacity:1;stroke-width:2.4}
-.tmnome{font-family:var(--display);font-size:12.5px;font-weight:600;letter-spacing:.06em;
-  fill:#08151A;text-transform:uppercase;pointer-events:none}
-.tmval{font-family:var(--mono);font-size:11px;fill:#08151A;fill-opacity:.78;pointer-events:none}
 .tmnav{display:flex;align-items:center;gap:12px;margin-bottom:10px;min-height:0}
 .tmnav:empty{display:none}
 .tmvolta{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;
@@ -2200,7 +2194,7 @@ body.semvideo .sp-foto{display:block}
 
     <div class="card reveal">
       <h2>Onde o dinheiro foi</h2>
-      <p class="hint" style="margin:0 0 12px">A &aacute;rea de cada bloco &eacute; o quanto ele levou. Clique em uma categoria para abrir os itens dela; clique no item para ver o hist&oacute;rico de pre&ccedil;o por fornecedor.</p>
+      <p class="hint" style="margin:0 0 12px">O tamanho da fatia &eacute; o quanto ela levou. Clique numa fatia (ou na legenda) para abrir os itens da categoria; clique no item para ver o hist&oacute;rico de pre&ccedil;o por fornecedor.</p>
       <div class="chips" id="mcTmModo" style="margin-bottom:10px">
         <button class="chip" data-tm="cat" aria-pressed="true">Por categoria</button>
         <button class="chip" data-tm="forn" aria-pressed="false">Por fornecedor</button>
@@ -14522,55 +14516,37 @@ async function excluirItemDoControle(chave){
 let MC_TM_MODO='cat';      /* treemap: 'cat' | 'forn' */
 let MC_TM_DRILL='';        /* categoria aberta no treemap */
 
-/* ---------- treemap quadrificado (Bruls, Huizing & van Wijk) ---------- */
-function squarify(itens,x,y,w,h){
-  const out=[];
-  const total=itens.reduce((s,d)=>s+d.v,0)||1;
-  let livre={x,y,w,h}, resto=itens.slice(), escala=(w*h)/total;
-  function pior(fila,lado){
-    const s=fila.reduce((a,b)=>a+b,0);
-    const mx=Math.max.apply(null,fila), mn=Math.min.apply(null,fila);
-    return Math.max(lado*lado*mx/(s*s), s*s/(lado*lado*mn));
-  }
-  while(resto.length){
-    const lado=Math.min(livre.w,livre.h);
-    let fila=[], areas=[];
-    while(resto.length){
-      const a=resto[0].v*escala;
-      const teste=areas.concat([a]);
-      if(areas.length && pior(teste,lado)>pior(areas,lado))break;
-      areas=teste; fila.push(resto.shift());
-    }
-    const somaA=areas.reduce((a,b)=>a+b,0);
-    if(livre.w>=livre.h){
-      const lw=somaA/livre.h; let cy=livre.y;
-      fila.forEach((d,i)=>{const lh=areas[i]/lw;out.push({d,x:livre.x,y:cy,w:lw,h:lh});cy+=lh;});
-      livre={x:livre.x+lw,y:livre.y,w:livre.w-lw,h:livre.h};
-    }else{
-      const lh=somaA/livre.w; let cx=livre.x;
-      fila.forEach((d,i)=>{const lw=areas[i]/lh;out.push({d,x:cx,y:livre.y,w:lw,h:lh});cx+=lw;});
-      livre={x:livre.x,y:livre.y+lh,w:livre.w,h:livre.h-lh};
-    }
-    if(livre.w<=0.5||livre.h<=0.5)break;
-  }
-  return out;
-}
-function treemapHtml(dados,total,corFn,attr){
+/* ---------- "onde o dinheiro foi", em anel clicável (mesmo padrão dos
+   gráficos da Visão Financeira de Obtenção — anel-wrap/pizza-leg) ----------
+   attr(d) devolve os data-attr (data-tmcat/data-tmitem) que o listener de
+   clique global já sabe tratar: abre a categoria, ou o histórico do item. */
+function mcRoscaHtml(dados,total,corFn,attr){
   if(!dados.length)return '<p class="hint" style="margin:0">Sem dados no período.</p>';
-  const W=760,H=330;
-  const cx=squarify(dados.filter(d=>d.v>0),0,0,W,H);
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="tmsvg">'+cx.map((c,i)=>{
-    const cor=corFn(c.d.n,i), pct=100*c.d.v/(total||1);
-    const cabe=c.w>62&&c.h>30, cabeVal=c.w>62&&c.h>46;
-    const nome=c.d.n.length>Math.floor(c.w/6.4)?c.d.n.slice(0,Math.max(3,Math.floor(c.w/6.4)-1))+'…':c.d.n;
-    return '<g class="tmg" '+(attr?attr(c.d):'')+'>'+
-      '<rect x="'+c.x.toFixed(1)+'" y="'+c.y.toFixed(1)+'" width="'+Math.max(0,c.w-2).toFixed(1)+
-        '" height="'+Math.max(0,c.h-2).toFixed(1)+'" rx="7" fill="'+cor+'" fill-opacity=".82" stroke="'+cor+'" stroke-width="1"/>'+
-      (cabe?'<text x="'+(c.x+9).toFixed(1)+'" y="'+(c.y+20).toFixed(1)+'" class="tmnome">'+esc(nome)+'</text>':'')+
-      (cabeVal?'<text x="'+(c.x+9).toFixed(1)+'" y="'+(c.y+37).toFixed(1)+'" class="tmval">'+
-        brl(c.d.v)+'  '+pct.toFixed(0)+'%</text>':'')+
-      '<title>'+esc(c.d.n+' · '+brl(c.d.v)+' · '+pct.toFixed(1)+'% do total')+'</title></g>';
-  }).join('')+'</svg>';
+  const R=88, esp=22, C=2*Math.PI*R, folga=dados.length>1?3:0;
+  const cx=R+18, tam=cx*2, clic=!!attr;
+  let acc=0, arcos='';
+  dados.forEach((d,i)=>{
+    if(!d.v)return;
+    const frac=d.v/(total||1), comp=Math.max(0,C*frac-folga);
+    arcos+='<circle cx="'+cx+'" cy="'+cx+'" r="'+R+'" fill="none" stroke="'+corFn(d.n,i)+'" stroke-width="'+esp+'" stroke-linecap="round"'+
+      ' stroke-dasharray="'+comp.toFixed(1)+' '+(C-comp).toFixed(1)+'"'+
+      ' stroke-dashoffset="'+(-C*acc).toFixed(1)+'" transform="rotate(-90 '+cx+' '+cx+')" class="anel-arco"'+
+      (clic?' style="cursor:pointer" '+attr(d):'')+'>'+
+      '<title>'+esc(d.n+' · '+brl(d.v)+' · '+(100*frac).toFixed(1)+'% do total')+'</title></circle>';
+    acc+=frac;
+  });
+  const leg=dados.map((d,i)=>{
+    const pct=total?100*d.v/total:0;
+    return '<div class="li"'+(clic?' style="cursor:pointer" '+attr(d):'')+'>'+
+      '<span class="dot" style="background:'+corFn(d.n,i)+'"></span>'+
+      '<span class="li-tx" style="max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">'+esc(d.n)+'</span>'+
+      '<b class="li-pc">'+pct.toFixed(0)+'%</b><span class="li-n">('+esc(brl(d.v))+')</span></div>';
+  }).join('');
+  return '<div class="anel-wrap"><svg viewBox="0 0 '+tam+' '+tam+'" class="anel-svg" style="width:230px;height:230px">'+
+    '<circle cx="'+cx+'" cy="'+cx+'" r="'+R+'" fill="none" stroke="rgba(0,0,0,.06)" stroke-width="'+esp+'"/>'+arcos+
+    '<text x="'+cx+'" y="'+(cx-4)+'" text-anchor="middle" class="anel-num" style="font-size:14px">'+esc(brl(total))+'</text>'+
+    '<text x="'+cx+'" y="'+(cx+15)+'" text-anchor="middle" class="anel-sub">no período</text>'+
+    '</svg><div class="pizza-leg">'+leg+'</div></div>';
 }
 
 /* ---------- evolução com projeção até o fim da comissão ---------- */
@@ -14806,12 +14782,10 @@ function renderControleMunic(){
   const mil=c?(+c.militares||0):(all().length||0);
   const dias=c?diasCom(c):0, corridos=c?diasCorridos(c):0;
   const porMil=mil?gasto/mil:0;
-  const porMilDia=(mil&&corridos)?gasto/mil/corridos:0;
   const tetoMil=c?(+c.valorPorMilitar||0):0;
 
   const acertos=lst.filter(g=>g.tipo==='acerto');
   const kpi=[['Recebido',brl(rec)],['Gasto',brl(gasto)],['Saldo',brl(rec-gasto)],
-    ['Por militar',brl(porMil)],['Por militar/dia',brl(porMilDia)],
     ['Lançamentos',String(lst.length)+(acertos.length?' · '+acertos.length+' acerto(s)':'')]];
   $('#mcKpis').innerHTML=kpi.map((k,i)=>'<div class="kpi"><span>'+k[0]+'</span><b style="font-size:19px'+
     (i===2?';color:'+((rec-gasto)>=0?'var(--bordo)':'var(--alert)'):'')+'">'+k[1]+'</b></div>').join('');
@@ -14901,7 +14875,7 @@ function renderControleMunic(){
     attrTm=d=>'data-tmcat="'+esc(d.n).replace(/"/g,'&quot;')+'"';
   }
   $('#mcTmNav').innerHTML=nav;
-  $('#mcTreemap').innerHTML=treemapHtml(dTm,totTm,corTm,attrTm);
+  $('#mcTreemap').innerHTML=mcRoscaHtml(dTm,totTm,corTm,attrTm);
   $$('#mcTmModo .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tm===MC_TM_MODO));
   $('#mcPorCategoria').innerHTML=dCat.length?('<table><thead><tr><th>Categoria</th><th class="num" style="width:120px">Valor</th>'+
     '<th class="num" style="width:100px">% do total</th><th class="num" style="width:130px">Por militar</th></tr></thead><tbody>'+
