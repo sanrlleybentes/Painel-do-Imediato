@@ -1785,6 +1785,7 @@ body.semvideo .sp-foto{display:block}
       <button data-sub="porto" aria-selected="true">No porto</button>
       <button data-sub="viagem" aria-selected="false">Em viagem</button>
       <button data-sub="dexportar" aria-selected="false">Exportar</button>
+      <button data-sub="dbanco" aria-selected="false">Banco de dados</button>
     </div>
 
     <div id="detmodo-porto">
@@ -1849,6 +1850,20 @@ body.semvideo .sp-foto{display:block}
           <button class="btn" id="dexGerar">Gerar PDF</button>
         </div>
         <p class="hint">O PDF sai no modelo do navio, com o painel de guarnecimento, legenda e ausências (férias) calculadas automaticamente para a semana escolhida.</p>
+      </div>
+    </div>
+
+    <div id="detmodo-dbanco" class="hidden">
+      <div class="card reveal">
+        <h2>Banco de dados <span class="n" id="nDetBanco">0</span></h2>
+        <p class="hint" style="margin:0 0 12px">Toda vez que um detalhe de servi&ccedil;o &eacute; exportado, uma c&oacute;pia fica guardada aqui — o guarnecimento exatamente como saiu naquele PDF, mesmo que a grade mude depois. Exportar de novo um per&iacute;odo j&aacute; salvo n&atilde;o apaga o anterior: vira uma altera&ccedil;&atilde;o nova (ALT1, ALT2&hellip;), e as duas ficam dispon&iacute;veis pra baixar de novo.</p>
+        <div class="row" style="margin-bottom:12px">
+          <div style="flex:0 1 200px"><label>Modo</label><select id="dbModo">
+            <option value="">Todos</option>
+            <option value="porto">No porto</option><option value="condicao3">Condição III</option>
+            <option value="dem">DEM</option></select></div>
+        </div>
+        <div class="scroller" id="listDetBanco"></div>
       </div>
     </div>
   </div>
@@ -4600,7 +4615,7 @@ $$('#subServico button').forEach(b=>b.onclick=()=>{
 $$('#subDetalhes button').forEach(b=>b.onclick=()=>{
   SUB_DET=b.dataset.sub;
   $$('#subDetalhes button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['porto','viagem','dexportar'].forEach(s=>$('#detmodo-'+s).classList.toggle('hidden',s!==SUB_DET));
+  ['porto','viagem','dexportar','dbanco'].forEach(s=>$('#detmodo-'+s).classList.toggle('hidden',s!==SUB_DET));
   renderDetalhes();
 });
 $$('#subViagemGrade button').forEach(b=>b.onclick=()=>{
@@ -8788,6 +8803,7 @@ function renderDetalhes(){
   if(SUB_DET==='porto')renderGrade('porto');
   if(SUB_DET==='viagem')renderGrade(SUB_VIAGEM_GRADE);
   if(SUB_DET==='dexportar')renderExportarDetalhe();
+  if(SUB_DET==='dbanco')renderDetBanco();
 }
 function renderEfetivo(){
   if(SUB_EFE==='tripulacao')renderPessoal();
@@ -12254,9 +12270,19 @@ function renderExportarDetalhe(){
 }
 const TITULO_MODO={porto:'REGIME DE PORTO',condicao3:'EM VIAGEM — CONDIÇÃO III',dem:'EM VIAGEM — DEM'};
 const ARQ_MODO={porto:'Detalhe_Servico_Porto_',condicao3:'Detalhe_Servico_Cond3_',dem:'Detalhe_Servico_DEM_'};
-function nomeArquivoDetalhe(modo,ref){
+function nomeArquivoDetalhe(modo,ref,alt){
   const cfg=MODO_CFG[modo];
-  return ARQ_MODO[modo]+ddmmmCurto(ref)+(cfg.temPorDoSolRotina?('_A_'+ddmmmCurto(addDias(ref,6))):'')+'.pdf';
+  return ARQ_MODO[modo]+ddmmmCurto(ref)+(cfg.temPorDoSolRotina?('_A_'+ddmmmCurto(addDias(ref,6))):'')+
+    (alt?'_ALT'+alt:'')+'.pdf';
+}
+/* Banco de dados dos detalhes exportados: cada exportação vira um registro
+   com uma cópia (não referência) do guarnecimento daquele momento — a grade
+   pode mudar depois, o que já saiu impresso fica intacto. Exportar de novo
+   o mesmo modo+período não substitui o registro anterior, empilha como
+   ALT1, ALT2… — o Imediato pode ter feito uma alteração de última hora e
+   precisa dos dois pra saber o que mudou. */
+function detHistoricoDe(modo,ref){
+  return (DET.historico||[]).filter(h=>h.modo===modo&&h.segunda===ref).sort((a,b)=>a.alt-b.alt);
 }
 $('#dexGerar').onclick=async()=>{
   const modo=$('#dexModo').value, ref=$('#dexSemana').value;
@@ -12266,16 +12292,46 @@ $('#dexGerar').onclick=async()=>{
   const btn=$('#dexGerar'), rot=btn.textContent;
   btn.disabled=true;btn.textContent='Gerando…';
   try{
+    const alt=detHistoricoDe(modo,ref).length;   /* 0 = original, senão vira ALT1, ALT2… */
     const D=new Pdf(true);
     pdfDetalheServico(D,modo,semana);
-    entregarPdf(D.bytes(),nomeArquivoDetalhe(modo,ref));
+    entregarPdf(D.bytes(),nomeArquivoDetalhe(modo,ref,alt));
     semana.exportado=true;semana.exportadoEm=Date.now();
+    DET.historico=DET.historico||[];
+    DET.historico.push({id:uid(),modo,segunda:ref,alt,ts:Date.now(),
+      dados:JSON.parse(JSON.stringify(semana))});
     const ok=await salvar('detalhes',DET);
     renderExportarDetalhe();
-    if(!ok)toast('PDF gerado, mas não consegui gravar o histórico.',true);
+    toast(ok?(alt?'PDF gerado como ALT'+alt+' — o anterior continua no Banco de dados.':'PDF gerado e guardado no Banco de dados.')
+            :'PDF gerado, mas não consegui gravar o histórico.',!ok);
   }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
   finally{btn.disabled=false;btn.textContent=rot;}
 };
+/* ===== serviço — banco de dados dos detalhes exportados ===== */
+$('#dbModo').onchange=renderDetBanco;
+function renderDetBanco(){
+  const filtro=$('#dbModo').value;
+  const lst=(DET.historico||[]).filter(h=>!filtro||h.modo===filtro)
+    .sort((a,b)=>b.ts-a.ts);
+  $('#nDetBanco').textContent=pad(lst.length);
+  $('#listDetBanco').innerHTML=lst.length?('<table><thead><tr><th>Modo</th><th>Período</th>'+
+    '<th style="width:110px">Versão</th><th style="width:150px">Gerado em</th><th></th></tr></thead><tbody>'+
+    lst.map(h=>{
+      const cfg=MODO_CFG[h.modo];
+      const periodo=cfg.temPorDoSolRotina?(brDate(h.segunda)+' a '+brDate(addDias(h.segunda,6))):brDate(h.segunda);
+      return '<tr><td>'+esc(TITULO_MODO[h.modo]||h.modo)+'</td><td class="mono">'+periodo+'</td>'+
+        '<td>'+(h.alt?'<span class="pill red">ALT'+h.alt+'</span>':'<span class="pill">original</span>')+'</td>'+
+        '<td class="mono" style="font-size:11.5px">'+new Date(h.ts).toLocaleString('pt-BR')+'</td>'+
+        '<td class="acts"><button class="mini" data-dbaixa="'+h.id+'">Baixar de novo</button></td></tr>';
+    }).join('')+'</tbody></table>'):
+    '<p class="hint" style="margin:0">Nenhum detalhe exportado ainda.</p>';
+  $$('#listDetBanco [data-dbaixa]').forEach(b=>b.onclick=()=>{
+    const h=(DET.historico||[]).find(x=>x.id===b.dataset.dbaixa); if(!h)return;
+    const D=new Pdf(true);
+    pdfDetalheServico(D,h.modo,h.dados);
+    entregarPdf(D.bytes(),nomeArquivoDetalhe(h.modo,h.segunda,h.alt));
+  });
+}
 /* onde a régua de assinatura é desenhada: 22 mm acima do pé da folha.
    Abaixo dela cabem nome (4,4), posto (4,4) e cargo (4,4), sobrando 8 mm de margem. */
 function Y_ASSINATURA(D){ return D.PGH-22; }
