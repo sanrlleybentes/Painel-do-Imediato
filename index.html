@@ -1585,6 +1585,16 @@ body.semvideo .sp-foto{display:block}
 
     <div id="saude-medicamentos" class="hidden">
       <div class="card reveal">
+        <h2>Balanço</h2>
+        <p class="hint" style="margin:0 0 12px">Emite o documento padronizado do navio com a posição do Estoque de Saúde, assinado pelo Imediato. Use a posição de hoje ou volte para qualquer data — o painel reconstrói a existência de cada item a partir das entradas e baixas lançadas, sem inventar número pra quem ainda não tinha registro naquela data.</p>
+        <div class="row" style="align-items:flex-end">
+          <div style="flex:0 1 190px"><label>Posição em</label><input type="hidden" id="medBalData"><input type="text" id="medBalDataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+          <div style="flex:0 1 200px"><label>Categoria</label><select id="medBalCat">
+            <option value="">Todas</option><option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
+          <div style="flex:0 1 auto"><button class="btn" id="medBalPdf">Gerar PDF</button></div>
+        </div>
+      </div>
+      <div class="card reveal">
         <h2>Importar lista colada</h2>
         <p class="hint" style="margin:0 0 12px">Cole aqui a relação de material e medicação do paiol de saúde, no formato de sempre (uma linha por item, <b>"Nome: quantidade+unidade V:mm/aa"</b> ou <b>"...IND"</b> para sem validade). Linhas de título como <b>MATERIAL MÉDICO HOSPITALAR</b>, <b>MEDICAÇÃO VENCIDA/NA VALIDADE</b> ou <b>MATERIAL DE SUTURA</b> definem a categoria dos itens que vêm depois — não precisa separar vencido de válido à mão, o painel calcula isso sozinho pela data.</p>
         <textarea id="medColar" rows="8" style="width:100%;font-family:var(--mono);font-size:13px" placeholder="MATERIAL MÉDICO HOSPITALAR&#10;Algodão em rolo 250g: 10UN V:12/26&#10;Tala moldável TAM G: 4UN IND&#10;&#10;MEDICAÇÃO NA VALIDADE&#10;Paracetamol 500mg: 30cp V:11/26"></textarea>
@@ -1622,16 +1632,6 @@ body.semvideo .sp-foto{display:block}
             <option value="">Todas</option><option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
         </div>
         <div class="scroller" id="listMed"></div>
-      </div>
-      <div class="card reveal">
-        <h2>Balanço</h2>
-        <p class="hint" style="margin:0 0 12px">Emite o documento padronizado do navio com a posição do Estoque de Saúde, assinado pelo Imediato. Use a posição de hoje ou volte para qualquer data — o painel reconstrói a existência de cada item a partir das entradas e baixas lançadas, sem inventar número pra quem ainda não tinha registro naquela data.</p>
-        <div class="row" style="align-items:flex-end">
-          <div style="flex:0 1 190px"><label>Posição em</label><input type="hidden" id="medBalData"><input type="text" id="medBalDataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
-          <div style="flex:0 1 200px"><label>Categoria</label><select id="medBalCat">
-            <option value="">Todas</option><option>Medicamento</option><option>Material</option><option>Sutura</option></select></div>
-          <div style="flex:0 1 auto"><button class="btn" id="medBalPdf">Gerar PDF</button></div>
-        </div>
       </div>
     </div>
     <div id="saude-taf" class="hidden">
@@ -1933,7 +1933,7 @@ body.semvideo .sp-foto{display:block}
       </div>
       <div class="row" style="margin-top:12px">
         <div style="flex:1 1 240px"><label>Militar solicitante</label><select id="trSolic"></select></div>
-        <div><label>Motivo</label><input type="text" id="trMotivo" placeholder="Ex.: Particular"></div>
+        <div><label>Motivo</label><select id="trMotivo"><option value="">— selecione —</option><option>Particular</option><option>Necessidade do serviço</option></select></div>
       </div>
       <div class="row" style="margin-top:12px">
         <div style="flex:1 1 260px"><label>Militar que dará o serviço no dia anterior</label><select id="trMilAnt"></select></div>
@@ -11974,7 +11974,7 @@ function ligaBloqueioFerias(sel,modo,ref){
 }
 /* marcas da legenda aplicáveis à mão. A qualificação (**) continua automática,
    vinda de quem está como acompanhando no cadastro do serviço. */
-const MARCAS=[['','—'],['*','* troca'],['***','*** extra']];
+const MARCAS=[['','—'],['*','* troca'],['***','*** necessidade do serviço'],['****','**** extra']];
 let MODO_MARCA={};        /* por caixa da grade: ligado ou desligado */
 function marcaDe(semana,srvId,chave){
   return ((semana.marcas||{})[srvId]||{})[chave]||'';
@@ -12036,7 +12036,7 @@ function renderGrade(modo){
               if(marcando){
                 const mk=marcaDe(semana,s.id,ch);
                 h+='<div class="marcaWrap">'+sel+'<button type="button" class="marcaBt'+(mk?' tem':'')+
-                  '" data-marca="'+s.id+'|'+ch+'" title="Sem marca, * troca, *** extra">'+(mk||'—')+'</button></div>';
+                  '" data-marca="'+s.id+'|'+ch+'" title="Sem marca, * troca, *** necessidade do serviço, **** extra">'+(mk||'—')+'</button></div>';
               }else h+=sel;
             }
             h+='</div></td>';
@@ -12063,7 +12063,7 @@ function renderGrade(modo){
             const mk=marcaDe(semana,s.id,ch);
             h+='<div class="marcaWrap">'+sel+
               '<button type="button" class="marcaBt'+(mk?' tem':'')+'" data-marca="'+s.id+'|'+ch+'"'+
-              ' title="Sem marca, * troca de serviço, *** serviço extra">'+(mk||'—')+'</button></div>';
+              ' title="Sem marca, * troca de serviço, *** necessidade do serviço, **** serviço extra">'+(mk||'—')+'</button></div>';
           }else h+=sel;
         }
         h+='</div></td>';
@@ -12217,7 +12217,7 @@ function coletarGrade(modo){
     bt.setAttribute('aria-pressed',MODO_MARCA[ids.box]?'true':'false');
     bt.innerHTML=(MODO_MARCA[ids.box]?'★ Marcando — tocar para sair':'★ Marcações');
     renderGrade(modo);
-    if(MODO_MARCA[ids.box])toast('Toque no quadradinho ao lado do militar: — , * troca, *** extra. Salve a semana ao terminar.');
+    if(MODO_MARCA[ids.box])toast('Toque no quadradinho ao lado do militar: — , * troca, *** necessidade do serviço, **** extra. Salve a semana ao terminar.');
   };
 });
 $('#detCarregarPorto').onclick=()=>renderGrade('porto');
@@ -12402,8 +12402,9 @@ function pdfDetalheServico(D,modo,semana){
     D.txt('Legenda',xDir,yR,{size:8.5,font:'F2'});
     D.txt('(*) Troca de serviço',xDir,yR+4.3,{size:7.3});
     D.txt('(**) Qualificação',xDir,yR+7.9,{size:7.3});
-    D.txt('(***) Serviço extra',xDir,yR+11.5,{size:7.3});
-    yR+=17.5;
+    D.txt('(***) Troca por necessidade do serviço',xDir,yR+11.5,{size:7.3});
+    D.txt('(****) Serviço extra',xDir,yR+15.1,{size:7.3});
+    yR+=21.1;
     D.txt('Ausências',xDir,yR,{size:8.5,font:'F2'});
     const aus=ausenciasSemana(semana.segunda,modo);
     if(!aus.length){ D.txt('Nenhuma.',xDir,yR+4.3,{size:7.5}); yR+=8; }
