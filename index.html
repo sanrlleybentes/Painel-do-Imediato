@@ -2179,16 +2179,17 @@ body.semvideo .sp-foto{display:block}
   <div id="sub-planejamento" class="hidden">
     <div class="card reveal">
       <h2>Planejamento de comiss&atilde;o</h2>
-      <p class="hint" style="margin:0 0 12px">Informe o tipo, quantos dias e quantos militares a pr&oacute;xima comiss&atilde;o vai ter. O painel estima o gasto total e por categoria a partir do hist&oacute;rico de comiss&otilde;es do <b>mesmo tipo</b> &mdash; sede, fora da sede curta ou fora da sede normal t&ecirc;m padr&otilde;es de gasto bem diferentes, e fica mais certeiro a cada comiss&atilde;o encerrada. O tipo de cada comiss&atilde;o &eacute; marcado em Municiamento &rarr; Configura&ccedil;&otilde;es.</p>
+      <p class="hint" style="margin:0 0 12px">Informe o tipo, quantos dias e quantos militares a pr&oacute;xima comiss&atilde;o vai ter. O painel usa <b>todas</b> as comiss&otilde;es do hist&oacute;rico, de qualquer tipo, e converte cada uma para a realidade da comiss&atilde;o planejada &mdash; na sede n&atilde;o se serve o card&aacute;pio completo, e comiss&atilde;o curta dilui menos o custo de abertura. Fica mais certeiro a cada comiss&atilde;o encerrada. O tipo de cada comiss&atilde;o e os par&acirc;metros da convers&atilde;o ficam em Municiamento &rarr; Configura&ccedil;&otilde;es.</p>
       <div class="row" style="align-items:flex-end">
-        <div style="flex:0 1 250px"><label>Tipo da comiss&atilde;o</label><select id="plTipo">
-          <option value="normal">Fora da sede — normal (&ge; 15 dias)</option>
-          <option value="curta">Fora da sede — curta (&lt; 15 dias)</option>
-          <option value="sede">Base na sede</option></select></div>
+        <div style="flex:0 1 220px"><label>Onde</label><select id="plTipo">
+          <option value="fora">Fora da sede</option>
+          <option value="sede">Na sede</option></select>
+          <div class="hint" id="plTipoTxt" style="margin-top:4px;font-size:11.5px"></div></div>
         <div style="flex:0 1 140px"><label>Dias</label><input type="number" id="plDias" min="1" step="1" inputmode="numeric"></div>
         <div style="flex:0 1 140px"><label>Militares</label><input type="number" id="plMil" min="1" step="1" inputmode="numeric"></div>
         <div style="flex:0 1 200px"><label>Verba prevista (opcional)</label><input type="text" id="plVerba" placeholder="0,00" inputmode="decimal"></div>
       </div>
+      <p class="hint" id="plVigTxt" style="margin:8px 2px 0"></p>
       <div class="kpis" id="plKpis" style="margin-top:16px"></div>
       <div id="plAviso" style="margin-top:6px"></div>
     </div>
@@ -2208,11 +2209,12 @@ body.semvideo .sp-foto{display:block}
 
     <div class="card reveal">
       <h2>Base e confiabilidade</h2>
-      <p class="hint" style="margin:0 0 12px">Comiss&otilde;es usadas no c&aacute;lculo. As encerradas entram por padr&atilde;o; a que est&aacute; em curso fica de fora porque ainda n&atilde;o fechou.</p>
+      <p class="hint" style="margin:0 0 12px">Comiss&otilde;es usadas no c&aacute;lculo, de todos os tipos. As encerradas entram por padr&atilde;o; a que est&aacute; em curso fica de fora porque ainda n&atilde;o fechou. As de outro tipo mostram, ao lado, quanto indicam depois de convertidas para a comiss&atilde;o planejada.</p>
+      <div id="plModelo"></div>
       <div id="plBase"></div>
       <div id="plTeste" style="margin-top:14px"></div>
       <details style="margin-top:14px"><summary class="hint" style="cursor:pointer">Como o c&aacute;lculo &eacute; feito</summary>
-        <p class="hint" style="margin:10px 0 0">Cada comiss&atilde;o vira um gasto <b>por militar por dia</b> (gasto &divide; militares &divide; dias), separado por categoria. A estimativa &eacute; a m&eacute;dia dessas taxas, multiplicada pelos dias e militares informados. Na m&eacute;dia, comiss&atilde;o maior pesa mais (mais militares &times; dias, menos acaso) e comiss&atilde;o antiga pesa menos (o peso cai pela metade a cada ano, por causa da infla&ccedil;&atilde;o). A partir de 3 comiss&otilde;es, a que estiver muito fora da curva &eacute; descartada. A faixa prov&aacute;vel vem da varia&ccedil;&atilde;o entre as comiss&otilde;es: com uma s&oacute;, &eacute; &plusmn;30% fixo; ela estreita conforme o hist&oacute;rico cresce. As quantidades seguem a mesma conta, por unidade (kg, un, l&hellip;), somadas por categoria.</p>
+        <p class="hint" style="margin:10px 0 0">Cada comiss&atilde;o &eacute; traduzida para um padr&atilde;o comum: gasto &divide; militares &divide; (dias + dias de abertura), e, se foi na sede, dividido tamb&eacute;m pela fra&ccedil;&atilde;o do card&aacute;pio servida l&aacute;. A estimativa &eacute; a m&eacute;dia desses valores, reconvertida para o tipo, os dias e os militares da comiss&atilde;o planejada. O fator da sede e os dias de abertura come&ccedil;am no padr&atilde;o das Configura&ccedil;&otilde;es e passam a ser medidos no pr&oacute;prio hist&oacute;rico quando ele permite. Na m&eacute;dia, comiss&atilde;o de outro tipo pesa metade (a convers&atilde;o tem erro), comiss&atilde;o maior pesa mais (mais militares &times; dias, menos acaso) e comiss&atilde;o antiga pesa menos (o peso cai pela metade a cada ano, por causa da infla&ccedil;&atilde;o). A partir de 3 comiss&otilde;es, a que estiver muito fora da curva &eacute; descartada. A faixa prov&aacute;vel vem da varia&ccedil;&atilde;o entre as comiss&otilde;es: com uma s&oacute;, &eacute; &plusmn;30% fixo; ela estreita conforme o hist&oacute;rico cresce. As quantidades seguem a mesma conta, por unidade (kg, un, l&hellip;), somadas por categoria.</p>
       </details>
     </div>
   </div>
@@ -2222,6 +2224,11 @@ body.semvideo .sp-foto{display:block}
       <h2>Configura&ccedil;&otilde;es de comiss&otilde;es</h2>
       <p class="hint" style="margin:0 0 12px">O tipo de cada comiss&atilde;o decide em qual grupo do Planejamento ela entra. S&oacute; "base na sede" &eacute; marcado &agrave; m&atilde;o &mdash; fora da sede, curta ou normal se resolve sozinho pela dura&ccedil;&atilde;o (15 dias). Para mudar nome, datas, militares ou valor por militar, use Editar.</p>
       <div class="scroller" id="listMunConfig"></div>
+    </div>
+    <div class="card reveal">
+      <h2>Par&acirc;metros da convers&atilde;o entre tipos</h2>
+      <p class="hint" style="margin:0 0 12px">&Eacute; com isto que o Planejamento converte uma comiss&atilde;o de um tipo para outro. S&atilde;o s&oacute; o ponto de partida: assim que o hist&oacute;rico tiver comiss&otilde;es na sede e fora dela, e de dura&ccedil;&otilde;es diferentes, o painel passa a medir esses valores sozinho e usa estes aqui cada vez menos.</p>
+      <div id="munModelo"></div>
     </div>
   </div>
 
@@ -14891,16 +14898,15 @@ function grafSemanal(lst,c,rec,projFim,teto){
 
 /* ---------- previsto × realizado, por categoria ----------
    O previsto sai do mesmo motor do Planejamento, alimentado só pelas
-   OUTRAS comissões encerradas do MESMO tipo (sede / fora curta / fora
-   normal) — misturar os três padrões de gasto dava previsto errado. */
+   OUTRAS comissões encerradas (senão a comissão preveria a si mesma),
+   convertidas para o tipo desta — sede, fora curta ou fora normal. */
 function grafPrevReal(c){
   if(!c)return '<p class="hint" style="margin:0">Escolha uma comissão no seletor lá em cima para comparar com o previsto.</p>';
   const p=planPerfil(c);
   if(!p.md||!p.total)return '<p class="hint" style="margin:0">Defina o período e o efetivo da comissão.</p>';
-  const cat=comCategoria(c);
-  const outras=comissoes().filter(x=>x.id!==c.id&&planEncerrada(x)&&comCategoria(x)===cat).map(planPerfil).filter(x=>x.md>0&&x.total>0);
-  if(!outras.length)return '<p class="hint" style="margin:0">O previsto é calculado com as <b>outras</b> comissões encerradas do mesmo tipo ('+esc(CATEGORIA_COM[cat])+'). Hoje não há nenhuma outra assim — a comparação aparece quando houver.</p>';
-  const e=planEstima(outras,p.dias,p.mil);
+  const outras=comissoes().filter(x=>x.id!==c.id&&planEncerrada(x)).map(planPerfil).filter(x=>x.md>0&&x.total>0);
+  if(!outras.length)return '<p class="hint" style="margin:0">O previsto é calculado com as <b>outras</b> comissões encerradas. Hoje esta é a única com dados — a comparação aparece a partir da próxima comissão.</p>';
+  const e=planEstima(outras,p.dias,p.mil,comCategoria(c));
   const nomes=[...new Set(e.cats.map(x=>x.n).concat(Object.keys(p.cat)))];
   const linhas=nomes.map(n=>{
     const pr=(e.cats.find(x=>x.n===n)||{v:0}).v, re=p.cat[n]||0;
@@ -14927,7 +14933,9 @@ function grafPrevReal(c){
   return svg+'<p class="hint" style="margin:10px 2px 0">Tracejado: previsto · cheio: realizado. No total, previsto <b>'+brl(e.total)+
     '</b> e realizado <b>'+brl(p.total)+'</b> ('+(dif>0?'+':'')+(100*dif).toFixed(0)+'%).'+
     (piores.length?' Passou mais do previsto em '+esc(piores.join(' e '))+'.':'')+
-    ' Previsto calculado com '+outras.length+' comiss'+(outras.length>1?'ões':'ão')+' — a confiança do Planejamento vale aqui também.</p>';
+    ' Previsto calculado com '+outras.length+' comiss'+(outras.length>1?'ões':'ão')+
+    (e.convertidas?', '+e.convertidas+' delas convertida'+(e.convertidas>1?'s':'')+' de outro tipo':'')+
+    ' — a confiança do Planejamento vale aqui também.</p>';
 }
 
 /* ---------- top 10 itens ---------- */
@@ -15364,8 +15372,9 @@ if($('#mcCsv'))$('#mcCsv').onclick=()=>{
    × militares informados. Média ponderada pelo tamanho da comissão e pela
    idade (meia-vida de 1 ano, por causa da inflação); a partir de 3
    comissões, a que estiver fora da curva (MAD) sai da conta. */
-let PLAN_DIAS=10, PLAN_MIL=0, PLAN_VERBA=0, PLAN_CAT='', PLAN_TIPO='normal';
-let PLAN_BASE={sede:null,curta:null,normal:null};   /* base de cada tipo é independente */
+let PLAN_DIAS=10, PLAN_MIL=0, PLAN_VERBA=0, PLAN_CAT='', PLAN_TIPO='fora', PLAN_BASE=null, PLAN_INICIADO=false;
+/* fora da sede, curta ou normal é só a duração: não pode ser escolhido à parte */
+const planTipoAlvo=()=>PLAN_TIPO==='sede'?'sede':(PLAN_DIAS<15?'curta':'normal');
 const PLAN_MEIA_VIDA=365;
 
 function planUnidade(u){
@@ -15420,34 +15429,138 @@ function planDispersao(vals){
   if(n===2)return Math.max(0.20,Math.abs(vals[0]-vals[1])/(vals[0]+vals[1]));
   return Math.max(0.08,planMediana(vals.map(v=>Math.abs(v-med)))*1.4826/med);
 }
-function planEstima(perfis,dias,mil){
-  const md=dias*mil, n=perfis.length;
-  if(!n||!md)return null;
-  const pesos=perfis.map(p=>p.peso);
-  const taxas=perfis.map(p=>p.total/p.md);
-  const T=planCentral(taxas,pesos), relT=planDispersao(taxas);
-  const nomes=[...new Set(perfis.flatMap(p=>Object.keys(p.cat)))];
-  const brutas=nomes.map(k=>{
-    const partes=perfis.map(p=>(p.cat[k]||0)/p.total);
-    const unis=[...new Set(perfis.flatMap(p=>Object.keys(p.qtd[k]||{})))];
-    return {n:k,parte:planCentral(partes,pesos),
-      rel:n>=3?Math.max(relT,planDispersao(partes)):relT,
-      taxaQ:unis.map(u=>({u,t:planCentral(perfis.map(p=>((p.qtd[k]||{})[u]||0)/p.md),pesos)}))};
-  });
-  const somaPartes=brutas.reduce((a,c)=>a+c.parte,0)||1, total=T*md;
-  const cats=brutas.map(c=>{
-    const v=total*c.parte/somaPartes;
-    return {n:c.n,v,min:v*(1-c.rel),max:v*(1+c.rel),parte:c.parte/somaPartes,
-      qtd:c.taxaQ.map(x=>({u:x.u,q:x.t*md})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q)};
-  }).filter(c=>c.v>0).sort((a,b)=>b.v-a.v);
-  return {total,min:total*(1-relT),max:total*(1+relT),taxa:T,cats,n,
-    conf:n<=2?'baixa':(n<=5?'média':'alta')};
+/* ═══ modelo de conversão entre tipos de comissão ═══
+   Todas as comissões do histórico entram, de qualquer tipo. Antes da média,
+   cada uma é traduzida para um padrão comum — "cardápio completo, por
+   militar por dia-equivalente" — e o resultado é reconvertido para o tipo
+   da comissão planejada. Dois efeitos explicam a diferença entre os tipos:
+   1) cardápio: na sede só se serve parte das refeições. fatorSede = fração
+      do custo diário que as refeições servidas na sede representam.
+   2) abertura: toda comissão tem um custo que não cresce com os dias
+      (tempero, gás, limpeza, estoque mínimo). Vale D dias de consumo e pesa
+      mais nas curtas: custo = taxa × militares × (dias + D).
+   Os dois partem do padrão de Configurações e passam a ser aprendidos do
+   próprio histórico quando ele permite medir — fator sede precisa de pelo
+   menos uma comissão na sede e uma fora; D precisa de durações diferentes.
+   O valor aprendido é puxado para o padrão na proporção de quão pouco
+   histórico existe, pra uma comissão estranha não desandar a conta. */
+const PLAN_REFEICOES=[['cafe','Café da manhã'],['almoco','Almoço'],['jantar','Jantar'],['ceia','Ceia']];
+const MODELO_PADRAO={pesos:{cafe:15,almoco:40,jantar:35,ceia:10},
+  sede:{cafe:false,almoco:true,jantar:false,ceia:false},diasAbertura:2};
+function planModeloCfg(){
+  const m=(COM&&COM.modelo)||{};
+  return {pesos:Object.assign({},MODELO_PADRAO.pesos,m.pesos||{}),
+    sede:Object.assign({},MODELO_PADRAO.sede,m.sede||{}),
+    diasAbertura:m.diasAbertura!=null?+m.diasAbertura:MODELO_PADRAO.diasAbertura};
 }
-/* o painel testa a si mesmo: prevê cada comissão só com as outras */
+function planFatorSedePadrao(cfg){
+  const tot=PLAN_REFEICOES.reduce((a,[k])=>a+(+cfg.pesos[k]||0),0)||1;
+  const serv=PLAN_REFEICOES.reduce((a,[k])=>a+(cfg.sede[k]?(+cfg.pesos[k]||0):0),0);
+  return Math.min(1,Math.max(0.05,serv/tot));
+}
+const planEhSede=p=>comCategoria(p.c)==='sede';
+function planAprendeModelo(perfis){
+  const cfg=planModeloCfg();
+  const fPad=planFatorSedePadrao(cfg), dPad=cfg.diasAbertura;
+  const sede=perfis.filter(planEhSede), fora=perfis.filter(p=>!planEhSede(p));
+  let f=fPad, D=dPad, fonteF='padrão', fonteD='padrão';
+  for(let it=0;it<4;it++){          /* f e D dependem um do outro: poucas voltas bastam */
+    if(sede.length&&fora.length){
+      const tx=p=>p.total/(p.mil*(p.dias+D));
+      const rs=planCentral(sede.map(tx),sede.map(p=>p.peso));
+      const rf=planCentral(fora.map(tx),fora.map(p=>p.peso));
+      if(rf>0&&rs>0){
+        const n=Math.min(sede.length,fora.length);
+        f=Math.min(1,Math.max(0.05,(n*(rs/rf)+2*fPad)/(n+2))); fonteF='aprendido';
+      }
+    }
+    const pts=perfis.map(p=>({x:p.dias,y:p.total/(p.mil*(planEhSede(p)?f:1)),w:p.peso}));
+    const xs=pts.map(p=>p.x);
+    if(pts.length>=2&&Math.max(...xs)-Math.min(...xs)>=7){
+      const sw=pts.reduce((a,p)=>a+p.w,0);
+      const mx=pts.reduce((a,p)=>a+p.w*p.x,0)/sw, my=pts.reduce((a,p)=>a+p.w*p.y,0)/sw;
+      const sxx=pts.reduce((a,p)=>a+p.w*(p.x-mx)*(p.x-mx),0), sxy=pts.reduce((a,p)=>a+p.w*(p.x-mx)*(p.y-my),0);
+      const a=sxx?sxy/sxx:0, b=my-a*mx;
+      if(a>0){
+        const n=pts.length-1;
+        D=(n*Math.min(10,Math.max(0,b/a))+3*dPad)/(n+3); fonteD='aprendido';
+      }
+    }
+  }
+  return {f,D,fPad,dPad,fonteF,fonteD,nSede:sede.length,nFora:fora.length};
+}
+/* quanto do custo diário de uma categoria sobra num dado tipo de comissão */
+function planFator(tipo,k,mod){ return tipo==='sede'?((mod.fCat&&mod.fCat[k])||mod.f):1; }
+/* uma comissão, traduzida para o padrão comum */
+function planNormaliza(p,nomes,mod){
+  const tipo=comCategoria(p.c), den=p.mil*(p.dias+mod.D);
+  const cats={}, qtd={};
+  nomes.forEach(k=>{
+    const f=planFator(tipo,k,mod);
+    cats[k]=(p.cat[k]||0)/(den*f);
+    qtd[k]={}; Object.entries(p.qtd[k]||{}).forEach(([u,q])=>{qtd[k][u]=q/(den*f);});
+  });
+  return {p,tipo,cats,qtd,tot:Object.values(cats).reduce((a,b)=>a+b,0)};
+}
+function planEstima(perfis,dias,mil,tipo){
+  const n=perfis.length;
+  if(!n||!dias||!mil)return null;
+  const mod=planAprendeModelo(perfis);
+  const nomes=[...new Set(perfis.flatMap(p=>Object.keys(p.cat)))];
+  /* fator sede por categoria: só dá pra medir com as duas pontas; puxado pro global */
+  mod.fCat={};
+  const sede=perfis.filter(planEhSede), fora=perfis.filter(p=>!planEhSede(p));
+  if(sede.length&&fora.length){
+    const nm=Math.min(sede.length,fora.length);
+    nomes.forEach(k=>{
+      const tx=p=>(p.cat[k]||0)/(p.mil*(p.dias+mod.D));
+      const rs=planCentral(sede.map(tx),sede.map(p=>p.peso)), rf=planCentral(fora.map(tx),fora.map(p=>p.peso));
+      if(rs>0&&rf>0)mod.fCat[k]=Math.min(1.5,Math.max(0.05,(nm*(rs/rf)+2*mod.f)/(nm+2)));
+    });
+  }
+  const norm=perfis.map(p=>planNormaliza(p,nomes,mod));
+  /* trocar de cardápio (sede↔fora) é a conversão com mais erro: pesa metade.
+     Duração parecida com a planejada pesa mais — 44 contra 11 dias pesa ~60%. */
+  const mudaCardapio=x=>(x.tipo==='sede')!==(tipo==='sede');
+  const pesos=norm.map(x=>x.p.peso*(mudaCardapio(x)?0.5:1)/(1+0.5*Math.abs(Math.log(x.p.dias/dias))));
+  const sw=pesos.reduce((a,b)=>a+b,0)||1;
+  const N=planCentral(norm.map(x=>x.tot),pesos);
+  const relBase=planDispersao(norm.map(x=>x.tot));
+  /* incerteza da conversão: cardápio e abertura */
+  const fracCard=norm.reduce((a,x,i)=>a+(mudaCardapio(x)?pesos[i]:0),0)/sw;
+  const relCard=fracCard*(mod.fonteF==='aprendido'?0.10:0.25);
+  const relAb=(mod.fonteD==='aprendido'?0.04:0.15)*mod.D/(dias+mod.D);
+  const rel=Math.min(0.9,Math.sqrt(relBase*relBase+relCard*relCard+relAb*relAb));
+  const den=mil*(dias+mod.D);
+  const brutas=nomes.map(k=>{
+    const partes=norm.map(x=>x.tot?x.cats[k]/x.tot:0);
+    const unis=[...new Set(norm.flatMap(x=>Object.keys(x.qtd[k]||{})))];
+    return {n:k,parte:planCentral(partes,pesos),
+      rel:n>=3?Math.max(rel,planDispersao(partes)):rel,
+      taxaQ:unis.map(u=>({u,t:planCentral(norm.map(x=>(x.qtd[k]||{})[u]||0),pesos)}))};
+  });
+  const somaPartes=brutas.reduce((a,c)=>a+c.parte,0)||1;
+  const cats=brutas.map(c=>{
+    const f=planFator(tipo,c.n,mod);
+    const v=N*(c.parte/somaPartes)*f*den;
+    return {n:c.n,v,min:v*(1-c.rel),max:v*(1+c.rel),
+      qtd:c.taxaQ.map(x=>({u:x.u,q:x.t*f*den})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q)};
+  }).filter(c=>c.v>0).sort((a,b)=>b.v-a.v);
+  const total=cats.reduce((a,c)=>a+c.v,0);
+  cats.forEach(c=>{c.parte=total?c.v/total:0;});
+  const convertidas=norm.filter(x=>x.tipo!==tipo).length;
+  const conf=(n<=2||(fracCard>0.5&&mod.fonteF==='padrão'))?'baixa':((n<=5||fracCard>0.3)?'média':'alta');
+  /* o que cada comissão da base, sozinha, preveria para esta — por militar/dia */
+  const equivalente=x=>nomes.reduce((a,k)=>a+x.cats[k]*planFator(tipo,k,mod),0)*(dias+mod.D)/dias;
+  return {total,min:total*(1-rel),max:total*(1+rel),taxa:total/(mil*dias),cats,n,conf,
+    mod,norm,pesos,tipo,dias,mil,convertidas,equivalente};
+}
+/* o painel testa a si mesmo: prevê cada comissão só com as outras, já
+   convertendo as outras para o tipo daquela que está sendo prevista */
 function planTeste(perfis){
   if(perfis.length<2)return [];
   return perfis.map((p,i)=>{
-    const e=planEstima(perfis.filter((_,j)=>j!==i),p.dias,p.mil);
+    const e=planEstima(perfis.filter((_,j)=>j!==i),p.dias,p.mil,comCategoria(p.c));
     return {nome:p.c.nome,real:p.total,prev:e?e.total:0,erro:e?(e.total-p.total)/p.total:null};
   });
 }
@@ -15473,44 +15586,100 @@ function planBarrasHtml(cats){
       '<title>'+esc(c.n+': '+brl(c.v)+' — faixa '+brl(c.min)+' a '+brl(c.max))+'</title></g>';
   }).join('')+'</svg>';
 }
-function planDetalheHtml(k,perfis,e){
+function planDetalheHtml(k,e){
   const c=e.cats.find(x=>x.n===k);
   if(!c)return '';
-  const sw=perfis.reduce((a,p)=>a+p.peso,0)||1;
+  const sw=e.pesos.reduce((a,b)=>a+b,0)||1;
+  const fT=planFator(e.tipo,k,e.mod);
   return '<div class="kpis" style="margin-bottom:14px">'+
       [['Estimado',brl(c.v)],['Faixa',brl(c.min)+' a '+brl(c.max)],['Parte do total',planPct(c.parte)],
        ['Quantidade',planQtdTxt(c.qtd)]]
       .map(x=>'<div class="kpi"><span>'+x[0]+'</span><b style="font-size:16px">'+x[1]+'</b></div>').join('')+'</div>'+
-    '<table><thead><tr><th>Comissão</th><th class="num">Dias</th><th class="num">Militares</th>'+
-    '<th class="num">Gasto na categoria</th><th class="num">Por militar/dia</th><th>Quantidade</th><th class="num">Peso na média</th></tr></thead><tbody>'+
-    perfis.map(p=>{
-      const v=p.cat[k]||0;
-      const q=Object.entries(p.qtd[k]||{}).map(([u,q])=>({u,q})).sort((a,b)=>b.q-a.q);
-      return '<tr><td>'+esc(p.c.nome||'—')+'</td><td class="num">'+p.dias+'</td><td class="num">'+p.mil+'</td>'+
-        '<td class="num">'+brl(v)+'</td><td class="num">'+brl(v/p.md)+'</td><td>'+planQtdTxt(q)+'</td>'+
-        '<td class="num">'+(100*p.peso/sw).toFixed(0)+'%</td></tr>';
-    }).join('')+'</tbody></table>';
+    '<table><thead><tr><th>Comissão</th><th>Tipo</th><th class="num">Dias</th><th class="num">Militares</th>'+
+    '<th class="num">Gasto na categoria</th><th class="num">Por militar/dia (real)</th>'+
+    '<th class="num">Convertido p/ esta</th><th class="num">Peso na média</th></tr></thead><tbody>'+
+    e.norm.map((x,i)=>{
+      const p=x.p, v=p.cat[k]||0;
+      const conv=x.cats[k]*fT*(e.dias+e.mod.D)/e.dias;
+      return '<tr><td>'+esc(p.c.nome||'—')+'</td><td style="font-size:11.5px">'+esc(CATEGORIA_COM[x.tipo])+'</td>'+
+        '<td class="num">'+p.dias+'</td><td class="num">'+p.mil+'</td>'+
+        '<td class="num">'+brl(v)+'</td><td class="num">'+brl(v/p.md)+'</td>'+
+        '<td class="num"><b>'+brl(conv)+'</b></td>'+
+        '<td class="num">'+(100*e.pesos[i]/sw).toFixed(0)+'%</td></tr>';
+    }).join('')+'</tbody></table>'+
+    '<p class="hint" style="margin:8px 2px 0">"Convertido p/ esta" é quanto essa comissão, sozinha, indicaria por militar/dia numa comissão '+
+    esc(CATEGORIA_COM[e.tipo].toLowerCase())+' de '+e.dias+' dias.</p>';
+}
+/* explica a conversão em palavras, com os números desta estimativa */
+function planModeloHtml(e){
+  const m=e.mod, cfg=planModeloCfg();
+  const servidas=PLAN_REFEICOES.filter(([k])=>cfg.sede[k]).map(([,l])=>l.toLowerCase());
+  const pctF=Math.round(m.f*100);
+  const linhaF=m.fonteF==='aprendido'
+    ?'<b>'+pctF+'%</b> — aprendido do histórico ('+m.nSede+' na sede × '+m.nFora+' fora), puxado para o padrão de '+Math.round(m.fPad*100)+'% enquanto houver pouca comissão.'
+    :'<b>'+pctF+'%</b> — padrão das Configurações ('+(servidas.length?servidas.join(', '):'nenhuma refeição')+' na sede). Vira valor aprendido quando existir ao menos uma comissão na sede e uma fora dela.';
+  const linhaD=m.fonteD==='aprendido'
+    ?'<b>'+m.D.toFixed(1).replace('.',',')+' dias</b> de consumo — aprendido comparando comissões de durações diferentes.'
+    :'<b>'+m.D.toFixed(1).replace('.',',')+' dias</b> de consumo — padrão das Configurações. Vira valor aprendido quando houver comissões com durações bem diferentes (7 dias ou mais de diferença).';
+  const conv=e.norm.filter(x=>x.tipo!==e.tipo);
+  let txt='<div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px">'+
+    '<b style="font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11.5px">Como o cálculo converte</b>'+
+    '<p class="hint" style="margin:8px 0 4px">Cardápio na sede: '+linhaF+'</p>'+
+    '<p class="hint" style="margin:0 0 8px">Custo de abertura da comissão: '+linhaD+'</p>';
+  if(conv.length){
+    txt+='<p class="hint" style="margin:0">'+(conv.length===e.n
+      ?'Nenhuma comissão da base é do tipo planejado — '+esc(CATEGORIA_COM[e.tipo].toLowerCase())+' —, então todas foram convertidas:'
+      :'Só parte da base é do tipo planejado — '+esc(CATEGORIA_COM[e.tipo].toLowerCase())+'. As outras foram convertidas:')+
+      '</p><ul class="hint" style="margin:6px 0 0 18px;padding:0">'+
+      conv.map(x=>{
+        const p=x.p, real=p.total/p.md, eq=e.equivalente(x);
+        const passos=[];
+        if(x.tipo==='sede'&&e.tipo!=='sede')passos.push('÷ '+m.f.toFixed(2).replace('.',',')+' para o cardápio completo');
+        if(x.tipo!=='sede'&&e.tipo==='sede')passos.push('× '+m.f.toFixed(2).replace('.',',')+' para o cardápio da sede');
+        passos.push('abertura redistribuída de '+p.dias+' para '+e.dias+' dias');
+        return '<li style="margin:2px 0">'+esc(p.c.nome||'—')+' ('+esc(CATEGORIA_COM[x.tipo].toLowerCase())+', '+p.dias+' dias): gastou '+
+          brl(real)+' por militar/dia → '+passos.join(', ')+' → <b>'+brl(eq)+'</b> por militar/dia.</li>';
+      }).join('')+'</ul>';
+  }else txt+='<p class="hint" style="margin:0">Todas as comissões da base são do mesmo tipo da planejada — só a abertura é redistribuída pela duração.</p>';
+  return txt+'</div>';
 }
 function renderPlanejamento(){
-  const todosTipos=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0);
-  const todos=todosTipos.filter(p=>comCategoria(p.c)===PLAN_TIPO);
-  if(PLAN_BASE[PLAN_TIPO]===null)PLAN_BASE[PLAN_TIPO]=new Set(todos.filter(p=>planEncerrada(p.c)).map(p=>p.c.id));
-  const baseSet=PLAN_BASE[PLAN_TIPO];
+  const todos=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0);
+  if(PLAN_BASE===null)PLAN_BASE=new Set(todos.filter(p=>planEncerrada(p.c)).map(p=>p.c.id));
+  /* primeira vez: já abre com a comissão que vem aí, se ela ainda não acabou */
+  if(!PLAN_INICIADO){
+    PLAN_INICIADO=true;
+    const v=comVigente();
+    if(v&&!planEncerrada(v)&&v.ini&&v.fim){
+      PLAN_DIAS=diasCom(v); PLAN_MIL=+v.militares||PLAN_MIL; PLAN_TIPO=v.baseSede?'sede':'fora';
+      const verba=recebidoDe(v)||orcadoDe(v);
+      if(verba>0){PLAN_VERBA=verba; $('#plVerba').value=String(q2(verba)).replace('.',',');}
+      $('#plVigTxt').textContent='Preenchido com a '+(v.nome||'comissão vigente')+' — altere à vontade.';
+    }
+  }
   if(!PLAN_MIL)PLAN_MIL=all().length||1;
   if(document.activeElement!==$('#plDias'))$('#plDias').value=PLAN_DIAS||'';
   if(document.activeElement!==$('#plMil'))$('#plMil').value=PLAN_MIL||'';
   if(document.activeElement!==$('#plTipo'))$('#plTipo').value=PLAN_TIPO;
+  const alvo=planTipoAlvo();
+  $('#plTipoTxt').textContent=CATEGORIA_COM[alvo];
 
-  const foraDoTipo=todosTipos.length-todos.length;
-  $('#plBase').innerHTML=(todos.length?todos.map(p=>
-    '<label style="display:flex;gap:8px;align-items:baseline;margin:0 0 6px;cursor:pointer;text-transform:none;letter-spacing:0">'+
-    '<input type="checkbox" data-plbase="'+esc(p.c.id)+'"'+(baseSet.has(p.c.id)?' checked':'')+'>'+
-    '<span><b>'+esc(p.c.nome||'—')+'</b> <span class="hint">'+p.dias+' dias · '+p.mil+' militares · '+brl(p.total)+
-    ' · '+brl(p.total/p.md)+' por militar/dia'+(planEncerrada(p.c)?'':' · <span style="color:var(--terra)">em curso</span>')+'</span></span></label>').join('')
-    :'<p class="hint" style="margin:0">Nenhuma comissão do tipo "'+esc(CATEGORIA_COM[PLAN_TIPO])+'" com período, efetivo e gasto lançados ainda.</p>')+
-    (foraDoTipo?'<p class="hint" style="margin:8px 0 0">'+foraDoTipo+' comissão(ões) de outro tipo não entram nesta conta — o tipo de cada uma se marca em Municiamento → Configurações.</p>':'');
+  const base=todos.filter(p=>PLAN_BASE.has(p.c.id));
+  const e=planEstima(base,PLAN_DIAS,PLAN_MIL,alvo);
+  const eqPorId={};
+  if(e)e.norm.forEach(x=>{eqPorId[x.p.c.id]=e.equivalente(x);});
+  $('#plModelo').innerHTML=e?planModeloHtml(e):'';
+  $('#plBase').innerHTML=todos.length?todos.map(p=>{
+    const tipo=comCategoria(p.c), eq=eqPorId[p.c.id];
+    return '<label style="display:flex;gap:8px;align-items:baseline;margin:0 0 6px;cursor:pointer;text-transform:none;letter-spacing:0">'+
+      '<input type="checkbox" data-plbase="'+esc(p.c.id)+'"'+(PLAN_BASE.has(p.c.id)?' checked':'')+'>'+
+      '<span><b>'+esc(p.c.nome||'—')+'</b> <span class="hint">'+esc(CATEGORIA_COM[tipo])+' · '+p.dias+' dias · '+p.mil+' militares · '+brl(p.total)+
+      ' · '+brl(p.total/p.md)+' por militar/dia'+
+      (eq!=null&&tipo!==alvo?' → <b>'+brl(eq)+'</b> convertido para esta':'')+
+      (planEncerrada(p.c)?'':' · <span style="color:var(--terra)">em curso</span>')+'</span></span></label>';
+  }).join('')
+    :'<p class="hint" style="margin:0">Nenhuma comissão com período, efetivo e gasto lançados ainda.</p>';
 
-  const base=todos.filter(p=>baseSet.has(p.c.id));
   const teste=planTeste(base);
   $('#plTeste').innerHTML=teste.length?
     ('<table><thead><tr><th>Teste contra o passado</th><th class="num">Real</th><th class="num">Previsto só com as outras</th><th class="num">Erro</th></tr></thead><tbody>'+
@@ -15521,7 +15690,6 @@ function renderPlanejamento(){
      planPct(teste.reduce((a,t)=>a+Math.abs(t.erro),0)/teste.length)+'</b>. Esse número cai conforme o histórico cresce.</p>')
     :'<p class="hint" style="margin:0">Com duas comissões ou mais na base, o painel testa a si mesmo: prevê cada comissão usando só as outras e mostra o erro. Hoje há '+base.length+'.</p>';
 
-  const e=planEstima(base,PLAN_DIAS,PLAN_MIL);
   const vazio=['#plRosca','#plBarras','#plTabela','#plAviso'];
   if(!e){
     $('#plKpis').innerHTML='';
@@ -15531,7 +15699,8 @@ function renderPlanejamento(){
     return;
   }
   $('#plKpis').innerHTML=[['Total estimado',brl(e.total)],['Faixa provável',brl(e.min)+' a '+brl(e.max)],
-    ['Por militar/dia',brl(e.taxa)],['Confiança',e.conf+' · '+e.n+(e.n>1?' comissões':' comissão')]]
+    ['Por militar/dia',brl(e.taxa)],['Confiança',e.conf+' · '+e.n+(e.n>1?' comissões':' comissão')+
+      (e.convertidas?' ('+e.convertidas+' convertida'+(e.convertidas>1?'s':'')+')':'')]]
     .map((k,i)=>'<div class="kpi"><span>'+k[0]+'</span><b style="font-size:'+(i===1?16:19)+'px'+
       (i===3?';color:'+(e.conf==='alta'?'var(--bordo)':(e.conf==='média'?'var(--dest)':'var(--terra)')):'')+'">'+k[1]+'</b></div>').join('');
 
@@ -15542,7 +15711,10 @@ function renderPlanejamento(){
       :(sobra>=0?'<b style="color:var(--dest)">A verba de '+brl(PLAN_VERBA)+' cobre o valor provável</b>, mas não o topo da faixa ('+brl(e.max)+'). Folga de '+brl(sobra)+'.'
       :'<b style="color:var(--alert)">A verba de '+brl(PLAN_VERBA)+' não cobre o valor provável</b> — faltariam '+brl(-sobra)+'.'))+'</p>';
   }
-  if(e.conf==='baixa')av+='<p class="hint" style="margin:0">Estimativa com base em '+(e.n===1?'uma só comissão':'duas comissões')+': use como ordem de grandeza. A faixa estreita a cada comissão encerrada.</p>';
+  if(e.convertidas)av+='<p class="hint" style="margin:0 0 6px">'+(e.convertidas===e.n?'Nenhuma comissão da base é':'Parte da base não é')+' do tipo planejado: os valores foram convertidos (cardápio e custo de abertura). O passo a passo está em "Base e confiabilidade", lá embaixo.</p>';
+  if(e.conf==='baixa')av+='<p class="hint" style="margin:0">Confiança baixa'+(e.n<=2?' — base de '+(e.n===1?'uma só comissão':'duas comissões'):'')+
+    (e.convertidas&&e.mod.fonteF==='padrão'?(e.n<=2?',':' —')+' conversão feita com o fator padrão, ainda não medido no histórico':'')+
+    ': use como ordem de grandeza. A faixa estreita a cada comissão encerrada.</p>';
   $('#plAviso').innerHTML=av;
 
   if(PLAN_CAT&&!e.cats.some(c=>c.n===PLAN_CAT))PLAN_CAT='';
@@ -15560,7 +15732,7 @@ function renderPlanejamento(){
   $('#plDetalheCard').classList.toggle('hidden',!PLAN_CAT);
   if(PLAN_CAT){
     $('#plDetalheTit').textContent=PLAN_CAT+' — de onde veio a estimativa';
-    $('#plDetalhe').innerHTML=planDetalheHtml(PLAN_CAT,base,e);
+    $('#plDetalhe').innerHTML=planDetalheHtml(PLAN_CAT,e);
   }
 }
 (()=>{
@@ -15578,8 +15750,7 @@ function renderPlanejamento(){
     if(ev.target.id==='plTipo'){ PLAN_TIPO=ev.target.value; PLAN_CAT=''; renderPlanejamento(); return; }
     const id=ev.target.dataset&&ev.target.dataset.plbase;
     if(!id)return;
-    const s=PLAN_BASE[PLAN_TIPO];
-    if(ev.target.checked)s.add(id); else s.delete(id);
+    if(ev.target.checked)PLAN_BASE.add(id); else PLAN_BASE.delete(id);
     renderPlanejamento();
   });
   host.addEventListener('click',ev=>{
@@ -15624,6 +15795,48 @@ function renderMunConfig(){
     toast(ok?'Tipo atualizado.':'Não foi possível gravar.',!ok);
   });
   $$('#listMunConfig [data-mceditar]').forEach(b=>b.onclick=()=>abrirComissao(b.dataset.mceditar));
+  renderMunModelo();
+}
+function renderMunModelo(){
+  const cfg=planModeloCfg();
+  const fator=()=>{
+    const c={pesos:{},sede:{}};
+    PLAN_REFEICOES.forEach(([k])=>{c.pesos[k]=numBR($('#mmPeso_'+k).value)||0;c.sede[k]=$('#mmSede_'+k).checked;});
+    return planFatorSedePadrao(c);
+  };
+  $('#munModelo').innerHTML='<table><thead><tr><th>Refei&ccedil;&atilde;o</th><th class="num" style="width:170px">Peso no custo do dia (%)</th>'+
+    '<th style="width:150px">Servida na sede?</th></tr></thead><tbody>'+
+    PLAN_REFEICOES.map(([k,l])=>'<tr><td>'+l+'</td>'+
+      '<td class="num"><input type="text" id="mmPeso_'+k+'" value="'+(+cfg.pesos[k]||0)+'" inputmode="decimal" style="width:80px;text-align:right"></td>'+
+      '<td><input type="checkbox" id="mmSede_'+k+'"'+(cfg.sede[k]?' checked':'')+'></td></tr>').join('')+
+    '</tbody></table>'+
+    '<p class="hint" id="mmFator" style="margin:8px 2px 14px"></p>'+
+    '<div class="row" style="align-items:flex-end"><div style="flex:0 1 260px"><label>Custo de abertura (em dias de consumo)</label>'+
+    '<input type="text" id="mmDias" value="'+String(cfg.diasAbertura).replace('.',',')+'" inputmode="decimal"></div>'+
+    '<div style="flex:0 1 auto"><button class="btn" id="mmSalvar">Salvar par&acirc;metros</button></div>'+
+    '<div style="flex:0 1 auto"><button class="btn ghost" id="mmPadrao">Voltar ao padr&atilde;o</button></div></div>'+
+    '<p class="hint" style="margin:8px 2px 0">Custo de abertura: o que toda comiss&atilde;o gasta independente da dura&ccedil;&atilde;o (tempero, g&aacute;s, limpeza, estoque m&iacute;nimo), medido em dias de consumo. 2 dias significa que uma comiss&atilde;o de 10 dias custa como 12 &mdash; pesa mais nas curtas.</p>';
+  const mostra=()=>{$('#mmFator').innerHTML='Com esses pesos, uma comiss&atilde;o na sede custa por dia <b>'+
+    Math.round(fator()*100)+'%</b> do que custaria fora dela, com card&aacute;pio completo.';};
+  $$('#munModelo input').forEach(i=>i.addEventListener('input',mostra));
+  mostra();
+  $('#mmSalvar').onclick=async()=>{
+    const pesos={}, sede={};
+    PLAN_REFEICOES.forEach(([k])=>{pesos[k]=numBR($('#mmPeso_'+k).value)||0;sede[k]=$('#mmSede_'+k).checked;});
+    if(!Object.values(pesos).some(v=>v>0)){toast('Dê peso a pelo menos uma refeição.',true);return;}
+    const dias=numBR($('#mmDias').value);
+    if(!(dias>=0&&dias<=15)){toast('Custo de abertura entre 0 e 15 dias.',true);return;}
+    COM.modelo={pesos,sede,diasAbertura:dias};
+    const ok=await salvar('comissoes',COM);
+    toast(ok?'Parâmetros salvos. O Planejamento já usa os novos valores.':'Não foi possível gravar.',!ok);
+  };
+  $('#mmPadrao').onclick=()=>confirmar('Voltar ao padrão',
+    'Pesos, refeições da sede e custo de abertura voltam aos valores padrão.',async()=>{
+      delete COM.modelo;
+      const ok=await salvar('comissoes',COM);
+      renderMunModelo();
+      toast(ok?'Parâmetros no padrão.':'Não foi possível gravar.',!ok);
+    });
 }
 /* ===== municiamento — controle geral ===== */
 function periodoMunic(){
