@@ -1998,6 +1998,7 @@ body.semvideo .sp-foto{display:block}
     <button data-sub="cardapio" aria-selected="false">Cardápio</button>
     <button data-sub="planejamento" aria-selected="false">Planejamento</button>
     <button data-sub="mcontrole" aria-selected="false">Controle Geral</button>
+    <button data-sub="munconfig" aria-selected="false">Configurações</button>
   </div>
 
   <div id="sub-paiol" class="hidden">
@@ -2178,8 +2179,12 @@ body.semvideo .sp-foto{display:block}
   <div id="sub-planejamento" class="hidden">
     <div class="card reveal">
       <h2>Planejamento de comiss&atilde;o</h2>
-      <p class="hint" style="margin:0 0 12px">Informe quantos dias e quantos militares a pr&oacute;xima comiss&atilde;o vai ter. O painel estima o gasto total e por categoria a partir do hist&oacute;rico das comiss&otilde;es anteriores &mdash; e fica mais certeiro a cada comiss&atilde;o encerrada.</p>
+      <p class="hint" style="margin:0 0 12px">Informe o tipo, quantos dias e quantos militares a pr&oacute;xima comiss&atilde;o vai ter. O painel estima o gasto total e por categoria a partir do hist&oacute;rico de comiss&otilde;es do <b>mesmo tipo</b> &mdash; sede, fora da sede curta ou fora da sede normal t&ecirc;m padr&otilde;es de gasto bem diferentes, e fica mais certeiro a cada comiss&atilde;o encerrada. O tipo de cada comiss&atilde;o &eacute; marcado em Municiamento &rarr; Configura&ccedil;&otilde;es.</p>
       <div class="row" style="align-items:flex-end">
+        <div style="flex:0 1 250px"><label>Tipo da comiss&atilde;o</label><select id="plTipo">
+          <option value="normal">Fora da sede — normal (&ge; 15 dias)</option>
+          <option value="curta">Fora da sede — curta (&lt; 15 dias)</option>
+          <option value="sede">Base na sede</option></select></div>
         <div style="flex:0 1 140px"><label>Dias</label><input type="number" id="plDias" min="1" step="1" inputmode="numeric"></div>
         <div style="flex:0 1 140px"><label>Militares</label><input type="number" id="plMil" min="1" step="1" inputmode="numeric"></div>
         <div style="flex:0 1 200px"><label>Verba prevista (opcional)</label><input type="text" id="plVerba" placeholder="0,00" inputmode="decimal"></div>
@@ -2209,6 +2214,14 @@ body.semvideo .sp-foto{display:block}
       <details style="margin-top:14px"><summary class="hint" style="cursor:pointer">Como o c&aacute;lculo &eacute; feito</summary>
         <p class="hint" style="margin:10px 0 0">Cada comiss&atilde;o vira um gasto <b>por militar por dia</b> (gasto &divide; militares &divide; dias), separado por categoria. A estimativa &eacute; a m&eacute;dia dessas taxas, multiplicada pelos dias e militares informados. Na m&eacute;dia, comiss&atilde;o maior pesa mais (mais militares &times; dias, menos acaso) e comiss&atilde;o antiga pesa menos (o peso cai pela metade a cada ano, por causa da infla&ccedil;&atilde;o). A partir de 3 comiss&otilde;es, a que estiver muito fora da curva &eacute; descartada. A faixa prov&aacute;vel vem da varia&ccedil;&atilde;o entre as comiss&otilde;es: com uma s&oacute;, &eacute; &plusmn;30% fixo; ela estreita conforme o hist&oacute;rico cresce. As quantidades seguem a mesma conta, por unidade (kg, un, l&hellip;), somadas por categoria.</p>
       </details>
+    </div>
+  </div>
+
+  <div id="sub-munconfig" class="hidden">
+    <div class="card reveal">
+      <h2>Configura&ccedil;&otilde;es de comiss&otilde;es</h2>
+      <p class="hint" style="margin:0 0 12px">O tipo de cada comiss&atilde;o decide em qual grupo do Planejamento ela entra. S&oacute; "base na sede" &eacute; marcado &agrave; m&atilde;o &mdash; fora da sede, curta ou normal se resolve sozinho pela dura&ccedil;&atilde;o (15 dias). Para mudar nome, datas, militares ou valor por militar, use Editar.</p>
+      <div class="scroller" id="listMunConfig"></div>
     </div>
   </div>
 
@@ -4581,7 +4594,7 @@ $$('#subControle button').forEach(b=>b.onclick=()=>{
 $$('#subMunic button').forEach(b=>b.onclick=()=>{
   SUB=b.dataset.sub;
   $$('#subMunic button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['paiol','cardapio','gastos','planejamento','mcontrole'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB));
+  ['paiol','cardapio','gastos','planejamento','mcontrole','munconfig'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB));
   renderMunic();
 });
 $$('#subPainel button').forEach(b=>b.onclick=()=>{
@@ -14564,6 +14577,18 @@ function diasCorridos(c){
 }
 function recebidoDe(c){ return ((c&&c.recebidos)||[]).reduce((a,b)=>a+(+b.valor||0),0); }
 function orcadoDe(c){ return c?(+c.militares||0)*(+c.valorPorMilitar||0):0; }
+/* três padrões de gasto bem diferentes, que o Planejamento não pode
+   misturar num histórico só: comissão na sede não usa cardápio completo
+   (sem janta/café/ceia) e gasta pouco; fora da sede tem cardápio completo,
+   e aí o que muda o padrão é a duração — curta (<15 dias) tem menos verba
+   por militar e proporcionalmente mais gasto fixo; normal (≥15 dias) é o
+   padrão "cheio". baseSede é o único campo manual; curta/normal se
+   resolve sozinho pela duração. */
+const CATEGORIA_COM={sede:'Base na sede',curta:'Fora da sede — curta (< 15 dias)',normal:'Fora da sede — normal (≥ 15 dias)'};
+function comCategoria(c){
+  if(c&&c.baseSede)return 'sede';
+  return diasCom(c)<15?'curta':'normal';
+}
 function gastosDaCom(id){
   const l=(GAS.lancamentos||[]);
   if(!id)return l;
@@ -14646,6 +14671,8 @@ function abrirComissao(id){
     '<div><label>Término (em branco = em curso)</label><input type="hidden" id="cmFim"><input type="text" id="cmFimBr" class="datebr" placeholder="DD/MM/AAAA" maxlength="10" readonly></div></div>'+
     '<div class="row"><div><label>Militares municiados</label><input type="number" id="cmMil" value="'+(+c.militares||0)+'"></div>'+
     '<div><label>Valor por militar (R$)</label><input type="text" id="cmVal" value="'+String(+c.valorPorMilitar||0).replace('.',',')+'"></div></div>'+
+    '<label style="display:flex;gap:8px;align-items:center;cursor:pointer;text-transform:none;letter-spacing:0">'+
+    '<input type="checkbox" id="cmSede"'+(c.baseSede?' checked':'')+'> Comissão na sede (sem cardápio completo)</label>'+
     '<p class="hint" style="margin:0" id="cmPrev"></p>'+
     '</div><div class="actions">'+(id?'<button class="btn ghost" id="cmDel" style="color:var(--alert)">Excluir</button>':'')+
     '<button class="btn ghost" id="cmNo">Cancelar</button><button class="btn" id="cmOk">Salvar</button></div></div></div>';
@@ -14673,6 +14700,7 @@ function abrirComissao(id){
     if(!c2){c2={id:uid(),recebidos:[]};COM.itens.push(c2);}
     c2.nome=nome; c2.ini=ini; c2.fim=fim;
     c2.militares=+$('#cmMil').value||0; c2.valorPorMilitar=numBR($('#cmVal').value);
+    c2.baseSede=$('#cmSede').checked;
     c2.recebidos=c2.recebidos||[];
     CFG.comissaoAtiva=CFG.comissaoAtiva||c2.id;
     const ok=(await salvar('comissoes',COM))&&(await salvar('cfg',CFG));
@@ -14863,13 +14891,15 @@ function grafSemanal(lst,c,rec,projFim,teto){
 
 /* ---------- previsto × realizado, por categoria ----------
    O previsto sai do mesmo motor do Planejamento, alimentado só pelas
-   OUTRAS comissões encerradas — senão a comissão preveria a si mesma. */
+   OUTRAS comissões encerradas do MESMO tipo (sede / fora curta / fora
+   normal) — misturar os três padrões de gasto dava previsto errado. */
 function grafPrevReal(c){
   if(!c)return '<p class="hint" style="margin:0">Escolha uma comissão no seletor lá em cima para comparar com o previsto.</p>';
   const p=planPerfil(c);
   if(!p.md||!p.total)return '<p class="hint" style="margin:0">Defina o período e o efetivo da comissão.</p>';
-  const outras=comissoes().filter(x=>x.id!==c.id&&planEncerrada(x)).map(planPerfil).filter(x=>x.md>0&&x.total>0);
-  if(!outras.length)return '<p class="hint" style="margin:0">O previsto é calculado com as <b>outras</b> comissões encerradas. Hoje esta é a única com dados — a comparação aparece a partir da próxima comissão.</p>';
+  const cat=comCategoria(c);
+  const outras=comissoes().filter(x=>x.id!==c.id&&planEncerrada(x)&&comCategoria(x)===cat).map(planPerfil).filter(x=>x.md>0&&x.total>0);
+  if(!outras.length)return '<p class="hint" style="margin:0">O previsto é calculado com as <b>outras</b> comissões encerradas do mesmo tipo ('+esc(CATEGORIA_COM[cat])+'). Hoje não há nenhuma outra assim — a comparação aparece quando houver.</p>';
   const e=planEstima(outras,p.dias,p.mil);
   const nomes=[...new Set(e.cats.map(x=>x.n).concat(Object.keys(p.cat)))];
   const linhas=nomes.map(n=>{
@@ -15334,7 +15364,8 @@ if($('#mcCsv'))$('#mcCsv').onclick=()=>{
    × militares informados. Média ponderada pelo tamanho da comissão e pela
    idade (meia-vida de 1 ano, por causa da inflação); a partir de 3
    comissões, a que estiver fora da curva (MAD) sai da conta. */
-let PLAN_DIAS=10, PLAN_MIL=0, PLAN_VERBA=0, PLAN_CAT='', PLAN_BASE=null;
+let PLAN_DIAS=10, PLAN_MIL=0, PLAN_VERBA=0, PLAN_CAT='', PLAN_TIPO='normal';
+let PLAN_BASE={sede:null,curta:null,normal:null};   /* base de cada tipo é independente */
 const PLAN_MEIA_VIDA=365;
 
 function planUnidade(u){
@@ -15461,20 +15492,25 @@ function planDetalheHtml(k,perfis,e){
     }).join('')+'</tbody></table>';
 }
 function renderPlanejamento(){
-  const todos=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0);
-  if(PLAN_BASE===null)PLAN_BASE=new Set(todos.filter(p=>planEncerrada(p.c)).map(p=>p.c.id));
+  const todosTipos=comissoes().map(planPerfil).filter(p=>p.md>0&&p.total>0);
+  const todos=todosTipos.filter(p=>comCategoria(p.c)===PLAN_TIPO);
+  if(PLAN_BASE[PLAN_TIPO]===null)PLAN_BASE[PLAN_TIPO]=new Set(todos.filter(p=>planEncerrada(p.c)).map(p=>p.c.id));
+  const baseSet=PLAN_BASE[PLAN_TIPO];
   if(!PLAN_MIL)PLAN_MIL=all().length||1;
   if(document.activeElement!==$('#plDias'))$('#plDias').value=PLAN_DIAS||'';
   if(document.activeElement!==$('#plMil'))$('#plMil').value=PLAN_MIL||'';
+  if(document.activeElement!==$('#plTipo'))$('#plTipo').value=PLAN_TIPO;
 
-  $('#plBase').innerHTML=todos.length?todos.map(p=>
+  const foraDoTipo=todosTipos.length-todos.length;
+  $('#plBase').innerHTML=(todos.length?todos.map(p=>
     '<label style="display:flex;gap:8px;align-items:baseline;margin:0 0 6px;cursor:pointer;text-transform:none;letter-spacing:0">'+
-    '<input type="checkbox" data-plbase="'+esc(p.c.id)+'"'+(PLAN_BASE.has(p.c.id)?' checked':'')+'>'+
+    '<input type="checkbox" data-plbase="'+esc(p.c.id)+'"'+(baseSet.has(p.c.id)?' checked':'')+'>'+
     '<span><b>'+esc(p.c.nome||'—')+'</b> <span class="hint">'+p.dias+' dias · '+p.mil+' militares · '+brl(p.total)+
     ' · '+brl(p.total/p.md)+' por militar/dia'+(planEncerrada(p.c)?'':' · <span style="color:var(--terra)">em curso</span>')+'</span></span></label>').join('')
-    :'<p class="hint" style="margin:0">Nenhuma comissão com período, efetivo e gasto lançados ainda.</p>';
+    :'<p class="hint" style="margin:0">Nenhuma comissão do tipo "'+esc(CATEGORIA_COM[PLAN_TIPO])+'" com período, efetivo e gasto lançados ainda.</p>')+
+    (foraDoTipo?'<p class="hint" style="margin:8px 0 0">'+foraDoTipo+' comissão(ões) de outro tipo não entram nesta conta — o tipo de cada uma se marca em Municiamento → Configurações.</p>':'');
 
-  const base=todos.filter(p=>PLAN_BASE.has(p.c.id));
+  const base=todos.filter(p=>baseSet.has(p.c.id));
   const teste=planTeste(base);
   $('#plTeste').innerHTML=teste.length?
     ('<table><thead><tr><th>Teste contra o passado</th><th class="num">Real</th><th class="num">Previsto só com as outras</th><th class="num">Erro</th></tr></thead><tbody>'+
@@ -15539,9 +15575,11 @@ function renderPlanejamento(){
     renderPlanejamento();
   });
   host.addEventListener('change',ev=>{
+    if(ev.target.id==='plTipo'){ PLAN_TIPO=ev.target.value; PLAN_CAT=''; renderPlanejamento(); return; }
     const id=ev.target.dataset&&ev.target.dataset.plbase;
     if(!id)return;
-    if(ev.target.checked)PLAN_BASE.add(id); else PLAN_BASE.delete(id);
+    const s=PLAN_BASE[PLAN_TIPO];
+    if(ev.target.checked)s.add(id); else s.delete(id);
     renderPlanejamento();
   });
   host.addEventListener('click',ev=>{
@@ -15561,6 +15599,31 @@ function renderMunic(){
   if(SUB==='planejamento')renderPlanejamento();
   if(SUB==='gastos'){ligaDropNota();renderComissaoGastos();renderNotasLidas();renderGastos();}
   if(SUB==='mcontrole'){ if(SUB_CTRL==='municiados')renderRancho(); else renderControleMunic(); }
+  if(SUB==='munconfig')renderMunConfig();
+}
+function renderMunConfig(){
+  const lst=comissoes().slice().sort((a,b)=>(b.ini||'').localeCompare(a.ini||''));
+  $('#listMunConfig').innerHTML=lst.length?('<table><thead><tr><th>Comiss&atilde;o</th><th style="width:150px">Per&iacute;odo</th>'+
+    '<th style="width:90px">Dias</th><th style="width:250px">Tipo</th><th style="width:90px"></th></tr></thead><tbody>'+
+    lst.map(c=>{
+      const cat=comCategoria(c);
+      return '<tr><td>'+esc(c.nome||'—')+'</td>'+
+        '<td class="mono">'+brDate(c.ini)+(c.fim?' a '+brDate(c.fim):' (em curso)')+'</td>'+
+        '<td class="num">'+diasCom(c)+'</td>'+
+        '<td><label style="display:flex;gap:6px;align-items:center;cursor:pointer;text-transform:none;letter-spacing:0;font-size:12.5px">'+
+        '<input type="checkbox" data-mcsede="'+esc(c.id)+'"'+(c.baseSede?' checked':'')+'> Base na sede</label>'+
+        '<div class="hint" style="margin-top:3px">'+CATEGORIA_COM[cat]+'</div></td>'+
+        '<td class="acts"><button class="mini" data-mceditar="'+esc(c.id)+'">Editar</button></td></tr>';
+    }).join('')+'</tbody></table>'):
+    '<p class="hint" style="margin:0">Nenhuma comissão cadastrada ainda.</p>';
+  $$('#listMunConfig [data-mcsede]').forEach(cb=>cb.onchange=async()=>{
+    const c=comPorId(cb.dataset.mcsede); if(!c)return;
+    c.baseSede=cb.checked;
+    const ok=await salvar('comissoes',COM);
+    renderMunConfig();
+    toast(ok?'Tipo atualizado.':'Não foi possível gravar.',!ok);
+  });
+  $$('#listMunConfig [data-mceditar]').forEach(b=>b.onclick=()=>abrirComissao(b.dataset.mceditar));
 }
 /* ===== municiamento — controle geral ===== */
 function periodoMunic(){
