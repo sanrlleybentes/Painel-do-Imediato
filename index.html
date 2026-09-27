@@ -3228,8 +3228,8 @@ const GUARNECIMENTO_PADRAO=[
    'Macacão, capuz e luva antiflash, capacete e bota de borracha, uma seção de mangueira de incêndio e um esguicho variável de 1 1/2".']];
 const OBS_DETALHE_SERVICO=[
  'O retém será sempre o militar escalado para o mesmo serviço do dia d+2.',
- 'A troca de serviço somente será autorizada com até 48 horas de antecedência (salvo em casos especiais, devidamente autorizado pelo Imediato).',
- 'As papeletas de troca de serviço deverão ser encaminhadas ao sargenteante geral.',
+ 'A troca de serviço será autorizada somente pelo Imediato até o dia do primeiro serviço envolvido na troca.',
+ 'As papeletas de troca de serviço deverão ser encaminhadas ao detalhista e, na sequência, ao Imediato devidamente assinadas no prazo de até um dia após o primeiro serviço envolvido na troca.',
  'O reunir para o quarto de serviço que entra será às 07h45.'];
 
 /* ===== utilitários ===== */
@@ -3250,6 +3250,20 @@ const rotulo=x=>((x.posto?x.posto+' ':'')+x.nome).trim();
 const extenso=p=>POSTO_EXT[String(p||'').toUpperCase()]||p||'';
 const milPorId=id=>all().find(x=>x.id===id);
 const nomeDe=id=>{const x=milPorId(id);return x?rotulo(x):'—';};
+/* Militar desembarcado ou saído de destaque some de CREW.militares — some
+   também de milPorId(). Isso apaga o nome dele de qualquer Detalhe de
+   Serviço já exportado, mesmo que o serviço já tenha sido cumprido.
+   ELENCO_HISTORICO guarda um retrato (posto/nome) de cada militar no
+   instante de cada exportação, reconstruído a partir de DET.historico —
+   é nele que milPorIdOuElenco procura quando milPorId já não acha ninguém. */
+let ELENCO_HISTORICO={};
+function reconstroiElencoHistorico(){
+  ELENCO_HISTORICO={};
+  ((DET&&DET.historico)||[]).slice().sort((a,b)=>a.ts-b.ts).forEach(h=>{
+    if(h.elenco)Object.assign(ELENCO_HISTORICO,h.elenco);
+  });
+}
+function milPorIdOuElenco(id){ return milPorId(id)||ELENCO_HISTORICO[id]||null; }
 const brl=v=>'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 /* Somar 0,3 kg com 0,481 kg em ponto flutuante devolve 0,7809999999999999. Da
    segunda casa em diante não há balança de bordo que sustente o número, então
@@ -3667,6 +3681,7 @@ async function load(first){
   if(!SRV.condicao3)SRV.condicao3=[];
   if(!SRV.dem)SRV.dem=[];
   DET=m.detalhes||{semanas:{}};
+  reconstroiElencoHistorico();
   if(!SRV.__cmUnificado){
     if(unificaContramestres()){ SRV.__cmUnificado=true; salvar('servicos',SRV); salvar('detalhes',DET); }
     else SRV.__cmUnificado=true;
@@ -11860,6 +11875,15 @@ function eligListHtml(servico,valorAtual,dataISO){
     });
     h+='</optgroup>';
   }
+  /* militar já desembarcado/saiu de destaque some de CREW.militares — some
+     também de milPorId(). Sem isto, reabrir um Detalhe já exportado (Banco
+     de dados → Editar) mostraria a célula em branco, como se ninguém tivesse
+     cumprido aquele serviço. milPorIdOuElenco busca no retrato salvo junto
+     da exportação. */
+  if(valorAtual&&!elegiveis.some(x=>x.id===valorAtual)&&!acompMil.some(x=>x.id===valorAtual)){
+    const fant=milPorIdOuElenco(valorAtual);
+    if(fant)h+='<option value="'+fant.id+'" selected>'+esc(rotulo(fant))+' (fora do navio)</option>';
+  }
   return h;
 }
 /* ═══════════ pôr do sol · Open-Meteo com cálculo astronômico de reserva ═══════════
@@ -12284,6 +12308,17 @@ function nomeArquivoDetalhe(modo,ref,alt){
 function detHistoricoDe(modo,ref){
   return (DET.historico||[]).filter(h=>h.modo===modo&&h.segunda===ref).sort((a,b)=>a.alt-b.alt);
 }
+/* retrato de quem está escalado nesta semana, pro Banco de dados guardar
+   junto — é dele que milPorIdOuElenco tira o nome depois que o militar
+   desembarca ou sai de destaque e some de CREW.militares. */
+function detColetaElenco(semana){
+  const ids=new Set();
+  Object.values(semana.assign||{}).forEach(porCel=>
+    Object.values(porCel||{}).forEach(v=>{ if(v)ids.add(v); }));
+  const elenco={};
+  ids.forEach(id=>{ const x=milPorId(id); if(x)elenco[id]=JSON.parse(JSON.stringify(x)); });
+  return elenco;
+}
 $('#dexGerar').onclick=async()=>{
   const modo=$('#dexModo').value, ref=$('#dexSemana').value;
   if(!ref){toast('Salve um período antes de exportar.',true);return;}
@@ -12299,7 +12334,8 @@ $('#dexGerar').onclick=async()=>{
     semana.exportado=true;semana.exportadoEm=Date.now();
     DET.historico=DET.historico||[];
     DET.historico.push({id:uid(),modo,segunda:ref,alt,ts:Date.now(),
-      dados:JSON.parse(JSON.stringify(semana))});
+      dados:JSON.parse(JSON.stringify(semana)),elenco:detColetaElenco(semana)});
+    reconstroiElencoHistorico();
     const ok=await salvar('detalhes',DET);
     renderExportarDetalhe();
     toast(ok?(alt?'PDF gerado como ALT'+alt+' — o anterior continua no Banco de dados.':'PDF gerado e guardado no Banco de dados.')
@@ -12322,7 +12358,9 @@ function renderDetBanco(){
       return '<tr><td>'+esc(TITULO_MODO[h.modo]||h.modo)+'</td><td class="mono">'+periodo+'</td>'+
         '<td>'+(h.alt?'<span class="pill red">ALT'+h.alt+'</span>':'<span class="pill">original</span>')+'</td>'+
         '<td class="mono" style="font-size:11.5px">'+new Date(h.ts).toLocaleString('pt-BR')+'</td>'+
-        '<td class="acts"><button class="mini" data-dbaixa="'+h.id+'">Baixar de novo</button></td></tr>';
+        '<td class="acts"><button class="mini" data-dbaixa="'+h.id+'">Baixar de novo</button>'+
+        '<button class="mini" data-dbedit="'+h.id+'">Editar</button>'+
+        '<button class="mini del" data-dbdel="'+h.id+'">Excluir</button></td></tr>';
     }).join('')+'</tbody></table>'):
     '<p class="hint" style="margin:0">Nenhum detalhe exportado ainda.</p>';
   $$('#listDetBanco [data-dbaixa]').forEach(b=>b.onclick=()=>{
@@ -12330,6 +12368,36 @@ function renderDetBanco(){
     const D=new Pdf(true);
     pdfDetalheServico(D,h.modo,h.dados);
     entregarPdf(D.bytes(),nomeArquivoDetalhe(h.modo,h.segunda,h.alt));
+  });
+  $$('#listDetBanco [data-dbdel]').forEach(b=>b.onclick=()=>{
+    const h=(DET.historico||[]).find(x=>x.id===b.dataset.dbdel); if(!h)return;
+    confirmar('Excluir do Banco de dados',
+      'Some só o registro salvo — não mexe na grade nem nos PDFs já baixados.',
+      async()=>{
+        DET.historico=DET.historico.filter(x=>x.id!==h.id);
+        reconstroiElencoHistorico();
+        const ok=await salvar('detalhes',DET);
+        renderDetBanco();
+        toast(ok?'Registro excluído.':'Não foi possível gravar.',!ok);
+      });
+  });
+  $$('#listDetBanco [data-dbedit]').forEach(b=>b.onclick=()=>{
+    const h=(DET.historico||[]).find(x=>x.id===b.dataset.dbedit); if(!h)return;
+    const versao=h.alt?'ALT'+h.alt:'original';
+    confirmar('Editar detalhe salvo',
+      'Isso carrega a versão "'+versao+'" de '+brDate(h.segunda)+' ('+(TITULO_MODO[h.modo]||h.modo)+
+      ') na grade de edição, substituindo o que estiver lá agora para esse período — inclusive mudanças feitas depois desta exportação e ainda não exportadas. '+
+      'Militares que já desembarcaram ou saíram de destaque continuam aparecendo nas células deles, marcados como "fora do navio". Exportar de novo salva como mais uma alteração, sem apagar esta.',
+      ()=>{
+        DET.semanas[chaveSemana(h.modo,h.segunda)]=JSON.parse(JSON.stringify(h.dados));
+        setDataDia(IDS_MODO[h.modo].ref,h.segunda);
+        $('.tabs button[data-tab="servico"]').click();
+        $('#subServico button[data-sub="detalhes"]').click();
+        $('#subDetalhes button[data-sub="'+(h.modo==='porto'?'porto':'viagem')+'"]').click();
+        if(h.modo!=='porto')$('#subViagemGrade button[data-sub="'+h.modo+'"]').click();
+        renderGrade(h.modo);
+        toast('Carregado para edição — a versão "'+versao+'" de '+brDate(h.segunda)+'.');
+      });
   });
 }
 /* onde a régua de assinatura é desenhada: 22 mm acima do pé da folha.
@@ -12362,7 +12430,7 @@ function pdfDetalheServico(D,modo,semana){
         const dataCel=dataDaColuna(modo,semana.segunda,i);
         const nomes=militaresDoPosto(semana.assign[s.id],i,pi)
           .filter(p=>!impedimento(p.val,dataCel))
-          .map(p=>{const x=milPorId(p.val); if(!x)return null;
+          .map(p=>{const x=milPorIdOuElenco(p.val); if(!x)return null;
             const mk=marcaDe(semana,s.id,chavePosto(i,pi,p.extra));
             return rotulo(x)+(ehAcompanhante(s,p.val)?' **':'')+(mk?' '+mk:'');})
           .filter(Boolean);
@@ -12377,7 +12445,7 @@ function pdfDetalheServico(D,modo,semana){
       const dataCel=dataDaColuna(modo,semana.segunda,i);
       const nomes=militaresDaCelula(semana.assign[s.id],i)
         .filter(p=>!impedimento(p.val,dataCel))
-        .map(p=>{const x=milPorId(p.val);
+        .map(p=>{const x=milPorIdOuElenco(p.val);
           if(!x)return null;
           /* ** vem do cadastro (acompanhando); * e *** vêm da marcação da semana */
           const mk=marcaDe(semana,s.id,chaveSlot(i,p.slot));
@@ -12411,7 +12479,7 @@ function pdfDetalheServico(D,modo,semana){
       const nomes=[];
       for(let i=0;i<6;i++){
         const mid=(semana.assign[s.id]||{})[i];
-        if(mid&&!impedimento(mid,semana.segunda)){const x=milPorId(mid);
+        if(mid&&!impedimento(mid,semana.segunda)){const x=milPorIdOuElenco(mid);
           if(x)nomes.push(rotulo(x)+(ehAcompanhante(s,mid)?' **':''));}
       }
       return [s.nome,nomes.length?nomes.join('\n'):'—'];
