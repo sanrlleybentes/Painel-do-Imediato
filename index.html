@@ -3229,7 +3229,7 @@ const GUARNECIMENTO_PADRAO=[
 const OBS_DETALHE_SERVICO=[
  'O retém será sempre o militar escalado para o mesmo serviço do dia d+2.',
  'A troca de serviço será autorizada somente pelo Imediato até o dia do primeiro serviço envolvido na troca.',
- 'As papeletas de troca de serviço deverão ser encaminhadas ao detalhista e, na sequência, ao Imediato devidamente assinadas no prazo de até um dia após o primeiro serviço envolvido na troca.',
+ 'As papeletas de troca de serviço deverão ser encaminhadas ao detalhista e, na sequência, ao Imediato devidamente assinadas no até o dia D+1, relativo ao primeiro serviço envolvido na troca.',
  'O reunir para o quarto de serviço que entra será às 07h45.'];
 
 /* ===== utilitários ===== */
@@ -3291,11 +3291,22 @@ const hoje=()=>ymd(new Date());
 function mondayOf(iso){const d=new Date(iso+'T12:00:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return ymd(d);}
 function addDias(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return ymd(d);}
 function ddmmmCurto(iso){if(iso==='-')return '-';const d=new Date(iso+'T12:00:00');return pad(d.getDate())+MESES_ABREV[d.getMonth()];}
+/* legenda "Ausências" do Detalhe de Serviço: além de férias, os destaques
+   que tiram da escala (ausenciaTiraDaEscala — destaque_ida sempre, curso_ida
+   só quando destacado) precisam aparecer aqui também, senão o militar some
+   da grade sem explicação nenhuma no papel. */
 function ausenciasSemana(ref,modo){
   const fimJanela=(modo&&MODO_CFG[modo]&&!MODO_CFG[modo].temPorDoSolRotina)?ref:addDias(ref,6);
-  return FER.periodos.filter(p=>p.tipo==='ferias'&&p.status!=='cancelada'&&!(p.fim<ref||p.ini>fimJanela))
+  const noPeriodo=(ini,fim)=>!(fim<ref||ini>fimJanela);
+  const ferias=FER.periodos.filter(p=>p.tipo==='ferias'&&p.status!=='cancelada'&&noPeriodo(p.ini,p.fim))
     .map(p=>{const x=milPorId(p.mil);
-      return (x?rotulo(x):nomeDe(p.mil))+' (FÉRIAS '+ddmmmCurto(p.ini)+' a '+ddmmmCurto(p.fim)+')';});
+      return {ini:p.ini,txt:(x?rotulo(x):nomeDe(p.mil))+' (FÉRIAS '+ddmmmCurto(p.ini)+' a '+ddmmmCurto(p.fim)+')'};});
+  const destaques=(EFE.eventos||[]).filter(e=>ausenciaTiraDaEscala(e)&&e.pend!=='encerrado'&&e.pend!=='dispensado'&&
+      noPeriodo(e.data,e.fim||'9999-12-31'))
+    .map(e=>{const x=milPorId(e.mil), rot=e.tipo==='curso_ida'?'CURSO/DST':'DST';
+      return {ini:e.data,txt:(x?rotulo(x):nomeDe(e.mil))+' ('+rot+' '+ddmmmCurto(e.data)+
+        (e.fim?' a '+ddmmmCurto(e.fim):' em curso')+')'};});
+  return ferias.concat(destaques).sort((a,b)=>a.ini.localeCompare(b.ini)).map(o=>o.txt);
 }
 
 /* ---- campos de data em DD/MM/AAAA (o input real, oculto, guarda AAAA-MM-DD) ---- */
