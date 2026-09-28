@@ -10757,17 +10757,19 @@ function pintaDetalheVento(){
   const quando=VT_HORA?(brDate(VT_HORA.slice(0,10))+' · '+VT_HORA.slice(11,16)):'—';
   $('#vtQuando').textContent=VT_HORA?VT_HORA.slice(11,16):'—';
   if(!reg){$('#vtResultado').innerHTML='<p class="hint" style="margin:0">Escolha uma hora na faixa acima.</p>';return;}
+  /* mar primeiro, vento depois — no celular a grade empilha e o mar fica em cima */
   let h='<p class="hint" style="margin:0 0 12px">Condição em <b>'+esc(quando)+'</b></p><div class="vtgrid">';
+  let hv='';
   if(reg.vento){
     const b=grauBeaufort(reg.vento.nos), r=rumoDe(reg.vento.dir);
-    h+='<div class="vtbox">'+rosaDosVentos(r)+
+    hv+='<div class="vtbox">'+rosaDosVentos(r)+
       '<div class="rot">Vento · Beaufort</div>'+
       '<div class="vtcode">'+b.g+'-'+r+'</div>'+
       '<div class="vtdesc">'+esc(b.nome)+', de '+esc(RUMOS_EXT[r])+'</div>'+
       '<div class="vtdet">'+reg.vento.nos.toFixed(1)+' nós · '+Math.round(reg.vento.dir)+'°'+
       (reg.vento.rajada?' · rajada '+reg.vento.rajada.toFixed(1)+' nós':'')+'</div></div>';
   }else{
-    h+='<div class="vtbox"><div class="rot">Vento · Beaufort</div>'+
+    hv+='<div class="vtbox"><div class="rot">Vento · Beaufort</div>'+
       '<div class="vtcode sem">sem dado</div><div class="vtdesc">nesta hora não há registro</div></div>';
   }
   if(reg.vaga){
@@ -10785,7 +10787,7 @@ function pintaDetalheVento(){
       '<div class="vtdet">típico de rio: nenhum modelo global resolve vaga de pista curta.<br>'+
       'use o registro visual do serviço, abaixo.</div></div>';
   }
-  h+='</div>';
+  h+=hv+'</div>';
   $('#vtResultado').innerHTML=h;
 }
 /* ── registro visual de bordo ── */
