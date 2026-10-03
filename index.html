@@ -510,6 +510,13 @@ select.obtfase{min-width:210px;font-size:12px}
 .progSeg.lts{background:var(--alert);border-color:var(--brass)}
 .progSeg.lic{background:var(--dest);border-color:var(--brass)}
 .progHoje{position:absolute;top:0;bottom:0;width:2px;background:var(--brass);z-index:1;pointer-events:none}
+/* cores dos movimentos de pessoal (calendário e legenda) */
+.mvEmb{background:#4E8A4A;border-color:#2F5F2C}
+.mvDes{background:#C0392B;border-color:#8A2A20}
+.mvDstSai{background:#E8832A;border-color:#B2631B}
+.mvDstEnt{background:#3D7DB8;border-color:#2A5A87}
+.mvCurso{background:#E6C02F;border-color:#B09420;color:var(--ink)}
+.mvOutro{background:#8C8A80;border-color:#66645B}
 .progChip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;
   border-radius:var(--r-md);padding:10px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);
   display:none;z-index:60;max-width:88vw;text-align:center}
@@ -1205,12 +1212,6 @@ body.semvideo .sp-foto{display:block}
     <div class="card reveal hidden" id="anivCard"><h2>Aniversariantes <span class="n" id="nAniv">0</span></h2>
       <p class="hint" style="margin:0 0 12px">Quem faz aniversário nos próximos 30 dias, com a data que vem do Plano de Busca.</p>
       <div class="scroller" id="anivLista"></div></div>
-    <div class="card reveal">
-      <h2><span id="tafPainelTit">TAF-a</span> <span class="n" id="nTafPainel"></span></h2>
-      <p class="hint" style="margin:0 0 12px">Conclus&atilde;o de cada modalidade, sobre quem deve fazer o teste.</p>
-      <div id="tafPainel"></div>
-      <p class="hint" id="tafPainelNota" style="margin:10px 2px 0"></p>
-    </div>
     <div class="card reveal" id="dmAlertaCard"><h2>Próximas Medalhas Mérito Marinheiro <span class="n" id="nDmAlerta">0</span></h2>
       <p class="hint" style="margin:0 0 12px">Faltam <b>15 dias de mar ou menos</b> para completar 500, 750 ou 1000 dias — Medalha Mérito Marinheiro com 1, 2 ou 3 ferros.</p>
       <div class="scroller" id="dmAlerta"></div></div>
@@ -1425,8 +1426,15 @@ body.semvideo .sp-foto{display:block}
     </div>
     <div class="card reveal">
       <h2>Movimentos registrados <span class="n" id="nEfe">0</span></h2>
-      <div class="scroller" id="listEfe"></div>
+      <div class="row" style="margin-bottom:14px;align-items:flex-end;gap:10px">
+        <div style="flex:0 1 140px"><label>Ano</label><select id="movAno"></select></div>
+        <button type="button" id="movEditToggle" class="progEditToggle">&#9999;&#65039; Editar movimentos</button>
+      </div>
+      <div class="progWrap" id="movWrap"></div>
+      <div id="movLegenda" style="margin-top:12px"></div>
+      <p class="hint" style="margin:6px 2px 0" id="movHint">Embarque e desembarque marcam s&oacute; o dia; destaque e curso preenchem o per&iacute;odo. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.</p>
     </div>
+    <div class="progChip" id="movChip"></div>
   </div>
 
   <div id="sub-plano" class="hidden">
@@ -8959,23 +8967,6 @@ function renderTaf(){
     :'<p class="hint" style="margin:0">Ninguém pendente neste ano.</p>';
 }
 async function tafGrava(){ TAF.atualizado=Date.now(); return salvar('taf',TAF); }
-/* ---------- card do painel ---------- */
-function renderTafPainel(){
-  const host=$('#tafPainel'); if(!host)return;
-  const r=tafResumo();
-  $('#tafPainelTit').textContent='TAF-a '+TAF_ANO;
-  $('#nTafPainel').textContent=r.geral+'% concluído';
-  host.innerHTML=r.mods.map(m=>
-    '<div class="tafbar"><div class="tafbar-top"><span>'+esc(m.rot)+'</span>'+
-      '<b>'+m.pct+'% <span>· '+m.feitos+'/'+m.base+'</span></b></div>'+
-      '<div class="taftrilho"><i style="width:'+m.pct+'%;background:'+m.cor+'"></i></div></div>').join('');
-  $('#tafPainelNota').innerHTML=r.pendentes
-    ? '<b style="color:'+(r.nenhuma?'var(--alert)':'var(--terra)')+'">'+r.pendentes+' militar'+(r.pendentes>1?'es':'')+
-      '</b> ainda não fecharam as três modalidades'+
-      (r.mods.length?' — '+esc(r.mods.slice().sort((a,b)=>a.pct-b.pct)[0].rot.toLowerCase())+' é a que mais atrasa.':'.')
-    : '<b style="color:var(--bordo)">Tripulação inteira em dia com o TAF.</b>';
-}
-
 function renderSaude(){
   if(SUB_SAUDE==='inspecoes')renderInspecoes();
   if(SUB_SAUDE==='medicamentos')renderMedicamentos();
@@ -8999,10 +8990,10 @@ document.addEventListener('click',async e=>{
   const f=tafAno(); f[id]=f[id]||{};
   f[id][mod]=TAF_CICLO[f[id][mod]||''];
   if(!f[id][mod])delete f[id][mod];
-  renderTaf(); renderTafPainel();
+  renderTaf();
   await tafGrava();
 });
-if($('#tafAno'))$('#tafAno').onchange=()=>{TAF_ANO=+$('#tafAno').value||TAF_ANO;renderTaf();renderTafPainel();};
+if($('#tafAno'))$('#tafAno').onchange=()=>{TAF_ANO=+$('#tafAno').value||TAF_ANO;renderTaf();};
 if($('#tafPend'))$('#tafPend').onclick=()=>{
   TAF_SO_PEND=!TAF_SO_PEND;
   $('#tafPend').setAttribute('aria-pressed',TAF_SO_PEND);
@@ -9791,8 +9782,6 @@ function renderPainel(){
     }else{ b.style.color=''; el.title=''; }
   });
 
-  renderTafPainel();
-
   const emCurso=feriasEmCurso();
   $('#nFerCurso').textContent=pad(emCurso.length);
   $('#ferCursoCard').classList.toggle('hidden',emCurso.length===0);
@@ -10293,8 +10282,14 @@ function abrirEditMovimento(id){
       ['aberto|Em curso / aguardando encerramento','encerrado|Já encerrado','dispensado|Pendência dispensada']
       .map(o=>{const [v,l]=o.split('|');return '<option value="'+v+'"'+((e.pend||'aberto')===v?' selected':'')+'>'+l+'</option>';}).join('')+
       '</select></div>':'')+
-    '</div><div class="actions"><button class="btn ghost" id="edNo">Cancelar</button>'+
+    '</div><div class="actions"><button class="btn ghost" id="edDel" style="color:var(--alert)">Excluir</button>'+
+    '<button class="btn ghost" id="edNo">Cancelar</button>'+
     '<button class="btn" id="edOk">Salvar alterações</button></div></div></div>';
+  $('#edDel').onclick=()=>confirmar('Excluir registro',
+    'O movimento sai da relação. O cadastro do militar não muda.',async()=>{
+      EFE.eventos=EFE.eventos.filter(v=>v.id!==id);
+      if(await salvar('efetivo',EFE))toast('Registro excluído.');
+      $('#modalHost').innerHTML=''; renderEfe();});
   ligaCalDia('edData'); setDataDia('edData',e.data||'');
   if(comPer){ligaCalDia('edFim'); setDataDia('edFim',e.fim||'');}
   $('#edNo').onclick=()=>host.innerHTML='';
@@ -10317,42 +10312,97 @@ function abrirEditMovimento(id){
     toast(ok?'Movimento atualizado.':'Não foi possível gravar.',!ok);
   };
 }
+/* ─── Movimentos registrados, em calendário (mesma régua da Programação de
+   férias). Embarque e desembarque pintam só o dia; destaque e curso pintam o
+   período. Quem já desembarcou some de CREW.militares, então o rótulo vem do
+   próprio movimento. ─── */
+const MOV_CLS={embarque:'mvEmb',desembarque:'mvDes',destaque_ida:'mvDstSai',destaque_entrada:'mvDstEnt',curso_ida:'mvCurso'};
+const MOV_LEGENDA=[['mvEmb','Embarque'],['mvDes','Desembarque'],['mvDstSai','Saída destaque'],
+  ['mvDstEnt','Entrada destaque'],['mvCurso','Curso'],['mvOutro','Regresso, efetivação e saída de destacado']];
+let movEditando=false, MOV_ULTIMO_ANO_SCROLL='';
+function movFimDe(e){ return (tipoTemPeriodo(e.tipo)&&e.fim&&e.fim>=e.data)?e.fim:e.data; }
+$('#movAno').onchange=()=>renderEfe();
+$('#movEditToggle').onclick=()=>{
+  movEditando=!movEditando;
+  $('#movEditToggle').classList.toggle('on',movEditando);
+  $('#movEditToggle').textContent=movEditando?'✓ Editando — toque numa barra':'✏️ Editar movimentos';
+  $('#movHint').textContent=movEditando?'Toque numa barra pra editar ou excluir esse movimento.':
+    'Embarque e desembarque marcam só o dia; destaque e curso preenchem o período. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.';
+  $('#movChip').classList.remove('on');
+};
 function renderEfe(){
   renderPendDest();
-  const ev=EFE.eventos.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')||b.ts-a.ts);
-  $('#nEfe').textContent=pad(ev.length);
-  $('#listEfe').innerHTML=ev.length?('<table><thead><tr><th style="width:150px">Período</th><th>Militar</th>'+
-    '<th style="width:150px">Movimento</th><th style="width:90px">OM</th><th>ORDMOV / MSG REF / obs.</th>'+
-    '<th style="width:150px"></th></tr></thead><tbody>'+
-    ev.map(e=>{
-      const comPer=tipoTemPeriodo(e.tipo)&&e.fim;
-      let per='<span class="mono">'+brDate(e.data)+'</span>';
-      if(comPer)per+='<span class="mono" style="color:var(--muted)"> a </span><span class="mono">'+brDate(e.fim)+'</span>';
-      let sit='';
-      if(comPer){
-        if(e.pend==='aberto'&&e.fim<=hoje())sit='<br><span class="pill red">aguarda seu OK</span>';
-        else if(e.pend==='aberto')sit='<br><span class="pill blue">em curso</span>';
-        else if(e.pend==='encerrado')sit='<br><span class="pill in">encerrado</span>';
-        else if(e.pend==='dispensado')sit='<br><span class="pill">dispensado</span>';
-      }
-      return '<tr><td>'+per+sit+'</td>'+
-      '<td>'+esc((e.posto||'')+' '+(e.nome||''))+(e.nip?'<br><span class="mono" style="color:var(--muted);font-size:11px">'+esc(e.nip)+'</span>':'')+'</td>'+
-      '<td><span class="pill '+(e.tipo==='embarque'||e.tipo==='destaque_volta'||e.tipo==='destaque_entrada'||e.tipo==='curso_volta'||e.tipo==='efetivacao'?'in':'out')+'">'+
-        esc(TIPO_EFE[e.tipo]||e.tipo)+'</span>'+
-        (e.tipo==='curso_ida'?'<br><span style="font-size:10.5px;color:var(--'+(e.destacado?'terra':'bordo')+')">'+
-          (e.destacado?'destacado · fora da escala':'sem destacamento · na escala')+'</span>':'')+'</td>'+
-      '<td class="mono">'+esc(e.om||'—')+'</td>'+
-      '<td style="color:var(--muted)">'+esc([e.curso?'Curso: '+e.curso:'',e.doc,e.msgref,e.obs].filter(Boolean).join(' · ')||'—')+'</td>'+
-      '<td class="acts"><button class="mini" data-efeedit="'+e.id+'">Editar</button>'+
-      '<button class="mini del" data-efedel="'+e.id+'">Excluir</button></td></tr>';
-    }).join('')+
-    '</tbody></table>'):'<p class="hint" style="margin:0">Nenhum movimento registrado ainda.</p>';
-  $$('#listEfe [data-efeedit]').forEach(b=>b.onclick=()=>abrirEditMovimento(b.dataset.efeedit));
-  $$('#listEfe [data-efedel]').forEach(b=>b.onclick=()=>confirmar('Excluir registro',
-    'O movimento sai da relação. O cadastro do militar não muda.',async()=>{
-      EFE.eventos=EFE.eventos.filter(e=>e.id!==b.dataset.efedel);
-      if(await salvar('efetivo',EFE))toast('Registro excluído.');
-      renderEfe();}));
+  const evs=EFE.eventos.filter(e=>e.data);
+  $('#nEfe').textContent=pad(EFE.eventos.length);
+
+  const sel=$('#movAno'), anoHoje=hoje().slice(0,4);
+  const anos=[...new Set(evs.flatMap(e=>[e.data.slice(0,4),movFimDe(e).slice(0,4)]).concat([anoHoje]))].sort().reverse();
+  const antes=sel.value;
+  sel.innerHTML=anos.map(a=>'<option>'+a+'</option>').join('');
+  sel.value=anos.includes(antes)?antes:anoHoje;
+  const ano=sel.value, anoNum=+ano;
+  const tot=365+((anoNum%4===0&&anoNum%100!==0)||anoNum%400===0?1:0);
+  const ini0=new Date(anoNum,0,1,12);
+
+  $('#movLegenda').innerHTML='<div class="glegenda">'+MOV_LEGENDA.map(([c,t])=>'<span><i class="'+c+'"></i>'+t+'</span>').join('')+'</div>';
+
+  const doAno=evs.filter(e=>e.data.slice(0,4)<=ano&&movFimDe(e).slice(0,4)>=ano);
+  const host=$('#movWrap');
+  if(!doAno.length){
+    host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum movimento registrado em '+ano+'.</p>';
+    return;
+  }
+  const chaveMil=e=>e.mil||e.nip||chave(e.nome||'');
+  const linhas={};
+  doAno.forEach(e=>{
+    const k=chaveMil(e);
+    (linhas[k]=linhas[k]||{k,mil:e.mil,nome:((e.posto||'')+' '+(e.nome||'')).trim(),evs:[]}).evs.push(e);
+  });
+  const ordem=Object.values(linhas).sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||a.nome.localeCompare(b.nome,'pt-BR'));
+  const cab=progCabecalho(anoNum,tot,hoje());
+  const mostraHoje=cab.mostraHoje, hojePct=cab.hojePct;
+  let g=cab.abre;
+  ordem.forEach(l=>{
+    const m=l.mil&&milPorId(l.mil), rot=m?rotulo(m):l.nome;
+    const segs=l.evs.map(e=>{
+      const fim=movFimDe(e);
+      const a=Math.max(0,(new Date(e.data+'T12:00:00')-ini0)/864e5);
+      const b=Math.min(tot,(new Date(fim+'T12:00:00')-ini0)/864e5+1);
+      const widthPct=Math.max(0.28,(b-a)/tot*100);
+      const larguraPx=widthPct/100*PROG_LARGURA_PX;
+      const txt=larguraPx>90?progFmtCurto(e.data)+' – '+progFmtCurto(fim):'';
+      const comPer=fim!==e.data;
+      const nDias=dias(e.data,fim);
+      const sit=!tipoTemPeriodo(e.tipo)||!e.fim?'':(e.pend==='aberto'&&e.fim<=hoje()?' · aguarda seu OK':
+        e.pend==='aberto'?' · em curso':e.pend==='encerrado'?' · encerrado':e.pend==='dispensado'?' · dispensado':'');
+      const extra=[e.om?'OM: '+e.om:'',e.curso?'Curso: '+e.curso:'',e.doc,e.msgref,e.obs].filter(Boolean);
+      const dtxt=(comPer?brDate(e.data)+' a '+brDate(fim)+' · '+nDias+(nDias===1?' dia':' dias'):brDate(e.data))+sit+
+        (extra.length?' — '+extra.join(' · '):'');
+      return '<button type="button" class="progSeg '+(MOV_CLS[e.tipo]||'mvOutro')+
+        '" style="left:'+(a/tot*100).toFixed(3)+'%;width:'+widthPct.toFixed(3)+'%" data-id="'+e.id+'" data-t="'+
+        esc(rot+' — '+(TIPO_EFE[e.tipo]||e.tipo))+'" data-d="'+esc(dtxt)+'">'+esc(txt)+'</button>';
+    }).join('');
+    g+='<div class="progNome">'+esc(rot)+'</div><div class="progTrack">'+
+      (mostraHoje?'<div class="progHoje" style="left:'+hojePct.toFixed(3)+'%"></div>':'')+segs+'</div>';
+  });
+  g+='</div>';
+  host.innerHTML=g;
+
+  /* abre no dia de hoje, só na primeira vez que o ano aparece e com a tela visível */
+  if(mostraHoje&&MOV_ULTIMO_ANO_SCROLL!==ano&&host.clientWidth>0){
+    MOV_ULTIMO_ANO_SCROLL=ano;
+    host.scrollLeft=Math.max(0,112+hojePct/100*PROG_LARGURA_PX-host.clientWidth*0.4);
+  }
+  $$('#movWrap .progSeg').forEach(el=>el.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    if(movEditando){abrirEditMovimento(el.dataset.id);return;}
+    const chip=$('#movChip');
+    chip.innerHTML='<b>'+esc(el.dataset.t)+'</b><span class="d">'+esc(el.dataset.d)+'</span>';
+    chip.classList.add('on');
+    clearTimeout(window.__movChipT);
+    window.__movChipT=setTimeout(()=>chip.classList.remove('on'),4500);
+  }));
+  host.onclick=ev=>{ if(!ev.target.classList.contains('progSeg'))$('#movChip').classList.remove('on'); };
 }
 
 /* ===== pessoal — saúde ===== */
@@ -11458,6 +11508,31 @@ function progFmtCurto(iso){
   return pad(+iso.slice(8,10))+' '+MES3[+iso.slice(5,7)-1].toLowerCase();
 }
 const PROG_LARGURA_PX=4500;         /* largura total da régua — dá espaço pra cada dia sem amontoar */
+/* meses, dias e linhas de grade da régua do ano — usado pela Programação de
+   férias e pelos Movimentos registrados, pra os dois ficarem idênticos */
+function progCabecalho(anoNum,tot,hojeIso){
+  const nomesMes=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  let ticks='',gridLinhas=[];
+  for(let m=0;m<12;m++){
+    [1,6,11,16,21,26].forEach(d=>{
+      const pct=(progDiaDoAno(anoNum,m,d)-1)/tot*100;
+      const pctS=pct.toFixed(4);
+      ticks+='<i class="'+(d===1?'progTickMes':'')+'" style="left:'+pct.toFixed(3)+'%"></i><span style="left:'+pct.toFixed(3)+'%">'+pad(d)+'</span>';
+      /* mesma posição do número acima vira a linha vertical do fundo — assim
+         as duas grades nunca desalinham, mesmo com meses de tamanhos diferentes */
+      const cor=d===1?'var(--line)':'rgba(92,110,100,.16)';
+      gridLinhas.push('linear-gradient(to right,transparent calc('+pctS+'% - 1px),'+cor+' calc('+pctS+'% - 1px),'+cor+' calc('+pctS+'% + 1px),transparent calc('+pctS+'% + 1px))');
+    });
+  }
+  const mostraHoje=hojeIso.slice(0,4)===String(anoNum);
+  const hojeData=new Date(hojeIso+'T12:00:00');
+  const hojePct=mostraHoje?((progDiaDoAno(anoNum,hojeData.getMonth(),hojeData.getDate())-1)/tot*100):0;
+  return {mostraHoje,hojePct,
+    abre:'<div class="progGrid" style="--progGridLines:'+gridLinhas.join(',')+'">'+
+      '<div class="progCorner"></div><div class="progMeses">'+nomesMes.map(m=>'<span>'+m+'</span>').join('')+'</div>'+
+      '<div class="progCorner2"></div><div class="progDias">'+ticks+
+      (mostraHoje?'<span class="progHojeTop" style="left:'+hojePct.toFixed(3)+'%">HOJE</span>':'')+'</div>'};
+}
 let PROG_ULTIMO_ANO_SCROLL='';      /* rola até hoje só na primeira vez que o ano aparece, não a cada rerender */
 function renderProgramadas(){
   const ano=$('#fAno').value||String(new Date().getFullYear());
@@ -11480,28 +11555,9 @@ function renderProgramadas(){
     host.innerHTML='<p class="hint" style="margin:8px 0">Nenhum afastamento programado para '+ano+'.</p>';
     $('#progChip').classList.remove('on');
   }else{
-    const nomesMes=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-    let ticks='',gridLinhas=[];
-    for(let m=0;m<12;m++){
-      [1,6,11,16,21,26].forEach(d=>{
-        const pct=(progDiaDoAno(anoNum,m,d)-1)/tot*100;
-        const pctS=pct.toFixed(4);
-        ticks+='<i class="'+(d===1?'progTickMes':'')+'" style="left:'+pct.toFixed(3)+'%"></i><span style="left:'+pct.toFixed(3)+'%">'+pad(d)+'</span>';
-        /* mesma posição do número acima vira a linha vertical do fundo — assim
-           as duas grades nunca desalinham, mesmo com meses de tamanhos diferentes */
-        const cor=d===1?'var(--line)':'rgba(92,110,100,.16)';
-        gridLinhas.push('linear-gradient(to right,transparent calc('+pctS+'% - 1px),'+cor+' calc('+pctS+'% - 1px),'+cor+' calc('+pctS+'% + 1px),transparent calc('+pctS+'% + 1px))');
-      });
-    }
-    const gridLinhasCss=gridLinhas.join(',');
-    const hojeIso=hoje(), mostraHoje=hojeIso.slice(0,4)===ano;
-    const hojeData=new Date(hojeIso+'T12:00:00');
-    const hojePct=mostraHoje?((progDiaDoAno(anoNum,hojeData.getMonth(),hojeData.getDate())-1)/tot*100):0;
-
-    let g='<div class="progGrid" style="--progGridLines:'+gridLinhasCss+'">'+
-      '<div class="progCorner"></div><div class="progMeses">'+nomesMes.map(m=>'<span>'+m+'</span>').join('')+'</div>'+
-      '<div class="progCorner2"></div><div class="progDias">'+ticks+
-      (mostraHoje?'<span class="progHojeTop" style="left:'+hojePct.toFixed(3)+'%">HOJE</span>':'')+'</div>';
+    const cab=progCabecalho(anoNum,tot,hoje());
+    const mostraHoje=cab.mostraHoje, hojePct=cab.hojePct;
+    let g=cab.abre;
 
     ordem.forEach(x=>{
       const segs=porMil[x.id].map(p=>{
