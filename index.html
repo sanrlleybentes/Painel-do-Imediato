@@ -517,6 +517,10 @@ select.obtfase{min-width:210px;font-size:12px}
 .mvDstEnt{background:#3D7DB8;border-color:#2A5A87}
 .mvCurso{background:#E6C02F;border-color:#B09420;color:var(--ink)}
 .mvOutro{background:#8C8A80;border-color:#66645B}
+.mvDstVolta{background:#F4C48B;border-color:#C9954F;color:var(--ink)}
+.mvCursoVolta{background:#F5E08C;border-color:#C9B24F;color:var(--ink)}
+.mvEfet{background:#8A63B8;border-color:#65448F}
+.mvDstSaiOutra{background:#A9CBE8;border-color:#6F9CC4;color:var(--ink)}
 .progChip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;
   border-radius:var(--r-md);padding:10px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);
   display:none;z-index:60;max-width:88vw;text-align:center}
@@ -1425,7 +1429,7 @@ body.semvideo .sp-foto{display:block}
       <div class="scroller" id="listPendDest"></div>
     </div>
     <div class="card reveal">
-      <h2>Movimentos registrados <span class="n" id="nEfe">0</span></h2>
+      <h2>Movimentos registrados</h2>
       <div class="row" style="margin-bottom:14px;align-items:flex-end;gap:10px">
         <div style="flex:0 1 140px"><label>Ano</label><select id="movAno"></select></div>
         <button type="button" id="movEditToggle" class="progEditToggle">&#9999;&#65039; Editar movimentos</button>
@@ -1435,6 +1439,12 @@ body.semvideo .sp-foto{display:block}
       <p class="hint" style="margin:6px 2px 0" id="movHint">Embarque e desembarque marcam s&oacute; o dia; destaque e curso preenchem o per&iacute;odo. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.</p>
     </div>
     <div class="progChip" id="movChip"></div>
+    <div class="card reveal">
+      <h2>Hist&oacute;rico de movimenta&ccedil;&otilde;es <span class="n" id="nEfe">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Todos os movimentos, do mais recente para o mais antigo &mdash; inclusive de quem j&aacute; saiu do calend&aacute;rio. Escolha um m&ecirc;s para ver s&oacute; as movimenta&ccedil;&otilde;es dele.</p>
+      <div class="row" style="margin-bottom:12px"><div style="flex:0 1 200px"><label>M&ecirc;s</label><select id="movMes"></select></div></div>
+      <div class="scroller" id="listEfe"></div>
+    </div>
   </div>
 
   <div id="sub-plano" class="hidden">
@@ -10315,27 +10325,39 @@ function abrirEditMovimento(id){
 /* ─── Movimentos registrados, em calendário (mesma régua da Programação de
    férias). Embarque e desembarque pintam só o dia; destaque e curso pintam o
    período. Quem já desembarcou some de CREW.militares, então o rótulo vem do
-   próprio movimento. ─── */
-const MOV_CLS={embarque:'mvEmb',desembarque:'mvDes',destaque_ida:'mvDstSai',destaque_entrada:'mvDstEnt',curso_ida:'mvCurso'};
+   próprio movimento. Abaixo, o histórico em ordem cronológica, filtrável por mês. ─── */
+const MOV_CLS={embarque:'mvEmb',desembarque:'mvDes',destaque_ida:'mvDstSai',destaque_entrada:'mvDstEnt',curso_ida:'mvCurso',
+  destaque_volta:'mvDstVolta',curso_volta:'mvCursoVolta',efetivacao:'mvEfet',destaque_saida:'mvDstSaiOutra'};
 const MOV_LEGENDA=[['mvEmb','Embarque'],['mvDes','Desembarque'],['mvDstSai','Saída destaque'],
-  ['mvDstEnt','Entrada destaque'],['mvCurso','Curso'],['mvOutro','Regresso, efetivação e saída de destacado']];
+  ['mvDstEnt','Entrada destaque'],['mvCurso','Curso'],['mvDstVolta','Regresso de destaque'],
+  ['mvCursoVolta','Regresso de curso'],['mvEfet','Efetivação'],['mvDstSaiOutra','Saída de destacado de outra OM']];
+const MOV_SAIDAS=['desembarque','destaque_saida'];   /* saem do quadro de vez */
+const MOV_DIAS_NO_CALENDARIO=15;                     /* depois disso, só no histórico */
+const ORDEM_POSTO_MOV=['CMG','CF','CC','CT','1T','2T','GM','SO','1ºSG','2ºSG','3ºSG','CB','MN','SD'];
+function movRankPosto(posto){
+  const b=postoBase(posto||'').replace('1TEN','1T').replace('2TEN','2T').replace('CMG','CMG');
+  const i=ORDEM_POSTO_MOV.indexOf(b);
+  return i<0?99:i;
+}
 let movEditando=false, MOV_ULTIMO_ANO_SCROLL='';
 function movFimDe(e){ return (tipoTemPeriodo(e.tipo)&&e.fim&&e.fim>=e.data)?e.fim:e.data; }
 $('#movAno').onchange=()=>renderEfe();
+$('#movMes').onchange=()=>renderEfe();
 $('#movEditToggle').onclick=()=>{
   movEditando=!movEditando;
   $('#movEditToggle').classList.toggle('on',movEditando);
   $('#movEditToggle').textContent=movEditando?'✓ Editando — toque numa barra':'✏️ Editar movimentos';
   $('#movHint').textContent=movEditando?'Toque numa barra pra editar ou excluir esse movimento.':
-    'Embarque e desembarque marcam só o dia; destaque e curso preenchem o período. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.';
+    'Embarque e desembarque marcam só o dia; destaque e curso preenchem o período. Quem desembarcou sai do calendário após '+MOV_DIAS_NO_CALENDARIO+' dias e continua no histórico, abaixo. Toque numa barra pra ver os detalhes.';
   $('#movChip').classList.remove('on');
 };
 function renderEfe(){
   renderPendDest();
   const evs=EFE.eventos.filter(e=>e.data);
-  $('#nEfe').textContent=pad(EFE.eventos.length);
+  const hojeIso=hoje();
 
-  const sel=$('#movAno'), anoHoje=hoje().slice(0,4);
+  /* ── calendário ── */
+  const sel=$('#movAno'), anoHoje=hojeIso.slice(0,4);
   const anos=[...new Set(evs.flatMap(e=>[e.data.slice(0,4),movFimDe(e).slice(0,4)]).concat([anoHoje]))].sort().reverse();
   const antes=sel.value;
   sel.innerHTML=anos.map(a=>'<option>'+a+'</option>').join('');
@@ -10346,63 +10368,119 @@ function renderEfe(){
 
   $('#movLegenda').innerHTML='<div class="glegenda">'+MOV_LEGENDA.map(([c,t])=>'<span><i class="'+c+'"></i>'+t+'</span>').join('')+'</div>';
 
-  const doAno=evs.filter(e=>e.data.slice(0,4)<=ano&&movFimDe(e).slice(0,4)>=ano);
+  const chaveMil=e=>e.mil||e.nip||chave(e.nome||'');
+  const todosPorMil={};
+  evs.forEach(e=>{ (todosPorMil[chaveMil(e)]=todosPorMil[chaveMil(e)]||[]).push(e); });
+  /* já desembarcou há mais de 15 dias (e não voltou): sai do calendário do ano
+     corrente. Em ano passado mostra tudo, senão o calendário antigo esvaziaria. */
+  const saiuDoCalendario=k=>{
+    if(ano!==anoHoje)return false;
+    const ult=todosPorMil[k].slice().sort((a,b)=>b.data.localeCompare(a.data)||(b.ts||0)-(a.ts||0))[0];
+    return MOV_SAIDAS.includes(ult.tipo)&&addDias(ult.data,MOV_DIAS_NO_CALENDARIO)<hojeIso;
+  };
+  const doAno=evs.filter(e=>e.data.slice(0,4)<=ano&&movFimDe(e).slice(0,4)>=ano&&!saiuDoCalendario(chaveMil(e)));
   const host=$('#movWrap');
   if(!doAno.length){
-    host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum movimento registrado em '+ano+'.</p>';
-    return;
-  }
-  const chaveMil=e=>e.mil||e.nip||chave(e.nome||'');
-  const linhas={};
-  doAno.forEach(e=>{
-    const k=chaveMil(e);
-    (linhas[k]=linhas[k]||{k,mil:e.mil,nome:((e.posto||'')+' '+(e.nome||'')).trim(),evs:[]}).evs.push(e);
-  });
-  const ordem=Object.values(linhas).sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||a.nome.localeCompare(b.nome,'pt-BR'));
-  const cab=progCabecalho(anoNum,tot,hoje());
-  const mostraHoje=cab.mostraHoje, hojePct=cab.hojePct;
-  let g=cab.abre;
-  ordem.forEach(l=>{
-    const m=l.mil&&milPorId(l.mil), rot=m?rotulo(m):l.nome;
-    const segs=l.evs.map(e=>{
-      const fim=movFimDe(e);
-      const a=Math.max(0,(new Date(e.data+'T12:00:00')-ini0)/864e5);
-      const b=Math.min(tot,(new Date(fim+'T12:00:00')-ini0)/864e5+1);
-      const widthPct=Math.max(0.28,(b-a)/tot*100);
-      const larguraPx=widthPct/100*PROG_LARGURA_PX;
-      const txt=larguraPx>90?progFmtCurto(e.data)+' – '+progFmtCurto(fim):'';
-      const comPer=fim!==e.data;
-      const nDias=dias(e.data,fim);
-      const sit=!tipoTemPeriodo(e.tipo)||!e.fim?'':(e.pend==='aberto'&&e.fim<=hoje()?' · aguarda seu OK':
-        e.pend==='aberto'?' · em curso':e.pend==='encerrado'?' · encerrado':e.pend==='dispensado'?' · dispensado':'');
-      const extra=[e.om?'OM: '+e.om:'',e.curso?'Curso: '+e.curso:'',e.doc,e.msgref,e.obs].filter(Boolean);
-      const dtxt=(comPer?brDate(e.data)+' a '+brDate(fim)+' · '+nDias+(nDias===1?' dia':' dias'):brDate(e.data))+sit+
-        (extra.length?' — '+extra.join(' · '):'');
-      return '<button type="button" class="progSeg '+(MOV_CLS[e.tipo]||'mvOutro')+
-        '" style="left:'+(a/tot*100).toFixed(3)+'%;width:'+widthPct.toFixed(3)+'%" data-id="'+e.id+'" data-t="'+
-        esc(rot+' — '+(TIPO_EFE[e.tipo]||e.tipo))+'" data-d="'+esc(dtxt)+'">'+esc(txt)+'</button>';
-    }).join('');
-    g+='<div class="progNome">'+esc(rot)+'</div><div class="progTrack">'+
-      (mostraHoje?'<div class="progHoje" style="left:'+hojePct.toFixed(3)+'%"></div>':'')+segs+'</div>';
-  });
-  g+='</div>';
-  host.innerHTML=g;
+    host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum movimento a mostrar em '+ano+'.</p>';
+  }else{
+    const linhas={};
+    doAno.forEach(e=>{
+      const k=chaveMil(e);
+      (linhas[k]=linhas[k]||{k,mil:e.mil,posto:e.posto,nome:((e.posto||'')+' '+(e.nome||'')).trim(),evs:[]}).evs.push(e);
+    });
+    /* antiguidade: a posição na lista de tripulação/destacados; quem já não
+       está no quadro vai depois, por posto e nome */
+    const ordem=Object.values(linhas).sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||
+      movRankPosto(a.posto)-movRankPosto(b.posto)||a.nome.localeCompare(b.nome,'pt-BR'));
+    const cab=progCabecalho(anoNum,tot,hojeIso);
+    const mostraHoje=cab.mostraHoje, hojePct=cab.hojePct;
+    let g=cab.abre;
+    ordem.forEach(l=>{
+      const m=l.mil&&milPorId(l.mil), rot=m?rotulo(m):l.nome;
+      const segs=l.evs.map(e=>{
+        const fim=movFimDe(e);
+        const a=Math.max(0,(new Date(e.data+'T12:00:00')-ini0)/864e5);
+        const b=Math.min(tot,(new Date(fim+'T12:00:00')-ini0)/864e5+1);
+        const widthPct=Math.max(0.28,(b-a)/tot*100);
+        const larguraPx=widthPct/100*PROG_LARGURA_PX;
+        const txt=larguraPx>90?progFmtCurto(e.data)+' – '+progFmtCurto(fim):'';
+        const comPer=fim!==e.data;
+        const nDias=dias(e.data,fim);
+        const sit=!tipoTemPeriodo(e.tipo)||!e.fim?'':(e.pend==='aberto'&&e.fim<=hojeIso?' · aguarda seu OK':
+          e.pend==='aberto'?' · em curso':e.pend==='encerrado'?' · encerrado':e.pend==='dispensado'?' · dispensado':'');
+        const extra=[e.om?'OM: '+e.om:'',e.curso?'Curso: '+e.curso:'',e.doc,e.msgref,e.obs].filter(Boolean);
+        const dtxt=(comPer?brDate(e.data)+' a '+brDate(fim)+' · '+nDias+(nDias===1?' dia':' dias'):brDate(e.data))+sit+
+          (extra.length?' — '+extra.join(' · '):'');
+        return '<button type="button" class="progSeg '+(MOV_CLS[e.tipo]||'mvOutro')+
+          '" style="left:'+(a/tot*100).toFixed(3)+'%;width:'+widthPct.toFixed(3)+'%" data-id="'+e.id+'" data-t="'+
+          esc(rot+' — '+(TIPO_EFE[e.tipo]||e.tipo))+'" data-d="'+esc(dtxt)+'">'+esc(txt)+'</button>';
+      }).join('');
+      g+='<div class="progNome">'+esc(rot)+'</div><div class="progTrack">'+
+        (mostraHoje?'<div class="progHoje" style="left:'+hojePct.toFixed(3)+'%"></div>':'')+segs+'</div>';
+    });
+    g+='</div>';
+    host.innerHTML=g;
 
-  /* abre no dia de hoje, só na primeira vez que o ano aparece e com a tela visível */
-  if(mostraHoje&&MOV_ULTIMO_ANO_SCROLL!==ano&&host.clientWidth>0){
-    MOV_ULTIMO_ANO_SCROLL=ano;
-    host.scrollLeft=Math.max(0,112+hojePct/100*PROG_LARGURA_PX-host.clientWidth*0.4);
+    /* abre no dia de hoje, só na primeira vez que o ano aparece e com a tela visível */
+    if(mostraHoje&&MOV_ULTIMO_ANO_SCROLL!==ano&&host.clientWidth>0){
+      MOV_ULTIMO_ANO_SCROLL=ano;
+      host.scrollLeft=Math.max(0,112+hojePct/100*PROG_LARGURA_PX-host.clientWidth*0.4);
+    }
+    $$('#movWrap .progSeg').forEach(el=>el.addEventListener('click',ev=>{
+      ev.stopPropagation();
+      if(movEditando){abrirEditMovimento(el.dataset.id);return;}
+      const chip=$('#movChip');
+      chip.innerHTML='<b>'+esc(el.dataset.t)+'</b><span class="d">'+esc(el.dataset.d)+'</span>';
+      chip.classList.add('on');
+      clearTimeout(window.__movChipT);
+      window.__movChipT=setTimeout(()=>chip.classList.remove('on'),4500);
+    }));
+    host.onclick=ev=>{ if(!ev.target.classList.contains('progSeg'))$('#movChip').classList.remove('on'); };
   }
-  $$('#movWrap .progSeg').forEach(el=>el.addEventListener('click',ev=>{
-    ev.stopPropagation();
-    if(movEditando){abrirEditMovimento(el.dataset.id);return;}
-    const chip=$('#movChip');
-    chip.innerHTML='<b>'+esc(el.dataset.t)+'</b><span class="d">'+esc(el.dataset.d)+'</span>';
-    chip.classList.add('on');
-    clearTimeout(window.__movChipT);
-    window.__movChipT=setTimeout(()=>chip.classList.remove('on'),4500);
-  }));
-  host.onclick=ev=>{ if(!ev.target.classList.contains('progSeg'))$('#movChip').classList.remove('on'); };
+
+  /* ── histórico cronológico, com filtro por mês ── */
+  const mSel=$('#movMes');
+  const meses=[...new Set(evs.map(e=>e.data.slice(0,7)))].sort().reverse();
+  const mAntes=mSel.value;
+  mSel.innerHTML='<option value="">Todos os meses</option>'+
+    meses.map(m=>'<option value="'+m+'">'+m.slice(5)+'/'+m.slice(0,4)+'</option>').join('');
+  mSel.value=meses.includes(mAntes)?mAntes:'';
+  const filtroMes=mSel.value;
+  const ev=EFE.eventos.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')||b.ts-a.ts)
+    .filter(e=>!filtroMes||(e.data||'').slice(0,7)===filtroMes);
+  $('#nEfe').textContent=pad(ev.length)+(filtroMes?' de '+pad(EFE.eventos.length):'');
+  $('#listEfe').innerHTML=ev.length?('<table><thead><tr><th style="width:150px">Período</th><th>Militar</th>'+
+    '<th style="width:150px">Movimento</th><th style="width:90px">OM</th><th>ORDMOV / MSG REF / obs.</th>'+
+    '<th style="width:150px"></th></tr></thead><tbody>'+
+    ev.map(e=>{
+      const comPer=tipoTemPeriodo(e.tipo)&&e.fim;
+      let per='<span class="mono">'+brDate(e.data)+'</span>';
+      if(comPer)per+='<span class="mono" style="color:var(--muted)"> a </span><span class="mono">'+brDate(e.fim)+'</span>';
+      let sit='';
+      if(comPer){
+        if(e.pend==='aberto'&&e.fim<=hojeIso)sit='<br><span class="pill red">aguarda seu OK</span>';
+        else if(e.pend==='aberto')sit='<br><span class="pill blue">em curso</span>';
+        else if(e.pend==='encerrado')sit='<br><span class="pill in">encerrado</span>';
+        else if(e.pend==='dispensado')sit='<br><span class="pill">dispensado</span>';
+      }
+      return '<tr><td>'+per+sit+'</td>'+
+      '<td>'+esc((e.posto||'')+' '+(e.nome||''))+(e.nip?'<br><span class="mono" style="color:var(--muted);font-size:11px">'+esc(e.nip)+'</span>':'')+'</td>'+
+      '<td><span class="pill '+(e.tipo==='embarque'||e.tipo==='destaque_volta'||e.tipo==='destaque_entrada'||e.tipo==='curso_volta'||e.tipo==='efetivacao'?'in':'out')+'">'+
+        esc(TIPO_EFE[e.tipo]||e.tipo)+'</span>'+
+        (e.tipo==='curso_ida'?'<br><span style="font-size:10.5px;color:var(--'+(e.destacado?'terra':'bordo')+')">'+
+          (e.destacado?'destacado · fora da escala':'sem destacamento · na escala')+'</span>':'')+'</td>'+
+      '<td class="mono">'+esc(e.om||'—')+'</td>'+
+      '<td style="color:var(--muted)">'+esc([e.curso?'Curso: '+e.curso:'',e.doc,e.msgref,e.obs].filter(Boolean).join(' · ')||'—')+'</td>'+
+      '<td class="acts"><button class="mini" data-efeedit="'+e.id+'">Editar</button>'+
+      '<button class="mini del" data-efedel="'+e.id+'">Excluir</button></td></tr>';
+    }).join('')+
+    '</tbody></table>'):'<p class="hint" style="margin:0">'+(filtroMes?'Nenhum movimento neste mês.':'Nenhum movimento registrado ainda.')+'</p>';
+  $$('#listEfe [data-efeedit]').forEach(b=>b.onclick=()=>abrirEditMovimento(b.dataset.efeedit));
+  $$('#listEfe [data-efedel]').forEach(b=>b.onclick=()=>confirmar('Excluir registro',
+    'O movimento sai da relação. O cadastro do militar não muda.',async()=>{
+      EFE.eventos=EFE.eventos.filter(e=>e.id!==b.dataset.efedel);
+      if(await salvar('efetivo',EFE))toast('Registro excluído.');
+      renderEfe();}));
 }
 
 /* ===== pessoal — saúde ===== */
