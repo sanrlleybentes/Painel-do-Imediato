@@ -1251,7 +1251,7 @@ select.g-in{appearance:auto}
   </div>
 
   <div class="g-pane" id="p-cod">
-    <p class="g-txt">Enviamos um código de 6 dígitos para o seu e-mail. Digite para confirmar que o e-mail é seu.</p>
+    <p class="g-txt">Enviamos um código de 6 dígitos para o seu e-mail. Digite para confirmar que o e-mail é seu.<br><b>Não chegou? Olhe a pasta Spam</b> e marque a mensagem como “Não é spam”.</p>
     <div class="g-cod" id="codCaixas"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"></div>
     <div class="g-erro" id="codErro"></div>
     <button class="g-btn" id="codConfirmar">Confirmar</button>
@@ -1273,7 +1273,7 @@ select.g-in{appearance:auto}
   </div>
 
   <div class="g-pane" id="p-senha2">
-    <p class="g-txt">Digite o código que chegou no e-mail e a senha nova.</p>
+    <p class="g-txt">Digite o código que chegou no e-mail e a senha nova. Não chegou? Olhe a pasta <b>Spam</b>.</p>
     <div class="g-cod" id="senCaixas"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"></div>
     <div class="g-row"><input class="g-in" type="password" id="senNova" placeholder="Senha nova" autocomplete="new-password"><input class="g-in" type="password" id="senNova2" placeholder="Repetir" autocomplete="new-password"></div>
     <div class="g-erro" id="sen2Erro"></div>
@@ -4943,7 +4943,7 @@ function msgLogin(e){
 }
 function mostraEspera(){
   $('#gEsperaTxt').innerHTML='<b>Cadastro aguardando aprovação do Imediato.</b><br>'+esc(nomePerfil())+
-    (PERFIL&&PERFIL.email?' · '+esc(PERFIL.email):'')+'<br>Assim que for aprovado, você entra direto daqui.';
+    (PERFIL&&PERFIL.email?' · '+esc(PERFIL.email):'')+'<br>Assim que for aprovado, você recebe um e-mail com a chave do autenticador. <b>Olhe também a pasta Spam.</b>';
   gPane('espera');
 }
 async function entraComConta(daSessaoGuardada){
