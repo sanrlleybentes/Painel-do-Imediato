@@ -3735,12 +3735,12 @@ async function gravarChave(chave,valor){
    NADA pode ser gravado. Sem isso, uma falha de leitura deixa as listas vazias na
    memória e a primeira gravação apaga o que estava salvo. */
 let CARGA_OK=false;
-async function salvar(chave,valor){
+async function salvar(chave,valor,acao){
   if(!CARGA_OK){
     toast('Dados ainda não carregados do banco. Recarregue a página antes de alterar.',true);
     return false;
   }
-  if(!podeEditar(TAB)){avisaSoLeitura();return false;}
+  if(!podeEditar(TAB)&&!(acao&&podeAcao(acao))){avisaSoLeitura();return false;}
   try{await gravarChave(chave,valor);lastSync=new Date();return true;}
   catch(e){toast('Não foi possível gravar: '+e.message,true);return false;}
 }
@@ -4805,6 +4805,12 @@ const SESSAO_KEY='sigabSessao', PERFIL_KEY='sigabPerfil', RAPIDO_KEY='sigabRapid
 const MOD_SIGAB=[['painel','Painel'],['efetivo','Pessoal'],['ferias','Férias'],['servico','Serviço'],
   ['munic','Municiamento'],['agenda','Agenda ADM'],['obtencao','Obtenção'],['config','Configurações']];
 const MOD_QUANTOCA=[['quadro','Quadro'],['pessoal','Pessoal']];
+/* Ações avulsas: liberadas além da permissão do módulo. Guardadas junto com o
+   acesso rápido (modulo 'acao:<nome>'), lendo o nível assim:
+     edita  = todos, inclusive o acesso rápido   (padrão quando não há linha)
+     ver    = só contas aprovadas
+     nenhum = só quem edita o módulo */
+const ACOES_AVULSAS=[['ferias_incluir','Incluir férias'],['papeleta_ferias','Gerar papeleta de férias'],['papeleta_troca','Gerar papeleta de troca de serviço']];
 let MODO=null;            /* 'conta' | 'rapido' | null (ainda no portão) */
 let PERFIL=null, RAPIDO=[], TFA_ATE=0, TFA_SETUP=null;
 let SESSAO=null; try{SESSAO=JSON.parse(localStorage.getItem(SESSAO_KEY)||'null');}catch(e){}
@@ -4850,6 +4856,16 @@ function podeVer(tab){
     const i=RAPIDO.find(x=>x.sistema==='sigab'&&x.modulo===tab);
     return !!i&&i.nivel!=='nenhum';
   }
+  return false;
+}
+function nivelAcao(acao){
+  const i=RAPIDO.find(x=>x.sistema==='sigab'&&x.modulo==='acao:'+acao);
+  return i?i.nivel:'edita';
+}
+function podeAcao(acao){
+  const n=nivelAcao(acao);
+  if(MODO==='rapido')return n==='edita';
+  if(MODO==='conta'&&PERFIL&&PERFIL.status==='aprovado')return n!=='nenhum';
   return false;
 }
 function podeEditar(tab){
@@ -4959,6 +4975,8 @@ async function entraComConta(daSessaoGuardada){
   }
   if(PERFIL.status==='aguardando'){mostraEspera();window.abrePortao();return false;}
   if(PERFIL.status==='bloqueado'){sessaoGuarda(null);gPane('login');gErro('gErroLogin','Acesso bloqueado pelo Imediato.');window.abrePortao();return false;}
+  try{ const r=await acessoChama('rapido_config',{},false); RAPIDO=r.itens||[]; lsGrava(RAPIDO_KEY,RAPIDO); }
+  catch(e){ RAPIDO=lsLe(RAPIDO_KEY)||[]; }
   MODO='conta'; aplicaAcesso(); if(CARGA_OK)renderAtual(); window.fechaSplash();
   return true;
 }
@@ -5111,7 +5129,9 @@ function acPermsDe(id){return $$('.acPerms[data-perfil="'+id+'"] input:checked')
 function acRender(){
   const el=$('#acCorpo'); if(!el||!AC)return;
   const eu=PERFIL&&PERFIL.id;
-  const pend=AC.perfis.filter(p=>p.status==='aguardando'), apr=AC.perfis.filter(p=>p.status==='aprovado'), blq=AC.perfis.filter(p=>p.status==='bloqueado');
+  /* sempre em ordem de antiguidade (posição na lista da tripulação) */
+  const perfis=AC.perfis.slice().sort((a,b)=>ordemAtual(a.militar_id)-ordemAtual(b.militar_id));
+  const pend=perfis.filter(p=>p.status==='aguardando'), apr=perfis.filter(p=>p.status==='aprovado'), blq=perfis.filter(p=>p.status==='bloqueado');
   $('#nAcPend').textContent=pad(pend.length);
   const quando=d=>d?new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
   const item=(p,btns)=>'<div class="acItem"><div class="acTopo"><span><b>'+esc(acNome(p))+'</b>'+(p.admin?'<span class="acTag">ADMIN</span>':'')+
@@ -5128,7 +5148,10 @@ function acRender(){
     '<div class="acBloco"><h3>Acesso rápido (sem senha)</h3><div class="acRap">'+
       MOD_SIGAB.filter(([m])=>m!=='config').map(([m,r])=>'<label>SIGAB · '+esc(r)+'<select data-rap-s="sigab" data-rap-m="'+m+'"><option value="nenhum">não vê</option><option value="ver"'+(rapNivel('sigab',m)==='ver'?' selected':'')+'>vê (só leitura)</option></select></label>').join('')+
       '<label>QUANTOCA · Quadro<select data-rap-s="quantoca" data-rap-m="quadro"><option value="nenhum">não mexe</option><option value="edita"'+(rapNivel('quantoca','quadro')==='edita'?' selected':'')+'>edita</option></select></label>'+
-    '</div><div class="acBtns" style="margin-top:8px">'+b('rapido','','Salvar acesso rápido')+'</div></div>'+
+    '</div><h3 style="margin-top:14px">Ações liberadas</h3><p class="hint" style="margin:0 0 8px">Valem mesmo para quem só vê o módulo. O Plano de Busca continua sempre atrás do autenticador.</p><div class="acRap">'+
+      ACOES_AVULSAS.map(([a,r])=>{const n=(AC.acesso_rapido||[]).find(x=>x.sistema==='sigab'&&x.modulo==='acao:'+a);const v=n?n.nivel:'edita';
+        return '<label>'+esc(r)+'<select data-rap-s="sigab" data-rap-m="acao:'+a+'"><option value="edita"'+(v==='edita'?' selected':'')+'>todos, inclusive acesso rápido</option><option value="ver"'+(v==='ver'?' selected':'')+'>só contas aprovadas</option><option value="nenhum"'+(v==='nenhum'?' selected':'')+'>só quem edita o módulo</option></select></label>';}).join('')+
+    '</div><div class="acBtns" style="margin-top:8px">'+b('rapido','','Salvar acesso rápido e ações')+'</div></div>'+
     '<div class="acBloco"><h3>Rastro</h3><div class="acBtns">'+b('rastro','','Ver o rastro e conferir as cadeias','ghost')+'</div><div id="acRastro"></div></div>';
 }
 async function acAcao(ac,id){
@@ -5144,7 +5167,7 @@ async function acAcao(ac,id){
     async()=>{try{await acessoChama('admin_passar_cargo',{perfil_id:id});toast('Cargo passado para '+nome+'.');PERFIL.admin=false;lsGrava(PERFIL_KEY,PERFIL);renderConfig();faixaSessao();}catch(e){toast(e.message,true);}});
   if(ac==='rapido'){
     const itens=$$('[data-rap-s]').map(x=>({sistema:x.dataset.rapS,modulo:x.dataset.rapM,nivel:x.value}));
-    return faz('admin_rapido_config',{itens:itens},'Acesso rápido gravado.');
+    return faz('admin_rapido_config',{itens:itens},'Acesso rápido e ações gravados.').then(()=>{RAPIDO=RAPIDO.filter(x=>!itens.some(i=>i.sistema===x.sistema&&i.modulo===x.modulo)).concat(itens);lsGrava(RAPIDO_KEY,RAPIDO);});
   }
   if(ac==='rastro'){
     const box=$('#acRastro'); box.innerHTML='<p class="hint">Conferindo…</p>';
@@ -12111,7 +12134,7 @@ $('#fAdd').onclick=async()=>{
   FER.periodos.push({id:uid(),mil,tipo:$('#fTipo').value,ini,fim,
     anoRef:$('#fAnoRef').value||String(new Date().getFullYear()-1),
     status:'programada',obs:$('#fObs').value.trim(),ts:Date.now()});
-  const ok=await salvar('ferias',FER);
+  const ok=await salvar('ferias',FER,'ferias_incluir');
   setDataDia('fIni','');setDataDia('fFim','');$('#fObs').value='';$('#fAviso').innerHTML='';
   renderFerias();if(ok)toast('Afastamento programado.');
 };
@@ -13611,8 +13634,8 @@ $('#trGerar').onclick=async()=>{
     TRC.itens.push(t);
     if(detalId)CFG.detalhistaId=detalId;
     if(autId)CFG.autId=autId;
-    await salvar('cfg',CFG);
-    const ok=await salvar('trocas',TRC);
+    await salvar('cfg',CFG,'papeleta_troca');
+    const ok=await salvar('trocas',TRC,'papeleta_troca');
     $('#trMotivo').value='';
     renderTrocas();
     if(!ok)toast('PDF gerado, mas não consegui gravar o registro.',true);
@@ -18113,7 +18136,7 @@ $('#pfGerar').onclick=async()=>{
     entregarPdf(D.bytes(),nomeArquivoPapeleta(reg));
     PAP.itens.push(Object.assign({id:uid()},reg));
     PAP.proximoNumero=reg.numero+1;
-    const ok=await salvar('papeletas',PAP);
+    const ok=await salvar('papeletas',PAP,'papeleta_ferias');
     renderPapeletas();
     if(!ok)toast('PDF gerado, mas não consegui gravar o registro no banco.',true);
   }catch(err){toast('Falhou ao montar a papeleta: '+(err&&err.message?err.message:'erro'),true);}
