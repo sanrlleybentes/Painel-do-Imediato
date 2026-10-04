@@ -4774,7 +4774,8 @@ document.addEventListener('click',e=>{
    não fica aberto para quem pegar o aparelho depois. */
 let CFG_ABERTO=false;
 function renderConfig(){
-  if(!CFG_ABERTO&&tfaValido())CFG_ABERTO=true;   /* 2FA confirmado há menos de 30 min */
+  if(CFG_ABERTO&&!podeEditar('config'))CFG_ABERTO=false;
+  if(!CFG_ABERTO&&tfaValido()&&podeEditar('config'))CFG_ABERTO=true;   /* 2FA confirmado há menos de 30 min */
   $('#cfgTranca').classList.toggle('hidden',CFG_ABERTO);
   $('#cfgConteudo').classList.toggle('hidden',!CFG_ABERTO);
   if(!CFG_ABERTO)tfaPreparaTrava('#cfgTranca');
@@ -4787,7 +4788,7 @@ function renderConfig(){
   }
 }
 (function(){
-  ligaTrava('#cfgSenha','#cfgEntrar',()=>{CFG_ABERTO=true;renderConfig();});
+  ligaTrava('#cfgSenha','#cfgEntrar',()=>{CFG_ABERTO=podeEditar('config');renderConfig();});
   const bFe=$('#cfgFechar'); if(bFe)bFe.onclick=()=>{CFG_ABERTO=false;TFA_ATE=0;renderConfig();};
 })();
 
@@ -4803,7 +4804,9 @@ const ACESSO_URL=SB_URL+'/functions/v1/acesso';
 const SESSAO_KEY='sigabSessao', PERFIL_KEY='sigabPerfil', RAPIDO_KEY='sigabRapido';
 const MOD_SIGAB=[['painel','Painel'],['efetivo','Pessoal'],['ferias','Férias'],['servico','Serviço'],
   ['munic','Municiamento'],['agenda','Agenda ADM'],['obtencao','Obtenção'],['config','Configurações']];
-const MOD_QUANTOCA=[['quadro','Quadro'],['pessoal','Pessoal']];
+const MOD_QUANTOCA=[['quadro','Quadro'],['historico','Histórico e Exportar'],['pessoal','Pessoal e Banco de dados']];
+/* Cada trava com 2FA só serve a quem EDITA o módulo dono dela: ter o 2FA não basta. */
+const TRAVA_MOD={'#pbTranca':['efetivo','Pessoal'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
 /* Ações avulsas: liberadas além da permissão do módulo. Guardadas junto com o
    acesso rápido (modulo 'acao:<nome>'), lendo o nível assim:
      edita  = todos, inclusive o acesso rápido   (padrão quando não há linha)
@@ -4867,6 +4870,9 @@ function podeAcao(acao){
   if(MODO==='conta'&&PERFIL&&PERFIL.status==='aprovado')return n!=='nenhum';
   return false;
 }
+/* Plano de Busca (dados pessoais): só quem edita Pessoal, e sempre com o 2FA.
+   O militar comum só preenche a própria ficha pelo link #ficha, que vai para ratificação. */
+function podeVerPlano(){return podeEditar('efetivo');}
 function podeEditar(tab){
   if(MODO!=='conta'||!PERFIL||PERFIL.status!=='aprovado')return false;
   if(PERFIL.admin)return true;
@@ -5093,6 +5099,10 @@ async function tfaPreparaTrava(sel){
     if(linha)linha.style.display='none'; return;
   }
   if(linha)linha.style.display='';
+  if(TRAVA_MOD[sel]&&!podeEditar(TRAVA_MOD[sel][0])){
+    area.innerHTML='<p class="hint" style="margin:0;color:var(--terra)">Esta área só abre para quem <b>edita o módulo '+TRAVA_MOD[sel][1]+'</b>. O 2FA sozinho não basta — peça ao Imediato.</p>';
+    if(linha)linha.style.display='none'; return;
+  }
   if(PERFIL&&PERFIL.tfa&&PERFIL.tfa.confirmado){area.innerHTML='';return;}
   if(!(PERFIL&&PERFIL.admin)){
     area.innerHTML='<p class="hint" style="margin:0">A chave do seu autenticador chegou no seu e-mail quando o Imediato aprovou o acesso. Perdeu? Peça ao Imediato para refazer o 2FA.</p>';
@@ -9235,7 +9245,8 @@ function renderObtBuscar(){
 let OBT_CFG_ABERTA=false;
 
 function renderObtConfig(){
-  if(!OBT_CFG_ABERTA&&tfaValido())OBT_CFG_ABERTA=true;
+  if(OBT_CFG_ABERTA&&!podeEditar('obtencao'))OBT_CFG_ABERTA=false;
+  if(!OBT_CFG_ABERTA&&tfaValido()&&podeEditar('obtencao'))OBT_CFG_ABERTA=true;
   const tranca=$('#obtCfgTranca'), painel=$('#obtCfgPainel');
   if(!tranca||!painel)return;
   tranca.classList.toggle('hidden',OBT_CFG_ABERTA);
@@ -9352,7 +9363,7 @@ function obtLiga(){
   }
 
   /* ---- configuração, atrás de senha ---- */
-  ligaTrava('#obtCfgSenha','#obtCfgEntrar',()=>{ OBT_CFG_ABERTA=true; renderObtConfig(); });
+  ligaTrava('#obtCfgSenha','#obtCfgEntrar',()=>{ OBT_CFG_ABERTA=podeEditar('obtencao'); renderObtConfig(); });
   const bFe=$('#obtCfgFechar');
   if(bFe)bFe.onclick=()=>{ OBT_CFG_ABERTA=false; TFA_ATE=0; renderObtConfig(); };
   const bR=$('#obtRadarAtualiza'); if(bR)bR.onclick=obtAtualizaRadar;
@@ -9817,7 +9828,8 @@ function chaveNip(v){ return String(v||'').replace(/\D/g,''); }
 function renderPlano(){
   const t=$('#pbTranca'), c=$('#pbConteudo');
   if(!t)return;
-  if(!PB_ABERTO&&tfaValido())PB_ABERTO=true;
+  if(PB_ABERTO&&!podeVerPlano())PB_ABERTO=false;
+  if(!PB_ABERTO&&tfaValido()&&podeVerPlano())PB_ABERTO=true;
   t.classList.toggle('hidden',PB_ABERTO);
   c.classList.toggle('hidden',!PB_ABERTO);
   if(!PB_ABERTO){tfaPreparaTrava('#pbTranca');return;}
@@ -15278,7 +15290,7 @@ if($('#marePorto')){
   };
   $('#mareGeoBtn').onclick=mareUsarLocalizacao;
 }
-ligaTrava('#pbSenha','#pbEntrar',()=>{PB_ABERTO=true;renderPlano();});
+ligaTrava('#pbSenha','#pbEntrar',()=>{PB_ABERTO=podeVerPlano();renderPlano();});
 if($('#pbFechar'))$('#pbFechar').onclick=()=>{PB_ABERTO=false;TFA_ATE=0;renderPlano();};
 if($('#pbBusca'))$('#pbBusca').addEventListener('input',renderListaPB);
 if($('#pbImportar'))$('#pbImportar').onclick=()=>confirmar('Carregar planilha do navio',
