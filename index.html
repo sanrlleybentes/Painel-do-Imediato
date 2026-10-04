@@ -3414,6 +3414,7 @@ const RELACAO=[
  ['MN','25.0268.44','VICTOR VAZ DE QUEIROZ','QUEIROZ']];
 
 let TAF=null;
+let PES_RES={dados:{}}, PES_OK=false;   /* resumo público (aniversário, sangue) e se o Plano completo veio */
 let CREW=null,CFG=null,EFE=null,FER=null,PAG=null,PAI=null,GAS=null,RAN=null,CAR=null,DOCS=null,PAP=null,SRV=null,DET=null,TRC=null,SAU=null,MED=null,FOR=null,PES=null,COM=null,DM=null,TMFT=null;
 let TAB='painel', SUB_PAINEL='visao', SUB='gastos', SUB_EFE='tripulacao', SUB_DM='controle', SUB_FER='programadas', SUB_SRV='detalhes', SUB_DET='porto', SUB_SVCAT='sporto',
   SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', SUB_TMFT='metadados', SUB_TMFTMETA='planilha', TMFT_MIL='',
@@ -3740,6 +3741,7 @@ async function salvar(chave,valor,acao){
     return false;
   }
   if(!podeEditar(TAB)&&!(acao&&podeAcao(acao))){avisaSoLeitura();return false;}
+  if(chave==='pessoal'&&valor===PES&&!PES_OK){toast('O Plano de Busca ainda não carregou. Abra-o de novo e tente outra vez.',true);return false;}
   try{await gravarChave(chave,valor,acao);lastSync=new Date();return true;}
   catch(e){toast('Não foi possível gravar: '+e.message,true);return false;}
 }
@@ -3926,7 +3928,13 @@ async function load(first){
   }
   TRC=m.trocas||{itens:[]};
   SAU=m.saude||{inspecoes:[]};
-  PES=m.pessoal||{dados:{}};
+  /* Plano de Busca: a chave pública não lê mais `pessoal` (passo 5b). O site usa o resumo
+     (aniversário, sangue); o completo vem da função quando o Plano de Busca abre. */
+  PES_RES=m.pessoal_resumo||{dados:{}};
+  if(m.pessoal){PES=m.pessoal;PES_OK=true;}            /* antes do fechamento ainda chega aqui */
+  else if(!PES_OK)PES={dados:{}};
+  else if(podeVerPlano()&&tfaValido())carregaPessoal();  /* algo mudou: traz o Plano de novo */
+  else{PES={dados:{}};PES_OK=false;}
   DM=m.diasmar||{baseline:[],termos:[]};
   if(!DM.baseline)DM.baseline=[];
   if(!DM.termos)DM.termos=[];
@@ -9822,7 +9830,20 @@ async function exportarPlanoBusca(){
   }finally{ b.disabled=false; b.textContent=rot; }
 }
 
-function fichaDe(id){ return (PES.dados&&PES.dados[id])||{}; }
+function fichaDe(id){ return (PES.dados&&PES.dados[id])||(PES_RES.dados&&PES_RES.dados[id])||{}; }
+/* traz o Plano de Busca completo pela função (só quem edita Pessoal, com 2FA) */
+let PES_CARREGANDO=null;
+function carregaPessoal(){
+  if(PES_CARREGANDO)return PES_CARREGANDO;
+  PES_CARREGANDO=acessoChama('pessoal_ler').then(r=>{
+    PES=r.valor||{dados:{}}; PES_OK=true;
+    if(r.versao)ATUAL_VISTO.pessoal=Date.parse(r.versao)||0;
+    if(TAB==='efetivo'&&PB_ABERTO)renderPlano();
+    return true;
+  }).catch(e=>{toast('Não consegui abrir o Plano de Busca: '+e.message,true);return false;})
+    .finally(()=>{PES_CARREGANDO=null;});
+  return PES_CARREGANDO;
+}
 function chaveNip(v){ return String(v||'').replace(/\D/g,''); }
 
 function renderPlano(){
@@ -9832,7 +9853,15 @@ function renderPlano(){
   if(!PB_ABERTO&&tfaValido()&&podeVerPlano())PB_ABERTO=true;
   t.classList.toggle('hidden',PB_ABERTO);
   c.classList.toggle('hidden',!PB_ABERTO);
-  if(!PB_ABERTO){tfaPreparaTrava('#pbTranca');return;}
+  if(!PB_ABERTO){
+    tfaPreparaTrava('#pbTranca');
+    if(PES_OK&&!podeVerPlano()){PES={dados:{}};PES_OK=false;}   /* sem permissão: nada do Plano fica na memória */
+    return;
+  }
+  if(!PES_OK){
+    if($('#listPB'))$('#listPB').innerHTML='<p class="hint" style="margin:0">Carregando o Plano de Busca…</p>';
+    carregaPessoal(); return;
+  }
   const base=location.href.split('#')[0];
   if($('#pbLink'))$('#pbLink').value=base+'#ficha';
   renderListaPB(); renderRecebidosPB(); renderFilaFichas();
@@ -18238,9 +18267,11 @@ $('#cSaveDetal').onclick=async()=>{
 /* A comissão em curso é definida no módulo Municiamento, que já a usa para orçar
    e prestar contas. O card duplicado nas Configurações saiu; CFG.comissao segue
    sendo lido apenas para não quebrar o que foi salvo no formato antigo. */
-$('#bkpOut').onclick=()=>{
+$('#bkpOut').onclick=async()=>{
+  if(!PES_OK&&podeVerPlano()&&tfaValido())await carregaPessoal();
+  if(!PES_OK)toast('O backup sai sem o Plano de Busca (só quem edita Pessoal, com o autenticador, baixa esses dados).',true);
   const dump={versao:3,gerado:new Date().toISOString(),crew:CREW,cfg:CFG,efetivo:EFE,ferias:FER,
-    pagamento:PAG,paiol:PAI,gastos:GAS,rancho:RAN,cardapio:CAR,fornecedores:FOR,pessoal:PES,comissoes:COM,docs:{lista:DOCS.lista},papeletas:PAP,
+    pagamento:PAG,paiol:PAI,gastos:GAS,rancho:RAN,cardapio:CAR,fornecedores:FOR,pessoal:PES_OK?PES:undefined,comissoes:COM,docs:{lista:DOCS.lista},papeletas:PAP,
     servicos:SRV,detalhes:DET,trocas:TRC,saude:SAU,medicamentos:MED,obtencao:OBT};
   baixarTexto(JSON.stringify(dump,null,1),'backup-imediato-'+hoje()+'.json','application/json');
 };
