@@ -3554,9 +3554,11 @@ async function sb(caminho,opt){
 const TAB_DE={crew:'bordo_dados',cfg:'bordo_dados'};
 const tabelaDe=chave=>TAB_DE[chave]||'imediato_dados';
 async function gravarChave(chave,valor){
+  const agora=new Date().toISOString();
   await sb(tabelaDe(chave)+'?on_conflict=chave',{method:'POST',
     headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify([{chave:chave,valor:valor,atualizado:new Date().toISOString()}])});
+    body:JSON.stringify([{chave:chave,valor:valor,atualizado:agora}])});
+  ATUAL_VISTO[chave]=Date.parse(agora); /* gravação minha não deve disparar recarga */
 }
 /* Trava de segurança: enquanto os dados não tiverem sido lidos com sucesso do banco,
    NADA pode ser gravado. Sem isso, uma falha de leitura deixa as listas vazias na
@@ -3573,13 +3575,29 @@ async function salvar(chave,valor){
 /* Os modelos .docx da Dispensa pesam 660 KB numa linha só. Ficam de fora da
    carga geral de propósito: quem abre o painel para ver o efetivo do dia não
    pode pagar esse peso. O módulo os busca sozinho quando precisa. */
-const CHAVES_SOB_DEMANDA=['dispensa_modelos'];
+const CHAVES_SOB_DEMANDA=['dispensa_modelos','catalogo_compras'];
+/* chave -> instante (ms) da última versão que esta aba já viu. Serve para a
+   verificação barata de 20 s: em vez de rebaixar o banco inteiro (~1,2 MB), o
+   app pergunta só "chave, atualizado" (poucos KB) e recarrega se algo mudou. */
+const ATUAL_VISTO={};
 async function carregarTudo(){
   const fora='&chave=not.in.('+CHAVES_SOB_DEMANDA.join(',')+')';
-  const [b,i]=await Promise.all([sb('bordo_dados?select=chave,valor'),
-    sb('imediato_dados?select=chave,valor'+fora)]);
-  const m={};(b||[]).concat(i||[]).forEach(l=>m[l.chave]=l.valor);
+  const [b,i]=await Promise.all([sb('bordo_dados?select=chave,valor,atualizado'),
+    sb('imediato_dados?select=chave,valor,atualizado'+fora)]);
+  const m={};(b||[]).concat(i||[]).forEach(l=>{m[l.chave]=l.valor;ATUAL_VISTO[l.chave]=Date.parse(l.atualizado)||0;});
   return m;
+}
+/* true se outra pessoa/aba gravou algo desde a última carga desta aba */
+async function bancoMudou(){
+  try{
+    const fora='&chave=not.in.('+CHAVES_SOB_DEMANDA.join(',')+')';
+    const [b,i]=await Promise.all([sb('bordo_dados?select=chave,atualizado'),
+      sb('imediato_dados?select=chave,atualizado'+fora)]);
+    return (b||[]).concat(i||[]).some(l=>(Date.parse(l.atualizado)||0)>(ATUAL_VISTO[l.chave]||0));
+  }catch(e){return false;}
+}
+async function recargaInteligente(){
+  if(await bancoMudou())load(false);
 }
 function toast(msg,err){const h=$('#toastHost');h.innerHTML='<div class="toast'+(err?' err':'')+'">'+esc(msg)+'</div>';
   setTimeout(()=>h.innerHTML='',3400);}
@@ -17644,8 +17662,8 @@ $('#bkpIn').onclick=()=>{
    montada, para — quem entrar depois disso só recarrega abrindo o link
    de novo. */
 function fichaJaMontada(){ const s=$('#pubMil'); return !!(s&&s.dataset.pronto); }
-setInterval(()=>{if(!document.hidden&&TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))load(false);},20000);
-window.addEventListener('focus',()=>{if(TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))load(false);});
+setInterval(()=>{if(!document.hidden&&TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))recargaInteligente();},20000);
+window.addEventListener('focus',()=>{if(TAB==='painel'&&!(ehTelaFicha()&&fichaJaMontada()))recargaInteligente();});
 ajustaEfe();
 obtLiga();
 dispZera(); dispLeRascunho(); dispLiga();
