@@ -3724,12 +3724,11 @@ async function sb(caminho,opt){
 }
 const TAB_DE={crew:'bordo_dados',cfg:'bordo_dados'};
 const tabelaDe=chave=>TAB_DE[chave]||'imediato_dados';
-async function gravarChave(chave,valor){
-  const agora=new Date().toISOString();
-  await sb(tabelaDe(chave)+'?on_conflict=chave',{method:'POST',
-    headers:{'Prefer':'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify([{chave:chave,valor:valor,atualizado:agora}])});
-  ATUAL_VISTO[chave]=Date.parse(agora); /* gravação minha não deve disparar recarga */
+/* Passo 5: nada grava direto no banco. A função `acesso` confere quem é, se pode editar o
+   módulo dono da chave (ou se é uma ação liberada que só acrescenta) e deixa o rastro. */
+async function gravarChave(chave,valor,acao){
+  const r=await acessoChama('sigab_gravar',{chave:chave,valor:valor,modulo:TAB,acao_liberada:acao||null,aparelho_id:aparelhoId()});
+  ATUAL_VISTO[chave]=Date.parse(r.versao)||Date.now(); /* gravação minha não deve disparar recarga */
 }
 /* Trava de segurança: enquanto os dados não tiverem sido lidos com sucesso do banco,
    NADA pode ser gravado. Sem isso, uma falha de leitura deixa as listas vazias na
@@ -3741,7 +3740,7 @@ async function salvar(chave,valor,acao){
     return false;
   }
   if(!podeEditar(TAB)&&!(acao&&podeAcao(acao))){avisaSoLeitura();return false;}
-  try{await gravarChave(chave,valor);lastSync=new Date();return true;}
+  try{await gravarChave(chave,valor,acao);lastSync=new Date();return true;}
   catch(e){toast('Não foi possível gravar: '+e.message,true);return false;}
 }
 /* Os modelos .docx da Dispensa pesam 660 KB numa linha só. Ficam de fora da
