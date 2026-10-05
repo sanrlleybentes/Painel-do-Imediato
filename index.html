@@ -4988,21 +4988,57 @@ async function entraComConta(daSessaoGuardada){
   }
   if(PERFIL.status==='aguardando'){mostraEspera();window.abrePortao();return false;}
   if(PERFIL.status==='bloqueado'){sessaoGuarda(null);gPane('login');gErro('gErroLogin','Acesso bloqueado pelo Imediato.');window.abrePortao();return false;}
-  try{ const r=await acessoChama('rapido_config',{},false); RAPIDO=r.itens||[]; lsGrava(RAPIDO_KEY,RAPIDO); }
-  catch(e){ RAPIDO=lsLe(RAPIDO_KEY)||[]; }
+  await carregaRapido();
   MODO='conta'; aplicaAcesso(); if(CARGA_OK)renderAtual(); window.fechaSplash();
   return true;
 }
-async function entraRapido(){
-  gOcupado('#gRapido',true);
+async function carregaRapido(){
   try{ const r=await acessoChama('rapido_config',{},false); RAPIDO=r.itens||[]; lsGrava(RAPIDO_KEY,RAPIDO); }
-  catch(e){ RAPIDO=lsLe(RAPIDO_KEY)||[]; }
+  catch(e){ RAPIDO=lsLe(RAPIDO_KEY)||RAPIDO||[]; }
+}
+async function entraRapido(){
+  const guardado=lsLe(RAPIDO_KEY);
+  if(guardado){        /* já conhece o que o ADMIN liberou: entra na hora e atualiza em segundo plano */
+    RAPIDO=guardado; MODO='rapido'; aplicaAcesso(); if(CARGA_OK)renderAtual(); window.fechaSplash();
+    carregaRapido().then(()=>{ if(MODO==='rapido'){aplicaAcesso(); if(CARGA_OK)renderAtual();} });
+    return;
+  }
+  gOcupado('#gRapido',true);
+  await carregaRapido();
   gOcupado('#gRapido',false);
   MODO='rapido'; aplicaAcesso(); if(CARGA_OK)renderAtual(); window.fechaSplash();
 }
+/* O toque na abertura não pode esperar a internet do rio (cada chamada leva de 0,5 a vários
+   segundos). Quem já tem sessão e perfil guardados neste aparelho entra NA HORA com eles, e o
+   servidor confere em segundo plano. Isso só muda o que aparece na tela: toda gravação continua
+   sendo conferida no servidor. Se a sessão tiver vencido, avisa e volta ao portão. */
+function recarrega(){location.reload();}
+async function confereEmSegundoPlano(){
+  try{
+    const p=await acessoChama('eu');
+    if(p.status!=='aprovado'){sessaoGuarda(null);lsGrava(PERFIL_KEY,null);recarrega();return;}
+    PERFIL=p; lsGrava(PERFIL_KEY,p);
+    await carregaRapido();
+    aplicaAcesso(); if(CARGA_OK)renderAtual();
+  }catch(e){
+    if(e.status===401||e.status===403){
+      sessaoGuarda(null); lsGrava(PERFIL_KEY,null);
+      toast('Sua sessão venceu. Entre de novo.',true); setTimeout(recarrega,1800);
+    }                                     /* sem rede ou erro do servidor: segue com o que tem */
+  }
+}
+function entradaPeloGuardado(guardado){
+  PERFIL=guardado; RAPIDO=lsLe(RAPIDO_KEY)||[];
+  MODO='conta'; aplicaAcesso(); if(CARGA_OK)renderAtual(); window.fechaSplash();
+  confereEmSegundoPlano();
+}
 function portaoDecide(){
   if(ehTelaFicha()){window.fechaSplash();return;}
-  if(SESSAO){entraComConta(true);return;}
+  if(SESSAO){
+    const g=lsLe(PERFIL_KEY);
+    if(g&&g.status==='aprovado'){entradaPeloGuardado(g);return;}
+    entraComConta(true);return;
+  }
   window.abrePortao();
 }
 (function ligaPortao(){
