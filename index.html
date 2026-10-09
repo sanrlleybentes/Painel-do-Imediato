@@ -1986,6 +1986,7 @@ select.g-in{appearance:auto}
       <div class="subtabs" id="subViagemGrade">
         <button data-sub="condicao3" aria-selected="true">Condição III</button>
         <button data-sub="dem" aria-selected="false">DEM</button>
+        <button data-sub="romaria" aria-selected="false" data-romaria></button>
       </div>
       <div id="viagemgrade-condicao3">
         <div class="card reveal">
@@ -2015,6 +2016,20 @@ select.g-in{appearance:auto}
           <div style="margin-top:14px"><button class="btn" id="detSalvarDem">Salvar guarnecimento</button></div>
         </div>
       </div>
+      <div id="viagemgrade-romaria" class="hidden">
+        <div class="card reveal">
+          <h2>Detalhe de serviço — Em viagem · <span data-romaria></span></h2>
+          <p class="hint" style="margin:0 0 12px">Mesmo modelo do DEM: todos guarnecem ao mesmo tempo, sem divisão por horário. Na exportação, o título sai em duas linhas.</p>
+          <div class="row" style="margin-bottom:12px">
+            <div style="flex:0 1 220px"><label>Dia / evento</label>
+              <input type="hidden" id="detDiaRomaria"><input type="text" id="detDiaRomariaBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+            <div style="align-self:flex-end"><button class="btn" id="detCarregarRomaria">Carregar dia</button></div>
+            <div style="align-self:flex-end"><button class="btn ghost mini-marca" id="marca_gradeRomaria" aria-pressed="false">&#9733; Marca&ccedil;&otilde;es</button></div>
+          </div>
+          <div class="scroller" id="gradeRomaria"></div>
+          <div style="margin-top:14px"><button class="btn" id="detSalvarRomaria">Salvar guarnecimento</button></div>
+        </div>
+      </div>
     </div>
 
     <div id="detmodo-dexportar" class="hidden">
@@ -2023,7 +2038,7 @@ select.g-in{appearance:auto}
         <div class="row">
           <div style="flex:0 1 200px"><label>Modo</label><select id="dexModo">
             <option value="porto">No porto</option><option value="condicao3">Condição III</option>
-            <option value="dem">DEM</option></select></div>
+            <option value="dem">DEM</option><option value="romaria" data-romaria></option></select></div>
           <div style="flex:0 1 220px"><label>Semana</label><select id="dexSemana"></select></div>
         </div>
         <div class="row" style="margin-top:16px">
@@ -2041,7 +2056,7 @@ select.g-in{appearance:auto}
           <div style="flex:0 1 200px"><label>Modo</label><select id="dbModo">
             <option value="">Todos</option>
             <option value="porto">No porto</option><option value="condicao3">Condição III</option>
-            <option value="dem">DEM</option></select></div>
+            <option value="dem">DEM</option><option value="romaria" data-romaria></option></select></div>
         </div>
         <div class="scroller" id="listDetBanco"></div>
       </div>
@@ -2080,6 +2095,7 @@ select.g-in{appearance:auto}
       <div class="subtabs" id="subServicosViagem">
         <button data-sub="scondicao3" aria-selected="true">Condição III</button>
         <button data-sub="sdem" aria-selected="false">DEM</button>
+        <button data-sub="sromaria" aria-selected="false" data-romaria></button>
       </div>
       <div id="servviagem-scondicao3">
         <div class="card reveal">
@@ -2114,6 +2130,20 @@ select.g-in{appearance:auto}
           <div style="margin-top:14px"><button class="btn ghost" id="svDemAdd">Incluir serviço</button></div>
         </div>
         <div class="card reveal"><h2>Serviços cadastrados <span class="n" id="nSvDem">0</span></h2><div class="scroller" id="listSvDem"></div></div>
+      </div>
+      <div id="servviagem-sromaria" class="hidden">
+        <div class="card reveal">
+          <h2>Incluir serviço — <span data-romaria></span></h2>
+          <div class="row">
+            <div><label>Nome do serviço</label><input type="text" id="svRomariaNome" placeholder="Ex.: Timoneiro"></div>
+          </div>
+          <p class="hint" style="margin:10px 0 6px">Militares que podem dar este serviço (tripulação e destacados). Deixe nenhum marcado para liberar todos.</p>
+          <div class="chips" id="svRomariaElegiveis"></div>
+          <label style="margin-top:12px">Acompanhando <span style="text-transform:none;letter-spacing:0;color:var(--terra)">— em qualificação, não entra na escala</span></label>
+          <div class="chips chips-acomp" id="svRomariaAcomp"></div>
+          <div style="margin-top:14px"><button class="btn ghost" id="svRomariaAdd">Incluir serviço</button></div>
+        </div>
+        <div class="card reveal"><h2>Serviços cadastrados <span class="n" id="nSvRomaria">0</span></h2><div class="scroller" id="listSvRomaria"></div></div>
       </div>
     </div>
   </div>
@@ -3911,7 +3941,7 @@ async function load(first){
   sobrasSincroniza(); comissaoAtivaSincroniza();
   CAR=m.cardapio||{semanas:{}}; DOCS=m.docs||{lista:[]}; PAP=m.papeletas||{itens:[],proximoNumero:25};
   SRV=m.servicos||null;
-  if(!SRV){SRV={porto:SEED_SERVICOS_PORTO.map((n,i)=>({id:uid(),nome:n,ordem:i,elegiveis:[]})),condicao3:[],dem:[]};salvar('servicos',SRV);}
+  if(!SRV){SRV={porto:SEED_SERVICOS_PORTO.map((n,i)=>({id:uid(),nome:n,ordem:i,elegiveis:[]})),condicao3:[],dem:[],romaria:[]};salvar('servicos',SRV);}
   else if(SRV.viagem&&!SRV.condicao3){
     /* migração única: "Em viagem" virou duas frentes — os serviços antigos entram em Condição III */
     SRV.condicao3=SRV.viagem;delete SRV.viagem;
@@ -3920,6 +3950,7 @@ async function load(first){
   }
   if(!SRV.condicao3)SRV.condicao3=[];
   if(!SRV.dem)SRV.dem=[];
+  if(!SRV.romaria)SRV.romaria=[];
   DET=m.detalhes||{semanas:{}};
   reconstroiElencoHistorico();
   if(!SRV.__cmUnificado){
@@ -3991,11 +4022,11 @@ async function load(first){
 function fillForms(){
   const t=hoje(), m=ym(new Date());
   setDataDia('eData',t);setDataDia('gData',t);setDataDia('cSem',mondayOf(t));setDataDia('blData',t);
-  setDataDia('detSemPorto',mondayOf(t));setDataDia('detDiaCond3',t);setDataDia('detDiaDem',t);
+  setDataDia('detSemPorto',mondayOf(t));setDataDia('detDiaCond3',t);setDataDia('detDiaDem',t);setDataDia('detDiaRomaria',t);
   setDataDia('trDiaAnt',t);setDataDia('trDiaPos',addDias(t,1));
   setDataMes('gMes',m);
   ['eData','eFim','gData','cSem','fIni','fFim','pVal','pfIni','pfFim',
-    'detSemPorto','detDiaCond3','detDiaDem','trDiaAnt','trDiaPos','blData',
+    'detSemPorto','detDiaCond3','detDiaDem','detDiaRomaria','trDiaAnt','trDiaPos','blData',
     'isData','isVenc','medVal','medBalData','ckData','rcData'].forEach(ligaCalDia);
   ['gMes'].forEach(ligaCalMes);
   if($('#ckLocal'))$('#ckLocal').value=CFG.local||'';
@@ -5374,7 +5405,7 @@ $$('#subDetalhes button').forEach(b=>b.onclick=()=>{
 $$('#subViagemGrade button').forEach(b=>b.onclick=()=>{
   SUB_VIAGEM_GRADE=b.dataset.sub;
   $$('#subViagemGrade button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['condicao3','dem'].forEach(s=>$('#viagemgrade-'+s).classList.toggle('hidden',s!==SUB_VIAGEM_GRADE));
+  ['condicao3','dem','romaria'].forEach(s=>$('#viagemgrade-'+s).classList.toggle('hidden',s!==SUB_VIAGEM_GRADE));
   renderGrade(SUB_VIAGEM_GRADE);
 });
 $$('#subServicosModo button').forEach(b=>b.onclick=()=>{
@@ -5386,7 +5417,7 @@ $$('#subServicosModo button').forEach(b=>b.onclick=()=>{
 $$('#subServicosViagem button').forEach(b=>b.onclick=()=>{
   SUB_VIAGEM_SRV=b.dataset.sub;
   $$('#subServicosViagem button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['scondicao3','sdem'].forEach(s=>$('#servviagem-'+s).classList.toggle('hidden',s!==SUB_VIAGEM_SRV));
+  ['scondicao3','sdem','sromaria'].forEach(s=>$('#servviagem-'+s).classList.toggle('hidden',s!==SUB_VIAGEM_SRV));
   renderServicosCat();
 });
 /* ═════════════════════════════════════════════════════════════════════════
@@ -12553,6 +12584,11 @@ function renderControle(){
    'porto' continua semanal (7 dias). 'condicao3' e 'dem' passaram a ser por dia:
    Condição III guarnece por quartos dentro do mesmo dia; DEM guarnece tudo de uma vez,
    sem divisão de horário — por isso tem uma coluna só. */
+/* Evento especial em viagem. Usa o MESMO modelo do DEM (todos guarnecem ao mesmo tempo, uma coluna
+   só) e o mesmo layout de exportação; só o título do PDF muda e sai em duas linhas.
+   Para o evento do ano seguinte basta trocar o nome aqui: abas, listas e PDF seguem sozinhos. */
+const ROMARIA_NOME='Romaria Fluvial 2026';
+$$('[data-romaria]').forEach(e=>{e.textContent=ROMARIA_NOME;});
 const QUARTOS=['1º Quarto','2º Quarto','3º Quarto','4º Quarto','5º Quarto','6º Quarto'];
 const MODO_CFG={
   porto:{ncol:7,temPorDoSolRotina:true,rotuloRef:'Semana (segunda-feira)',
@@ -12562,6 +12598,8 @@ const MODO_CFG={
   condicao3:{ncol:6,temPorDoSolRotina:false,rotuloRef:'Dia',
     colunas:()=>QUARTOS.slice(),refPadrao:()=>hoje(),normalizaRef:(v)=>v},
   dem:{ncol:1,temPorDoSolRotina:false,rotuloRef:'Dia / evento',
+    colunas:()=>['Guarnecimento'],refPadrao:()=>hoje(),normalizaRef:(v)=>v},
+  romaria:{ncol:1,temPorDoSolRotina:false,rotuloRef:'Dia / evento',
     colunas:()=>['Guarnecimento'],refPadrao:()=>hoje(),normalizaRef:(v)=>v}
 };
 function chaveSemana(modo,ref){return modo+':'+ref;}
@@ -12598,7 +12636,9 @@ function militaresDoPosto(assignServ,dia,posto){
 }
 function postosDe(s){ return (s&&Array.isArray(s.subs)&&s.subs.length>1)?s.subs:null; }
 function ehMultiPosto(s){ return !!postosDe(s); }
-function ehMultiSlot(modo,s){return modo==='dem'?true:(modo==='condicao3'?ehDiario(s):false);}
+/* DEM e Romaria seguem o mesmo modelo */
+const ehModoDem=modo=>modo==='dem'||modo==='romaria';
+function ehMultiSlot(modo,s){return ehModoDem(modo)?true:(modo==='condicao3'?ehDiario(s):false);}
 /* Cada célula da grade (serviço × dia) aceita mais de um militar. O 1º usa a própria chave do dia
    (ex.: "3"), os extras usam letra (ex.: "3b","3c","3d") — assim dados antigos continuam valendo. */
 const SLOT_LETRAS=['','b','c','d'];
@@ -12893,7 +12933,7 @@ function poeMarca(semana,srvId,chave,v){
   if(v)semana.marcas[srvId][chave]=v; else delete semana.marcas[srvId][chave];
 }
 const IDS_MODO={porto:{ref:'detSemPorto',box:'gradePorto'},condicao3:{ref:'detDiaCond3',box:'gradeCond3'},
-  dem:{ref:'detDiaDem',box:'gradeDem'}};
+  dem:{ref:'detDiaDem',box:'gradeDem'},romaria:{ref:'detDiaRomaria',box:'gradeRomaria'}};
 function renderGrade(modo){
   const cfg=MODO_CFG[modo], ids=IDS_MODO[modo];
   let ref=$('#'+ids.ref).value;
@@ -12984,7 +13024,7 @@ function renderGrade(modo){
   if(diarios.length){
     h+='<div class="diarios" style="margin-top:14px">'+
       '<p class="hint" style="margin:0 0 8px">'+
-      (modo==='dem'?'Todos guarnecem ao mesmo tempo — cada função aceita mais de um militar.':
+      (ehModoDem(modo)?'Todos guarnecem ao mesmo tempo — cada função aceita mais de um militar.':
         'Serviços diários — atuam o dia todo, fora da grade de quartos. Pode escalar mais de um militar.')+'</p>';
     diarios.forEach(s=>{
       const preenchidos=[];
@@ -13117,7 +13157,7 @@ function coletarGrade(modo){
   return semana;
 }
 /* liga e desliga o modo de marcação em cada grade */
-['porto','condicao3','dem'].forEach(modo=>{
+['porto','condicao3','dem','romaria'].forEach(modo=>{
   const ids=IDS_MODO[modo], bt=$('#marca_'+ids.box);
   if(!bt)return;
   bt.onclick=()=>{
@@ -13131,6 +13171,7 @@ function coletarGrade(modo){
 $('#detCarregarPorto').onclick=()=>renderGrade('porto');
 $('#detCarregarCond3').onclick=()=>renderGrade('condicao3');
 $('#detCarregarDem').onclick=()=>renderGrade('dem');
+$('#detCarregarRomaria').onclick=()=>renderGrade('romaria');
 $('#detSalvarPorto').onclick=async()=>{
   if(bloqueiaSePendente('porto','gradePorto'))return;
   coletarGrade('porto');
@@ -13149,6 +13190,12 @@ $('#detSalvarDem').onclick=async()=>{
   const ok=await salvar('detalhes',DET);
   if(ok)toast('Guarnecimento salvo.');
 };
+$('#detSalvarRomaria').onclick=async()=>{
+  if(bloqueiaSePendente('romaria','gradeRomaria'))return;
+  coletarGrade('romaria');
+  const ok=await salvar('detalhes',DET);
+  if(ok)toast('Guarnecimento salvo.');
+};
 
 /* ===== serviço — exportar detalhe (PDF) ===== */
 $('#dexModo').onchange=renderExportarDetalhe;
@@ -13160,8 +13207,9 @@ function renderExportarDetalhe(){
     (s.exportado?' — já exportada':'')+'</option>').join(''):
     '<option value="">Nenhum período salvo</option>';
 }
-const TITULO_MODO={porto:'REGIME DE PORTO',condicao3:'EM VIAGEM — CONDIÇÃO III',dem:'EM VIAGEM — DEM'};
-const ARQ_MODO={porto:'Detalhe_Servico_Porto_',condicao3:'Detalhe_Servico_Cond3_',dem:'Detalhe_Servico_DEM_'};
+const TITULO_MODO={porto:'REGIME DE PORTO',condicao3:'EM VIAGEM — CONDIÇÃO III',dem:'EM VIAGEM — DEM',
+  romaria:'EM VIAGEM — '+ROMARIA_NOME.toUpperCase()};
+const ARQ_MODO={porto:'Detalhe_Servico_Porto_',condicao3:'Detalhe_Servico_Cond3_',dem:'Detalhe_Servico_DEM_',romaria:'Detalhe_Servico_Romaria_'};
 function nomeArquivoDetalhe(modo,ref,alt){
   const cfg=MODO_CFG[modo];
   return ARQ_MODO[modo]+ddmmmCurto(ref)+(cfg.temPorDoSolRotina?('_A_'+ddmmmCurto(addDias(ref,6))):'')+
@@ -13279,8 +13327,15 @@ function pdfDetalheServico(D,modo,semana){
   D.imagem(15,y,15,20.6);
   D.txt('MARINHA DO BRASIL',cx,y+3.5,{size:12,font:'F2',align:'center'});
   D.txt('AVISO HIDROCEANOGRÁFICO FLUVIAL RIO TOCANTINS',cx,y+9.5,{size:12,font:'F2',align:'center'});
-  D.txt('DETALHE DE SERVIÇO — '+TITULO_MODO[modo],cx,y+16,{size:12,font:'F2',align:'center'});
-  y+=21;
+  if(modo==='romaria'){
+    /* o título do evento vai numa linha própria, logo abaixo; o resto do layout é o do DEM */
+    D.txt('DETALHE DE SERVIÇO — EM VIAGEM',cx,y+16,{size:12,font:'F2',align:'center'});
+    D.txt(ROMARIA_NOME.toUpperCase(),cx,y+22,{size:12,font:'F2',align:'center'});
+    y+=27;
+  }else{
+    D.txt('DETALHE DE SERVIÇO — '+TITULO_MODO[modo],cx,y+16,{size:12,font:'F2',align:'center'});
+    y+=21;
+  }
   const cols=cfg.colunas(semana.segunda);
   /* o <br> separa o dia da semana da data — junta os dois em vez de descartar a data */
   const cab=[''].concat(cols.map(c=>String(c).replace(/<br\s*\/?>/gi,'  ')
@@ -13340,7 +13395,7 @@ function pdfDetalheServico(D,modo,semana){
 
   if(diarios.length){
     y=D.espacoMargem(y+10,10,4);
-    D.txt(modo==='dem'?'Guarnecimento':'Serviços diários',15,y,{size:8.5,font:'F2'});
+    D.txt(ehModoDem(modo)?'Guarnecimento':'Serviços diários',15,y,{size:8.5,font:'F2'});
     const linhasDiarias=diarios.map(s=>{
       /* função aceita mais de um militar. Quem está de férias na data não aparece aqui
          (volta a aparecer sozinho quando as férias terminarem). */
@@ -13372,7 +13427,7 @@ function pdfDetalheServico(D,modo,semana){
     else{let yy=yTitulo+4.3;aus.forEach(t=>{quebra(t,7.5,282-xDir).forEach(ln=>{D.txt(ln,xDir,yy,{size:7.5});yy+=3.3;});});}
 
     y=D.espacoMargem(yAposEscala+3,13,2);
-  }else if(modo==='dem'){
+  }else if(ehModoDem(modo)){
     y=D.espacoMargem(y+10,16,5);
     D.txt('Ausências',15,y,{size:8.5,font:'F2'});
     const aus=ausenciasSemana(semana.segunda,modo);
@@ -13450,7 +13505,7 @@ function pdfDetalheServico(D,modo,semana){
 }
 
 /* ===== serviço — histórico ===== */
-const NOME_MODO={porto:'No porto',condicao3:'Condição III',dem:'DEM'};
+const NOME_MODO={porto:'No porto',condicao3:'Condição III',dem:'DEM',romaria:ROMARIA_NOME};
 function renderHistoricoServico(){
   const lst=Object.values(DET.semanas).filter(s=>s.exportado).sort((a,b)=>b.segunda.localeCompare(a.segunda));
   $('#nDetHist').textContent=pad(lst.length);
@@ -13484,11 +13539,12 @@ function renderHistoricoServico(){
 /* ===== serviço — catálogo de serviços ===== */
 const IDS_SVCAT={porto:{sub:'sporto',eleg:'svPortoElegiveis',ac:'svPortoAcomp',n:'nSvPorto',l:'listSvPorto'},
   condicao3:{sub:'scondicao3',eleg:'svCond3Elegiveis',ac:'svCond3Acomp',n:'nSvCond3',l:'listSvCond3'},
-  dem:{sub:'sdem',eleg:'svDemElegiveis',ac:'svDemAcomp',n:'nSvDem',l:'listSvDem'}};
+  dem:{sub:'sdem',eleg:'svDemElegiveis',ac:'svDemAcomp',n:'nSvDem',l:'listSvDem'},
+  romaria:{sub:'sromaria',eleg:'svRomariaElegiveis',ac:'svRomariaAcomp',n:'nSvRomaria',l:'listSvRomaria'}};
 function renderServicosCat(){
   if(SUB_SVCAT==='sporto'){montaChipsElegiveis(IDS_SVCAT.porto.eleg,IDS_SVCAT.porto.ac);renderListaServicos('porto');}
   if(SUB_SVCAT==='sviagem'){
-    const modo=SUB_VIAGEM_SRV==='sdem'?'dem':'condicao3';
+    const modo=SUB_VIAGEM_SRV==='sdem'?'dem':(SUB_VIAGEM_SRV==='sromaria'?'romaria':'condicao3');
     montaChipsElegiveis(IDS_SVCAT[modo].eleg,IDS_SVCAT[modo].ac);renderListaServicos(modo);
   }
 }
@@ -13605,6 +13661,18 @@ $('#svCond3Add').onclick=async()=>{
   SRV.condicao3.push({id:uid(),nome,ordem,elegiveis:eleg,acompanhando:acmp,diario});
   const ok=await salvar('servicos',SRV);
   $('#svCond3Nome').value='';$('#svCond3Diario').checked=false;
+  renderServicosCat();
+  if(ok)toast('Serviço incluído.');
+};
+$('#svRomariaAdd').onclick=async()=>{
+  const nome=$('#svRomariaNome').value.trim();
+  if(!nome){toast('Informe o nome do serviço.',true);return;}
+  const eleg=$$('#svRomariaElegiveis .chip[aria-pressed="true"]').map(c=>c.dataset.mid);
+  const acmp=$$('#svRomariaAcomp .chip[aria-pressed="true"]').map(c=>c.dataset.mid);
+  const ordem=SRV.romaria.length?Math.max(...SRV.romaria.map(s=>s.ordem||0))+1:0;
+  SRV.romaria.push({id:uid(),nome,ordem,elegiveis:eleg,acompanhando:acmp});
+  const ok=await salvar('servicos',SRV);
+  $('#svRomariaNome').value='';
   renderServicosCat();
   if(ok)toast('Serviço incluído.');
 };
