@@ -533,6 +533,18 @@ select.obtfase{min-width:210px;font-size:12px}
 .cgCurso{background:#E6C02F;border-color:#B09420;color:var(--ink)}
 .cgCursoBordo{background:#F5E08C;border-color:#C9B24F;color:var(--ink);border-style:dashed}
 .cgSai{background:#8C8A80;border-color:#66645B}
+.cgConsulta{margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.6)}
+.cgResumo{margin:12px 0 10px;font-size:14px}
+.cgResumo b{font-family:var(--display);font-size:20px;color:var(--bordo)}
+.cgColunas{display:flex;gap:16px;flex-wrap:wrap}
+.cgCol{flex:1 1 280px;min-width:0}
+.cgCol h3{font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px;color:var(--ink)}
+.cgCol h3.nao{color:var(--alert)}
+.cgCol ul{list-style:none;margin:0;padding:0}
+.cgCol li{padding:5px 2px;border-bottom:1px solid var(--line);font-size:13px;display:flex;justify-content:space-between;gap:10px}
+.cgCol li small{color:var(--muted);font-size:11.5px;text-align:right}
+.cgCol li .pq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:-0px}
+.cgDataSel{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--bordo);z-index:1;pointer-events:none}
 .progChip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;
   border-radius:var(--r-md);padding:10px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);
   display:none;z-index:60;max-width:88vw;text-align:center}
@@ -1620,9 +1632,17 @@ select.g-in{appearance:auto}
   <div id="sub-controlegeral" class="hidden">
     <div class="card reveal">
       <h2>Controle Geral</h2>
-      <p class="hint" style="margin:0 0 12px">Quem estará disponível em cada data: toda a tripulação e os destacados enquanto estão no navio, com os afastamentos (férias, LTS, licença, dispensa e trânsito) e as saídas previstas (destaque e curso). <b>Linha vazia = disponível.</b> No ano corrente, o que terminou há mais de 5 dias sai daqui.</p>
+      <p class="hint" style="margin:0 0 12px">Quem estará disponível em cada data: toda a tripulação e os destacados enquanto estão no navio, com os afastamentos (férias, LTS, licença, dispensa e trânsito) e as saídas previstas (destaque e curso). <b>Linha vazia = disponível.</b> Escolha uma data em "Disponíveis em" para ver a lista de quem está livre e de quem não está. No calendário, no ano corrente, o que terminou há mais de 5 dias sai daqui.</p>
       <div class="row" style="margin-bottom:14px;align-items:flex-end;gap:10px">
         <div style="flex:0 1 140px"><label>Ano</label><select id="cgAno"></select></div>
+      </div>
+      <div class="cgConsulta">
+        <div class="row" style="align-items:flex-end;gap:10px">
+          <div style="flex:0 1 200px"><label>Disponíveis em</label>
+            <input type="hidden" id="cgData"><input type="text" id="cgDataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+          <div style="align-self:flex-end"><button class="btn ghost" id="cgHoje" type="button">Hoje</button></div>
+        </div>
+        <div id="cgDisp"></div>
       </div>
       <div class="progWrap" id="cgWrap"></div>
       <div id="cgLegenda" style="margin-top:12px"></div>
@@ -4054,11 +4074,11 @@ async function load(first){
 function fillForms(){
   const t=hoje(), m=ym(new Date());
   setDataDia('eData',t);setDataDia('gData',t);setDataDia('cSem',mondayOf(t));setDataDia('blData',t);
-  setDataDia('detSemPorto',mondayOf(t));setDataDia('detDiaCond3',t);setDataDia('detDiaDem',t);setDataDia('detDiaRomaria',t);
+  setDataDia('detSemPorto',mondayOf(t));setDataDia('detDiaCond3',t);setDataDia('detDiaDem',t);setDataDia('detDiaRomaria',t);setDataDia('cgData',t);
   setDataDia('trDiaAnt',t);setDataDia('trDiaPos',addDias(t,1));
   setDataMes('gMes',m);
   ['eData','eFim','gData','cSem','fIni','fFim','pVal','pfIni','pfFim',
-    'detSemPorto','detDiaCond3','detDiaDem','detDiaRomaria','trDiaAnt','trDiaPos','blData',
+    'detSemPorto','detDiaCond3','detDiaDem','detDiaRomaria','cgData','trDiaAnt','trDiaPos','blData',
     'isData','isVenc','medVal','medBalData','ckData','rcData'].forEach(ligaCalDia);
   ['gMes'].forEach(ligaCalMes);
   if($('#ckLocal'))$('#ckLocal').value=CFG.local||'';
@@ -11106,40 +11126,88 @@ function cgMilitares(hojeIso){
   return grupo('tripulacao').concat(grupo('destacado')).map(x=>({x,fimNoNavio:x.grupo==='destacado'?cgFimDestaqueNoNavio(x):''}))
     .filter(l=>!l.fimNoNavio||l.fimNoNavio>=hojeIso);
 }
-function cgBarras(l,anoNum,corte,corrente){
-  const x=l.x, iniAno=anoNum+'-01-01', fimAno=anoNum+'-12-31', rot=rotulo(x), out=[];
-  const add=(ini,fim,cls,titulo,detalhe)=>{
-    const f=fim||fimAno;
-    if(!ini||ini>fimAno||f<iniAno)return;
-    if(corrente&&f<corte)return;                          /* terminou há mais de 5 dias */
-    out.push({ini:ini<iniAno?iniAno:ini,fim:f>fimAno?fimAno:f,cls,titulo,detalhe});
-  };
+/* Todos os períodos do militar, sem recorte de ano nem dos 5 dias: é a mesma fonte das barras e da
+   consulta "Disponíveis em [data]". fim vazio = sem prazo (vale até o fim). `indisp` falso = o militar
+   continua na escala (curso sem destacamento). */
+function cgPeriodos(l){
+  const x=l.x, rot=rotulo(x), out=[];
   const periodo=(ini,fim)=>fim?((ini===fim?brDate(ini):brDate(ini)+' a '+brDate(fim))+' · '+dias(ini,fim)+(dias(ini,fim)===1?' dia':' dias')):
     ('a partir de '+brDate(ini)+' · sem prazo definido');
   (FER.periodos||[]).filter(p=>p.mil===x.id&&p.status!=='cancelada'&&p.ini&&p.fim).forEach(p=>{
-    add(p.ini,p.fim,CG_CLS_FER[p.tipo]||'cgDisp',rot+' — '+(TIPO_FER[p.tipo]||p.tipo),
-      periodo(p.ini,p.fim)+(p.tipo==='ferias'&&p.anoRef?' · férias de '+p.anoRef:'')+(p.obs?' — '+p.obs:''));
+    out.push({ini:p.ini,fim:p.fim,cls:CG_CLS_FER[p.tipo]||'cgDisp',indisp:true,curto:TIPO_FER[p.tipo]||p.tipo,
+      titulo:rot+' — '+(TIPO_FER[p.tipo]||p.tipo),
+      detalhe:periodo(p.ini,p.fim)+(p.tipo==='ferias'&&p.anoRef?' · férias de '+p.anoRef:'')+(p.obs?' — '+p.obs:'')});
   });
   (EFE.eventos||[]).filter(e=>e.mil===x.id&&e.data&&(e.tipo==='destaque_ida'||e.tipo==='curso_ida')).forEach(e=>{
     const fim=movFimEfetivo(e);
     const aguarda=e.pend==='aberto'&&e.fim&&e.fim<=hoje()?' · aguarda seu OK':'';
     if(e.tipo==='destaque_ida'){
-      add(e.data,fim,'cgDest',rot+' — Saída em destaque'+(e.om?' ('+e.om+')':''),periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:''));
+      out.push({ini:e.data,fim,cls:'cgDest',indisp:true,curto:'Saída em destaque'+(e.om?' ('+e.om+')':''),
+        titulo:rot+' — Saída em destaque'+(e.om?' ('+e.om+')':''),detalhe:periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:'')});
     }else{
-      add(e.data,fim,e.destacado?'cgCurso':'cgCursoBordo',
-        rot+' — '+(e.curso?'Curso: '+e.curso:'Curso')+(e.destacado?' (destacado)':' (segue na escala)'),
-        periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:''));
+      const nome=e.curso?'Curso: '+e.curso:'Curso';
+      out.push({ini:e.data,fim,cls:e.destacado?'cgCurso':'cgCursoBordo',indisp:!!e.destacado,
+        curto:nome+(e.destacado?' (destacado)':' (segue na escala)'),
+        titulo:rot+' — '+nome+(e.destacado?' (destacado)':' (segue na escala)'),detalhe:periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:'')});
     }
   });
   if(l.fimNoNavio){                                       /* depois do fim do destaque, não está mais no navio */
-    add(addDias(l.fimNoNavio,1),'','cgSai',rot+' — sai do navio',
-      'Destaque conosco até '+brDate(l.fimNoNavio)+(x.om?' · origem: '+x.om:''));
+    out.push({ini:addDias(l.fimNoNavio,1),fim:'',cls:'cgSai',indisp:true,curto:'Sai do navio (fim do destaque)',
+      titulo:rot+' — sai do navio',detalhe:'Destaque conosco até '+brDate(l.fimNoNavio)+(x.om?' · origem: '+x.om:'')});
   }
   return out;
+}
+/* recorta no ano mostrado e, no ano corrente, tira o que terminou há mais de 5 dias */
+function cgBarras(l,anoNum,corte,corrente){
+  const iniAno=anoNum+'-01-01', fimAno=anoNum+'-12-31', out=[];
+  cgPeriodos(l).forEach(b=>{
+    const f=b.fim||fimAno;
+    if(!b.ini||b.ini>fimAno||f<iniAno)return;
+    if(corrente&&f<corte)return;
+    out.push(Object.assign({},b,{ini:b.ini<iniAno?iniAno:b.ini,fim:f>fimAno?fimAno:f}));
+  });
+  return out;
+}
+/* Quem está disponível numa data. Usa o histórico inteiro (não o corte de 5 dias), então vale
+   também para datas passadas. Considera quem está no quadro hoje. */
+function cgDisponiveis(iso){
+  const livres=[], fora=[];
+  cgMilitares(hoje()).forEach(l=>{
+    const ativos=cgPeriodos(l).filter(b=>b.ini<=iso&&(!b.fim||b.fim>=iso));
+    const bloqueios=ativos.filter(b=>b.indisp);
+    if(bloqueios.length)fora.push({l,motivos:bloqueios});
+    else livres.push({l,notas:ativos});
+  });
+  return {livres,fora};
+}
+let CG_DATA='';
+function cgRotuloData(iso){
+  const sem=new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long'});
+  return brDate(iso)+' ('+sem+')';
+}
+function renderCgDisp(){
+  const box=$('#cgDisp'); if(!box)return;
+  const iso=CG_DATA||hoje();
+  const {livres,fora}=cgDisponiveis(iso), total=livres.length+fora.length;
+  const ate=b=>b.fim?'até '+brDate(b.fim):'sem prazo';
+  box.innerHTML=
+    '<p class="cgResumo"><b>'+livres.length+'</b> de '+total+' disponíveis em '+esc(cgRotuloData(iso))+'</p>'+
+    '<div class="cgColunas">'+
+    '<div class="cgCol"><h3>Disponíveis <span class="n">'+pad(livres.length)+'</span></h3><ul>'+
+      (livres.length?livres.map(r=>'<li><span>'+esc(rotulo(r.l.x))+'</span>'+
+        (r.notas.length?'<small>'+esc(r.notas.map(b=>b.curto).join(' · '))+'</small>':'')+'</li>').join(''):'<li><span class="hint" style="margin:0">Ninguém.</span></li>')+
+    '</ul></div>'+
+    '<div class="cgCol"><h3 class="nao">Indisponíveis <span class="n">'+pad(fora.length)+'</span></h3><ul>'+
+      (fora.length?fora.map(r=>'<li><span><i class="pq '+r.motivos[0].cls+'"></i>'+esc(rotulo(r.l.x))+'</span><small>'+
+        esc(r.motivos.map(b=>b.curto+' · '+ate(b)).join(' + '))+'</small></li>').join(''):'<li><span class="hint" style="margin:0">Ninguém — todos disponíveis.</span></li>')+
+    '</ul></div></div>';
 }
 function renderControleGeral(){
   const host=$('#cgWrap'); if(!host)return;
   const hojeIso=hoje(), anoHoje=hojeIso.slice(0,4), sel=$('#cgAno');
+  if(!CG_DATA)CG_DATA=hojeIso;
+  if($('#cgData')&&$('#cgData').value!==CG_DATA)setDataDia('cgData',CG_DATA);
+  renderCgDisp();
   const anos=[...new Set([anoHoje]
     .concat((FER.periodos||[]).flatMap(p=>p.ini&&p.fim?[p.ini.slice(0,4),p.fim.slice(0,4)]:[]))
     .concat((EFE.eventos||[]).filter(e=>e.data&&(e.tipo==='destaque_ida'||e.tipo==='curso_ida'))
@@ -11156,6 +11224,8 @@ function renderControleGeral(){
   const linhas=cgMilitares(hojeIso);
   if(!linhas.length){host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum militar no quadro.</p>';return;}
   const cab=progCabecalho(anoNum,tot,hojeIso);
+  /* linha tracejada na data consultada, em todas as linhas */
+  const selPct=CG_DATA.slice(0,4)===ano?((new Date(CG_DATA+'T12:00:00')-ini0)/864e5)/tot*100:null;
   let g=cab.abre;
   linhas.forEach(l=>{
     const segs=cgBarras(l,anoNum,corte,corrente).map(b=>{
@@ -11167,7 +11237,8 @@ function renderControleGeral(){
         '%" data-t="'+esc(b.titulo)+'" data-d="'+esc(b.detalhe)+'">'+esc(txt)+'</button>';
     }).join('');
     g+='<div class="progNome">'+esc(rotulo(l.x))+'</div><div class="progTrack">'+
-      (cab.mostraHoje?'<div class="progHoje" style="left:'+cab.hojePct.toFixed(3)+'%"></div>':'')+segs+'</div>';
+      (cab.mostraHoje?'<div class="progHoje" style="left:'+cab.hojePct.toFixed(3)+'%"></div>':'')+
+      (selPct!==null&&CG_DATA!==hojeIso?'<div class="cgDataSel" style="left:'+selPct.toFixed(3)+'%"></div>':'')+segs+'</div>';
   });
   g+='</div>';
   host.innerHTML=g;
@@ -11185,6 +11256,22 @@ function renderControleGeral(){
   }));
   host.onclick=ev=>{ if(!ev.target.classList.contains('progSeg'))chip.classList.remove('on'); };
 }
+/* escolher a data: atualiza a lista e leva o calendário até ela (no ano dela) */
+function cgEscolheData(iso){
+  CG_DATA=iso||hoje();
+  const ano=CG_DATA.slice(0,4), sel=$('#cgAno');
+  if([...sel.options].some(o=>o.value===ano))sel.value=ano;
+  CG_ULTIMO_ANO_SCROLL='';
+  renderControleGeral();
+  const host=$('#cgWrap');
+  if(host&&host.clientWidth>0&&CG_DATA.slice(0,4)===sel.value){
+    const anoNum=+sel.value, tot=365+((anoNum%4===0&&anoNum%100!==0)||anoNum%400===0?1:0);
+    const pct=((new Date(CG_DATA+'T12:00:00')-new Date(anoNum,0,1,12))/864e5)/tot*100;
+    host.scrollLeft=Math.max(0,112+pct/100*PROG_LARGURA_PX-host.clientWidth*0.4);
+  }
+}
+$('#cgData').onchange=()=>cgEscolheData($('#cgData').value);
+$('#cgHoje').onclick=()=>{ setDataDia('cgData',hoje()); cgEscolheData(hoje()); };
 $('#cgAno').onchange=()=>renderControleGeral();
 
 /* ─── Movimentos registrados, em calendário (mesma régua da Programação de
