@@ -509,6 +509,8 @@ select.obtfase{min-width:210px;font-size:12px}
 .progSeg.feito{background:var(--bode-claro);border-color:var(--brass)}
 .progSeg.lts{background:var(--alert);border-color:var(--brass)}
 .progSeg.lic{background:var(--dest);border-color:var(--brass)}
+#pfAno:disabled{background:#F1ECDD;color:var(--muted);cursor:not-allowed;border-style:dashed}
+#pfAnoBox.off label{opacity:.45}
 .progHoje{position:absolute;top:0;bottom:0;width:2px;background:var(--brass);z-index:1;pointer-events:none}
 /* cores dos movimentos de pessoal (calendário e legenda) */
 .mvEmb{background:#4E8A4A;border-color:#2F5F2C}
@@ -1854,6 +1856,7 @@ select.g-in{appearance:auto}
         <div><label>Tipo</label><select id="fTipo">
           <option value="ferias">Férias</option><option value="lts">LTS</option>
           <option value="licenca">Licença especial</option><option value="dispensa">Dispensa</option>
+          <option value="transito">Trânsito</option>
         </select></div>
         <div style="flex:0 1 150px"><label>Férias relativas à</label><select id="fAnoRef"></select></div>
       </div>
@@ -1889,13 +1892,16 @@ select.g-in{appearance:auto}
 
   <div id="sub-papeletas" class="hidden">
     <div class="card reveal">
-      <h2>Gerar papeleta de férias/licença</h2>
+      <h2>Gerar papeleta de férias / licença / trânsito</h2>
       <div class="row">
         <div style="flex:1 1 240px"><label>Militar</label><select id="pfMil"></select></div>
-        <div style="flex:0 1 140px"><label>Férias relativas à</label><input type="text" id="pfAno" inputmode="numeric" maxlength="4" placeholder="2026"></div>
+        <div style="flex:0 1 170px"><label>Tipo</label><select id="pfTipo">
+          <option value="ferias">Férias</option><option value="licenca">Licença</option><option value="transito">Trânsito</option>
+        </select></div>
+        <div style="flex:0 1 140px" id="pfAnoBox"><label>Férias relativas à</label><input type="text" id="pfAno" inputmode="numeric" maxlength="4" placeholder="2026"></div>
       </div>
       <div class="row" style="margin-top:12px">
-        <div><label>Início efetivo das férias</label><input type="hidden" id="pfIni"><input type="text" id="pfIniBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
+        <div><label id="pfLabIni">Início efetivo das férias</label><input type="hidden" id="pfIni"><input type="text" id="pfIniBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
         <div><label>Término</label><input type="hidden" id="pfFim"><input type="text" id="pfFimBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
         <div style="flex:0 1 120px"><label>Hora licenciamento</label><input type="text" id="pfHoraLic" placeholder="16H00"></div>
         <div style="flex:0 1 120px"><label>Hora apresentação</label><input type="text" id="pfHoraApr" placeholder="07H30"></div>
@@ -3416,7 +3422,8 @@ const TIPO_TRIP=[{v:'embarque',l:'Embarque'},{v:'desembarque',l:'Desembarque'},
   {v:'curso_ida',l:'Saída para Curso'},{v:'curso_volta',l:'Regresso de Curso'}];
 const TIPO_DEST=[{v:'destaque_entrada',l:'Entrada destaque'},{v:'destaque_saida',l:'Saída destaque'},
   {v:'efetivacao',l:'Efetivação'}];
-const TIPO_FER={ferias:'Férias',lts:'LTS',licenca:'Licença especial',dispensa:'Dispensa'};
+const TIPO_FER={ferias:'Férias',lts:'LTS',licenca:'Licença especial',dispensa:'Dispensa',transito:'Trânsito'};
+const TIPO_PAP={ferias:'Férias',licenca:'Licença',transito:'Trânsito'};   /* tipos da papeleta */
 const CAT_PAG={soldo:'Soldo',vantagem:'Vantagem',desconto:'Desconto',diaria:'Diária',
   ajuda:'Ajuda de custo',indenizacao:'Indenização',rancho:'Etiqueta de rancho'};
 const REFEICOES=['Café da manhã','Almoço','Jantar','Ceia'];
@@ -12356,7 +12363,7 @@ function renderProgramadas(){
     '<span><i style="background:var(--bode-claro)"></i>Já cumprido / em curso</span>'+
     '<span><i style="background:var(--brass)"></i>Férias programadas</span>'+
     '<span><i style="background:var(--alert)"></i>LTS</span>'+
-    '<span><i style="background:var(--dest)"></i>Licença / dispensa</span>'+
+    '<span><i style="background:var(--dest)"></i>Licença / dispensa / trânsito</span>'+
     '</div>';
 
   const ordem=all().filter(x=>porMil[x.id]);
@@ -18137,6 +18144,22 @@ let PF_DESM='NÃO';
 $$('#pfDesmChips .chip').forEach(c=>c.onclick=()=>{PF_DESM=c.dataset.v;
   $$('#pfDesmChips .chip').forEach(o=>o.setAttribute('aria-pressed',o===c));});
 $('#pfAut').onchange=()=>{const x=milPorId($('#pfAut').value);if(x)$('#pfAutPosto').value=extenso(x.posto);};
+/* O tipo da papeleta decide o texto e se existe "Férias relativas à": só férias têm ano de referência.
+   Ao trocar para licença ou trânsito o ano é guardado e o campo desliga; ao voltar para férias, volta. */
+const PF_ROT_INI={ferias:'Início efetivo das férias',licenca:'Início efetivo da licença',transito:'Início do trânsito'};
+const PF_DE={ferias:'das férias',licenca:'da licença',transito:'do trânsito'};
+let PF_ANO_GUARDADO='';
+function pfAtualizaTipo(){
+  const t=$('#pfTipo').value||'ferias', ferias=t==='ferias', ano=$('#pfAno');
+  if(!ferias&&!ano.disabled){PF_ANO_GUARDADO=ano.value;ano.value='';}
+  if(ferias&&ano.disabled)ano.value=PF_ANO_GUARDADO||String(new Date().getFullYear()-1);
+  ano.disabled=!ferias;
+  ano.placeholder=ferias?'2026':'—';
+  $('#pfAnoBox').classList.toggle('off',!ferias);
+  $('#pfLabIni').textContent=PF_ROT_INI[t];
+}
+$('#pfTipo').onchange=pfAtualizaTipo;
+pfAtualizaTipo();
 
 function pdfPapeleta(D,reg){
   D.usarBrasao();
@@ -18150,7 +18173,10 @@ function pdfPapeleta(D,reg){
   D.linha(x1,y,x1+wcx,y);
   y+=6;
   D.txt('AUTORIZAÇÃO DE:',x1+8,y,{size:10,font:'F2'});
-  D.txt('FÉRIAS DO ANO: '+reg.ano+'   ·   LICENÇA: '+reg.dias+' DIAS',x1+58,y,{size:10});
+  /* papeletas antigas não têm tipo: são de férias */
+  const tipoPap=reg.tipo||'ferias';
+  D.txt(tipoPap==='ferias'?('FÉRIAS DO ANO: '+reg.ano+'   ·   LICENÇA: '+reg.dias+' DIAS')
+    :(tipoPap==='licenca'?('LICENÇA: '+reg.dias+' DIAS'):('TRÂNSITO: '+reg.dias+' DIAS')),x1+58,y,{size:10});
   y+=6.5;
   D.linha(x1,y,x1+wcx,y);
   y+=6;
@@ -18246,19 +18272,22 @@ function pdfPapeleta(D,reg){
 }
 
 function nomeArquivoPapeleta(reg){
-  return 'Papeleta_de_Férias_'+reg.numero+'_'+String(reg.nome||'').trim().replace(/\s+/g,'_')+'.pdf';
+  const rotulo={ferias:'Férias',licenca:'Licença',transito:'Trânsito'}[reg.tipo||'ferias'];
+  return 'Papeleta_de_'+rotulo+'_'+reg.numero+'_'+String(reg.nome||'').trim().replace(/\s+/g,'_')+'.pdf';
 }
 function coletaFormPapeleta(){
   const mil=milPorId($('#pfMil').value);
   const ini=$('#pfIni').value, fim=$('#pfFim').value;
   if(!mil){toast('Escolha o militar.',true);return null;}
-  if(!ini||!fim||fim<ini){toast('Informe início e término válidos das férias.',true);return null;}
+  const tipoPap=$('#pfTipo').value||'ferias';
+  if(!ini||!fim||fim<ini){toast('Informe início e término válidos '+PF_DE[tipoPap]+'.',true);return null;}
   const rua=$('#pfEndereco').value.trim(), bairro=$('#pfBairro').value.trim(),
     cidade=$('#pfCidade').value.trim(), estado=$('#pfEstado').value.trim().toUpperCase();
   if(!rua||!bairro||!cidade||!estado){toast('Preencha o endereço completo.',true);return null;}
   const autId=$('#pfAut').value, autX=milPorId(autId);
   return {
-    numero:PAP.proximoNumero, ano:$('#pfAno').value.trim()||String(new Date().getFullYear()),
+    numero:PAP.proximoNumero, tipo:tipoPap,
+    ano:tipoPap==='ferias'?($('#pfAno').value.trim()||String(new Date().getFullYear())):'',
     mil:mil.id, posto:mil.posto, nip:mil.nip||'', nome:mil.completo||mil.nome, guerra:mil.nome,
     especialidade:especialidadeDe(mil.posto),
     ini,fim,dias:dias(ini,fim),dataLic:addDias(ini,-1),dataApresent:addDias(fim,1),
@@ -18297,10 +18326,11 @@ function renderPapeletas(){
   const lst=PAP.itens.slice().sort((a,b)=>b.numero-a.numero);
   $('#nPap').textContent=pad(lst.length);
   $('#listPap').innerHTML=lst.length?('<table><thead><tr><th style="width:50px">Nº</th><th>Militar</th>'+
-    '<th style="width:80px">Ano</th><th style="width:100px">Início</th><th style="width:100px">Término</th>'+
+    '<th style="width:90px">Tipo</th><th style="width:80px">Ano</th><th style="width:100px">Início</th><th style="width:100px">Término</th>'+
     '<th class="num" style="width:60px">Dias</th><th></th></tr></thead><tbody>'+
     lst.map(r=>'<tr><td class="mono" style="color:var(--brass)">'+r.numero+'</td><td>'+esc(r.nome)+'</td>'+
-      '<td class="mono">'+esc(r.ano)+'</td><td class="mono">'+brDate(r.ini)+'</td><td class="mono">'+brDate(r.fim)+'</td>'+
+      '<td>'+esc(TIPO_PAP[r.tipo||'ferias'])+'</td>'+
+      '<td class="mono">'+((r.tipo||'ferias')==='ferias'?esc(r.ano):'—')+'</td><td class="mono">'+brDate(r.ini)+'</td><td class="mono">'+brDate(r.fim)+'</td>'+
       '<td class="num">'+r.dias+'</td>'+
       '<td class="acts"><button class="mini" data-refaz="'+r.id+'">Baixar de novo</button>'+
       '<button class="mini del" data-papdel="'+r.id+'">Excluir</button></td></tr>').join('')+
