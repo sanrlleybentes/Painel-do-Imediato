@@ -523,6 +523,16 @@ select.obtfase{min-width:210px;font-size:12px}
 .mvCursoVolta{background:#F5E08C;border-color:#C9B24F;color:var(--ink)}
 .mvEfet{background:#8A63B8;border-color:#65448F}
 .mvDstSaiOutra{background:#A9CBE8;border-color:#6F9CC4;color:var(--ink)}
+/* cores do Controle Geral (disponibilidade) */
+.cgFerias{background:#CCA25A;border-color:#A8873C;color:var(--ink)}
+.cgLts{background:#B0402D;border-color:#8A2F20}
+.cgLic{background:#557040;border-color:#3B5029}
+.cgDisp{background:#8A63B8;border-color:#65448F}
+.cgTrans{background:#3D7DB8;border-color:#2A5A87}
+.cgDest{background:#E8832A;border-color:#B2631B}
+.cgCurso{background:#E6C02F;border-color:#B09420;color:var(--ink)}
+.cgCursoBordo{background:#F5E08C;border-color:#C9B24F;color:var(--ink);border-style:dashed}
+.cgSai{background:#8C8A80;border-color:#66645B}
 .progChip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;
   border-radius:var(--r-md);padding:10px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);
   display:none;z-index:60;max-width:88vw;text-align:center}
@@ -1463,6 +1473,7 @@ select.g-in{appearance:auto}
     <button data-sub="tripulacao" aria-selected="true">Tripulação</button>
     <button data-sub="diasmar" aria-selected="false">Dias de Mar</button>
     <button data-sub="movimentacao" aria-selected="false">Movimentação</button>
+    <button data-sub="controlegeral" aria-selected="false">Controle Geral</button>
     <button data-sub="saude" aria-selected="false">Saúde</button>
     <button data-sub="plano" aria-selected="false">Plano de Busca</button>
     <button data-sub="tmft" aria-selected="false">TMFT</button>
@@ -1595,7 +1606,7 @@ select.g-in{appearance:auto}
       </div>
       <div class="progWrap" id="movWrap"></div>
       <div id="movLegenda" style="margin-top:12px"></div>
-      <p class="hint" style="margin:6px 2px 0" id="movHint">Embarque e desembarque marcam s&oacute; o dia; destaque e curso preenchem o per&iacute;odo. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.</p>
+      <p class="hint" style="margin:6px 2px 0" id="movHint">Embarque e desembarque marcam s&oacute; o dia; destaque e curso preenchem o per&iacute;odo. O que terminou h&aacute; mais de 5 dias sai do calend&aacute;rio e continua no hist&oacute;rico, abaixo. Toque numa barra pra ver os detalhes. Arraste pros lados pra ver o ano inteiro.</p>
     </div>
     <div class="progChip" id="movChip"></div>
     <div class="card reveal">
@@ -1604,6 +1615,20 @@ select.g-in{appearance:auto}
       <div class="row" style="margin-bottom:12px"><div style="flex:0 1 200px"><label>M&ecirc;s</label><select id="movMes"></select></div></div>
       <div class="scroller" id="listEfe"></div>
     </div>
+  </div>
+
+  <div id="sub-controlegeral" class="hidden">
+    <div class="card reveal">
+      <h2>Controle Geral</h2>
+      <p class="hint" style="margin:0 0 12px">Quem estará disponível em cada data: toda a tripulação e os destacados enquanto estão no navio, com os afastamentos (férias, LTS, licença, dispensa e trânsito) e as saídas previstas (destaque e curso). <b>Linha vazia = disponível.</b> No ano corrente, o que terminou há mais de 5 dias sai daqui.</p>
+      <div class="row" style="margin-bottom:14px;align-items:flex-end;gap:10px">
+        <div style="flex:0 1 140px"><label>Ano</label><select id="cgAno"></select></div>
+      </div>
+      <div class="progWrap" id="cgWrap"></div>
+      <div id="cgLegenda" style="margin-top:12px"></div>
+      <p class="hint" style="margin:6px 2px 0">Toque numa barra para ver as datas. Arraste para os lados para ver o ano inteiro &mdash; no celular, com o dedo mesmo.</p>
+    </div>
+    <div class="progChip" id="cgChip"></div>
   </div>
 
   <div id="sub-plano" class="hidden">
@@ -5358,7 +5383,7 @@ $$('#subPainel button').forEach(b=>b.onclick=()=>{
 $$('#subEfetivo button').forEach(b=>b.onclick=()=>{
   SUB_EFE=b.dataset.sub;
   $$('#subEfetivo button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['tripulacao','diasmar','movimentacao','saude','plano','tmft','tmi'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB_EFE));
+  ['tripulacao','diasmar','movimentacao','controlegeral','saude','plano','tmft','tmi'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB_EFE));
   renderEfetivo();
 });
 $$('#subDM button').forEach(b=>b.onclick=()=>{
@@ -9596,6 +9621,7 @@ function renderEfetivo(){
     else renderInsercaoDM();
   }
   if(SUB_EFE==='movimentacao')renderEfe();
+  if(SUB_EFE==='controlegeral')renderControleGeral();
   if(SUB_EFE==='saude')renderSaude();
   if(SUB_EFE==='plano')renderPlano();
   if(SUB_EFE==='tmft')renderTmft();
@@ -11061,6 +11087,106 @@ function abrirEditMovimento(id){
     toast(ok?'Movimento atualizado.':'Não foi possível gravar.',!ok);
   };
 }
+/* ─── Controle Geral: quem está disponível em cada data. Mesma régua da Programação de férias e dos
+   Movimentos registrados. Linha por militar da tripulação e por destacado ENQUANTO está no navio
+   (acaba o destaque conosco, sai da tabela), na ordem de antiguidade da lista; barra = indisponível,
+   linha vazia = disponível. ─── */
+const CG_LEGENDA=[['cgFerias','Férias'],['cgLts','LTS'],['cgLic','Licença especial'],['cgDisp','Dispensa'],
+  ['cgTrans','Trânsito'],['cgDest','Saída em destaque'],['cgCurso','Curso destacado'],
+  ['cgCursoBordo','Curso (segue na escala)'],['cgSai','Sai do navio (fim do destaque)']];
+const CG_CLS_FER={ferias:'cgFerias',lts:'cgLts',licenca:'cgLic',dispensa:'cgDisp',transito:'cgTrans'};
+let CG_ULTIMO_ANO_SCROLL='';
+/* fim do destaque DESTE destacado conosco, se houver prazo (última entrada registrada) */
+function cgFimDestaqueNoNavio(x){
+  const es=(EFE.eventos||[]).filter(e=>e.mil===x.id&&e.tipo==='destaque_entrada'&&e.data)
+    .sort((a,b)=>b.data.localeCompare(a.data)||(b.ts||0)-(a.ts||0));
+  return es.length&&es[0].fim?es[0].fim:'';
+}
+function cgMilitares(hojeIso){
+  return grupo('tripulacao').concat(grupo('destacado')).map(x=>({x,fimNoNavio:x.grupo==='destacado'?cgFimDestaqueNoNavio(x):''}))
+    .filter(l=>!l.fimNoNavio||l.fimNoNavio>=hojeIso);
+}
+function cgBarras(l,anoNum,corte,corrente){
+  const x=l.x, iniAno=anoNum+'-01-01', fimAno=anoNum+'-12-31', rot=rotulo(x), out=[];
+  const add=(ini,fim,cls,titulo,detalhe)=>{
+    const f=fim||fimAno;
+    if(!ini||ini>fimAno||f<iniAno)return;
+    if(corrente&&f<corte)return;                          /* terminou há mais de 5 dias */
+    out.push({ini:ini<iniAno?iniAno:ini,fim:f>fimAno?fimAno:f,cls,titulo,detalhe});
+  };
+  const periodo=(ini,fim)=>fim?((ini===fim?brDate(ini):brDate(ini)+' a '+brDate(fim))+' · '+dias(ini,fim)+(dias(ini,fim)===1?' dia':' dias')):
+    ('a partir de '+brDate(ini)+' · sem prazo definido');
+  (FER.periodos||[]).filter(p=>p.mil===x.id&&p.status!=='cancelada'&&p.ini&&p.fim).forEach(p=>{
+    add(p.ini,p.fim,CG_CLS_FER[p.tipo]||'cgDisp',rot+' — '+(TIPO_FER[p.tipo]||p.tipo),
+      periodo(p.ini,p.fim)+(p.tipo==='ferias'&&p.anoRef?' · férias de '+p.anoRef:'')+(p.obs?' — '+p.obs:''));
+  });
+  (EFE.eventos||[]).filter(e=>e.mil===x.id&&e.data&&(e.tipo==='destaque_ida'||e.tipo==='curso_ida')).forEach(e=>{
+    const fim=movFimEfetivo(e);
+    const aguarda=e.pend==='aberto'&&e.fim&&e.fim<=hoje()?' · aguarda seu OK':'';
+    if(e.tipo==='destaque_ida'){
+      add(e.data,fim,'cgDest',rot+' — Saída em destaque'+(e.om?' ('+e.om+')':''),periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:''));
+    }else{
+      add(e.data,fim,e.destacado?'cgCurso':'cgCursoBordo',
+        rot+' — '+(e.curso?'Curso: '+e.curso:'Curso')+(e.destacado?' (destacado)':' (segue na escala)'),
+        periodo(e.data,fim)+aguarda+(e.obs?' — '+e.obs:''));
+    }
+  });
+  if(l.fimNoNavio){                                       /* depois do fim do destaque, não está mais no navio */
+    add(addDias(l.fimNoNavio,1),'','cgSai',rot+' — sai do navio',
+      'Destaque conosco até '+brDate(l.fimNoNavio)+(x.om?' · origem: '+x.om:''));
+  }
+  return out;
+}
+function renderControleGeral(){
+  const host=$('#cgWrap'); if(!host)return;
+  const hojeIso=hoje(), anoHoje=hojeIso.slice(0,4), sel=$('#cgAno');
+  const anos=[...new Set([anoHoje]
+    .concat((FER.periodos||[]).flatMap(p=>p.ini&&p.fim?[p.ini.slice(0,4),p.fim.slice(0,4)]:[]))
+    .concat((EFE.eventos||[]).filter(e=>e.data&&(e.tipo==='destaque_ida'||e.tipo==='curso_ida'))
+      .flatMap(e=>[e.data.slice(0,4),(movFimEfetivo(e)||e.data).slice(0,4)])))].sort().reverse();
+  const antes=sel.value;
+  sel.innerHTML=anos.map(a=>'<option>'+a+'</option>').join('');
+  sel.value=anos.includes(antes)?antes:anoHoje;
+  const ano=sel.value, anoNum=+ano;
+  const tot=365+((anoNum%4===0&&anoNum%100!==0)||anoNum%400===0?1:0);
+  const ini0=new Date(anoNum,0,1,12);
+  const corte=addDias(hojeIso,-MOV_DIAS_NO_CALENDARIO), corrente=ano===anoHoje;
+  $('#cgLegenda').innerHTML='<div class="glegenda">'+CG_LEGENDA.map(([c,t])=>'<span><i class="'+c+'"></i>'+t+'</span>').join('')+'</div>';
+
+  const linhas=cgMilitares(hojeIso);
+  if(!linhas.length){host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum militar no quadro.</p>';return;}
+  const cab=progCabecalho(anoNum,tot,hojeIso);
+  let g=cab.abre;
+  linhas.forEach(l=>{
+    const segs=cgBarras(l,anoNum,corte,corrente).map(b=>{
+      const a=Math.max(0,(new Date(b.ini+'T12:00:00')-ini0)/864e5);
+      const z=Math.min(tot,(new Date(b.fim+'T12:00:00')-ini0)/864e5+1);
+      const widthPct=Math.max(0.28,(z-a)/tot*100);
+      const txt=widthPct/100*PROG_LARGURA_PX>90?progFmtCurto(b.ini)+' – '+progFmtCurto(b.fim):'';
+      return '<button type="button" class="progSeg '+b.cls+'" style="left:'+(a/tot*100).toFixed(3)+'%;width:'+widthPct.toFixed(3)+
+        '%" data-t="'+esc(b.titulo)+'" data-d="'+esc(b.detalhe)+'">'+esc(txt)+'</button>';
+    }).join('');
+    g+='<div class="progNome">'+esc(rotulo(l.x))+'</div><div class="progTrack">'+
+      (cab.mostraHoje?'<div class="progHoje" style="left:'+cab.hojePct.toFixed(3)+'%"></div>':'')+segs+'</div>';
+  });
+  g+='</div>';
+  host.innerHTML=g;
+  if(cab.mostraHoje&&CG_ULTIMO_ANO_SCROLL!==ano&&host.clientWidth>0){
+    CG_ULTIMO_ANO_SCROLL=ano;
+    host.scrollLeft=Math.max(0,112+cab.hojePct/100*PROG_LARGURA_PX-host.clientWidth*0.4);
+  }
+  const chip=$('#cgChip');
+  $$('#cgWrap .progSeg').forEach(el=>el.addEventListener('click',ev=>{
+    ev.stopPropagation();
+    chip.innerHTML='<b>'+esc(el.dataset.t)+'</b><span class="d">'+esc(el.dataset.d)+'</span>';
+    chip.classList.add('on');
+    clearTimeout(window.__cgChipT);
+    window.__cgChipT=setTimeout(()=>chip.classList.remove('on'),4500);
+  }));
+  host.onclick=ev=>{ if(!ev.target.classList.contains('progSeg'))chip.classList.remove('on'); };
+}
+$('#cgAno').onchange=()=>renderControleGeral();
+
 /* ─── Movimentos registrados, em calendário (mesma régua da Programação de
    férias). Embarque e desembarque pintam só o dia; destaque e curso pintam o
    período. Quem já desembarcou some de CREW.militares, então o rótulo vem do
@@ -11071,7 +11197,7 @@ const MOV_LEGENDA=[['mvEmb','Embarque'],['mvDes','Desembarque'],['mvDstSai','Sa�
   ['mvDstEnt','Entrada destaque'],['mvCurso','Curso'],['mvDstVolta','Regresso de destaque'],
   ['mvCursoVolta','Regresso de curso'],['mvEfet','Efetivação'],['mvDstSaiOutra','Saída de destacado de outra OM']];
 const MOV_SAIDAS=['desembarque','destaque_saida'];   /* saem do quadro de vez */
-const MOV_DIAS_NO_CALENDARIO=15;                     /* depois disso, só no histórico */
+const MOV_DIAS_NO_CALENDARIO=5;                      /* terminou há mais que isso: sai do calendário, fica só no histórico */
 const ORDEM_POSTO_MOV=['CMG','CF','CC','CT','1T','2T','GM','SO','1ºSG','2ºSG','3ºSG','CB','MN','SD'];
 function movRankPosto(posto){
   const b=postoBase(posto||'').replace('1TEN','1T').replace('2TEN','2T').replace('CMG','CMG');
@@ -11080,6 +11206,21 @@ function movRankPosto(posto){
 }
 let movEditando=false, MOV_ULTIMO_ANO_SCROLL='';
 function movFimDe(e){ return (tipoTemPeriodo(e.tipo)&&e.fim&&e.fim>=e.data)?e.fim:e.data; }
+/* Até quando o movimento vale de verdade. Vazio = ainda em curso (destaque ou curso sem prazo e sem
+   regresso registrado): nunca expira. Se o militar voltou antes do fim previsto, vale até o dia
+   anterior ao regresso. */
+function movFimEfetivo(e){
+  const comPer=tipoTemPeriodo(e.tipo);
+  let fim=comPer?((e.fim&&e.fim>=e.data)?e.fim:''):e.data;
+  if(e.tipo==='destaque_ida'||e.tipo==='curso_ida'){
+    const tv=e.tipo==='curso_ida'?'curso_volta':'destaque_volta';
+    const v=(EFE.eventos||[]).filter(x=>x.id!==e.id&&x.mil===e.mil&&x.tipo===tv&&x.data&&x.data>=e.data)
+      .sort((a,b)=>a.data.localeCompare(b.data))[0];
+    if(v){const dv=v.data>e.data?addDias(v.data,-1):e.data; if(!fim||dv<fim)fim=dv;}
+  }
+  return fim;
+}
+const movAindaVale=(e,corte)=>(movFimEfetivo(e)||'9999-12-31')>=corte;
 $('#movAno').onchange=()=>renderEfe();
 $('#movMes').onchange=()=>renderEfe();
 $('#movEditToggle').onclick=()=>{
@@ -11087,7 +11228,7 @@ $('#movEditToggle').onclick=()=>{
   $('#movEditToggle').classList.toggle('on',movEditando);
   $('#movEditToggle').textContent=movEditando?'✓ Editando — toque numa barra':'✏️ Editar movimentos';
   $('#movHint').textContent=movEditando?'Toque numa barra pra editar ou excluir esse movimento.':
-    'Embarque e desembarque marcam só o dia; destaque e curso preenchem o período. Quem desembarcou sai do calendário após '+MOV_DIAS_NO_CALENDARIO+' dias e continua no histórico, abaixo. Toque numa barra pra ver os detalhes.';
+    'Embarque e desembarque marcam só o dia; destaque e curso preenchem o período. O que terminou há mais de '+MOV_DIAS_NO_CALENDARIO+' dias sai do calendário e continua no histórico, abaixo. Toque numa barra pra ver os detalhes.';
   $('#movChip').classList.remove('on');
 };
 function renderEfe(){
@@ -11110,14 +11251,11 @@ function renderEfe(){
   const chaveMil=e=>e.mil||e.nip||chave(e.nome||'');
   const todosPorMil={};
   evs.forEach(e=>{ (todosPorMil[chaveMil(e)]=todosPorMil[chaveMil(e)]||[]).push(e); });
-  /* já desembarcou há mais de 15 dias (e não voltou): sai do calendário do ano
-     corrente. Em ano passado mostra tudo, senão o calendário antigo esvaziaria. */
-  const saiuDoCalendario=k=>{
-    if(ano!==anoHoje)return false;
-    const ult=todosPorMil[k].slice().sort((a,b)=>b.data.localeCompare(a.data)||(b.ts||0)-(a.ts||0))[0];
-    return MOV_SAIDAS.includes(ult.tipo)&&addDias(ult.data,MOV_DIAS_NO_CALENDARIO)<hojeIso;
-  };
-  const doAno=evs.filter(e=>e.data.slice(0,4)<=ano&&movFimDe(e).slice(0,4)>=ano&&!saiuDoCalendario(chaveMil(e)));
+  /* Movimento que terminou há mais de 5 dias sai do calendário do ano corrente (continua no
+     histórico, abaixo); a linha some quando não sobra nenhum. Destaque ou curso sem prazo segue
+     valendo. Em ano passado mostra tudo, senão o calendário antigo esvaziaria. */
+  const corte=addDias(hojeIso,-MOV_DIAS_NO_CALENDARIO);
+  const doAno=evs.filter(e=>e.data.slice(0,4)<=ano&&movFimDe(e).slice(0,4)>=ano&&(ano!==anoHoje||movAindaVale(e,corte)));
   const host=$('#movWrap');
   if(!doAno.length){
     host.innerHTML='<p class="hint" style="margin:8px 13px">Nenhum movimento a mostrar em '+ano+'.</p>';
@@ -11962,7 +12100,7 @@ function renderIsVencer(){
     ['painel','efetivo','ferias','servico','munic','pag','docs','export','config']
       .forEach(x=>$('#tab-'+x).classList.toggle('hidden',x!=='efetivo'));
     $$('#subEfetivo button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='saude'));
-    ['tripulacao','diasmar','movimentacao','saude','plano','tmft','tmi'].forEach(x=>$('#sub-'+x).classList.toggle('hidden',x!=='saude'));
+    ['tripulacao','diasmar','movimentacao','controlegeral','saude','plano','tmft','tmi'].forEach(x=>$('#sub-'+x).classList.toggle('hidden',x!=='saude'));
     $$('#subSaude button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='inspecoes'));
     ['inspecoes','medicamentos'].forEach(x=>$('#saude-'+x).classList.toggle('hidden',x!=='inspecoes'));
     renderEfetivo();
