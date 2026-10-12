@@ -10439,9 +10439,20 @@ function montaTelaFicha(){
 
 /* ===== painel ===== */
 const JANELA_PROX_FERIAS=20;   /* dias à frente considerados em "Próximas férias" */
+/* Afastados hoje = quem está de fato fora: qualquer período da aba Férias (férias, LTS, licença,
+   dispensa, trânsito) e também saída em destaque e curso — as mesmas ausências do card "Fora do
+   navio hoje". Só conta quem está no quadro, e cada militar uma vez só, mesmo com dois motivos. */
 function afastadosHoje(){
-  const t=hoje();
-  return FER.periodos.filter(p=>p.status!=='cancelada'&&p.ini<=t&&p.fim>=t);
+  const t=hoje(), porMil=new Map();
+  const poe=(mil,txt)=>{
+    if(!milPorId(mil))return;
+    if(!porMil.has(mil))porMil.set(mil,[]);
+    porMil.get(mil).push(txt);
+  };
+  FER.periodos.filter(p=>p.status!=='cancelada'&&p.ini<=t&&p.fim>=t)
+    .forEach(p=>poe(p.mil,(TIPO_FER[p.tipo]||p.tipo)+' até '+brDate(p.fim)));
+  ausenciasHoje().forEach(e=>poe(e.mil,ausenciaRotulo(e)+(e.fim?' até '+brDate(e.fim):' (sem prazo)')));
+  return [...porMil].map(([mil,motivos])=>({mil,motivos}));
 }
 function feriasEmCurso(){
   const t=hoje();
@@ -10463,7 +10474,8 @@ function ausenciaAberta(e){
 }
 function ausenciasHoje(){
   const t=hoje();
-  return (EFE.eventos||[]).filter(e=>ausenciaAberta(e)&&e.data<=t&&(!e.fim||e.fim>=t))
+  /* movFimEfetivo: se o militar já registrou o regresso antes do fim previsto, a ausência acabou */
+  return (EFE.eventos||[]).filter(e=>ausenciaAberta(e)&&e.data<=t&&(movFimEfetivo(e)||'9999-12-31')>=t)
     .sort((a,b)=>(a.fim||'9999').localeCompare(b.fim||'9999'));
 }
 function ausenciasProximas(){
@@ -10575,6 +10587,8 @@ function renderPainel(){
         ' · gasto '+brl(com.total)+' em '+com.qtd+' lançamento(s)'+
         ' · de '+brDate(com.cfg.ini)+(com.cfg.fim?' a '+brDate(com.cfg.fim):' (em curso)');
     }else{ b.style.color=''; el.title=''; }
+    if(novo[i][0]==='Afastados hoje')
+      el.title=af.length?af.map(a=>nomeDe(a.mil)+' — '+a.motivos.join(' + ')).join('\n'):'Ninguém afastado hoje';
   });
 
   const emCurso=feriasEmCurso();
