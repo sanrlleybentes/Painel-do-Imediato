@@ -571,6 +571,12 @@ select.obtfase{min-width:210px;font-size:12px}
 .funMil h4{margin:0 0 6px;font-size:14px;display:flex;align-items:baseline;gap:8px}
 .funMil h4 .funQtd{margin-left:auto;background:var(--brass);color:#fff;border-radius:99px;padding:1px 9px;font-size:12px}
 .funChip{display:inline-block;background:#EEF2E6;border:1px solid #CFDABF;color:var(--bordo);border-radius:99px;padding:2px 9px;margin:2px 4px 2px 0;font-size:11.5px}
+button.funChip{cursor:pointer;font-family:inherit;line-height:inherit;text-align:left}
+button.funChip:hover{border-color:var(--bordo);background:#E3EBD3}
+.funMil .funActs{display:flex;gap:6px;margin-top:8px}
+.funPassLista{max-height:34vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:#fff}
+.funPassLista label{display:flex;gap:8px;align-items:center;font-size:13px;margin:5px 0;color:var(--ink);text-transform:none;letter-spacing:0}
+.funPassLista input{width:auto}
 .funHist{list-style:none;margin:0;padding:0;max-height:50vh;overflow:auto}
 .funHist li{display:flex;gap:10px;padding:6px 2px;border-bottom:1px solid var(--line);font-size:13px}
 .funHist li .d{min-width:84px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -1643,14 +1649,16 @@ select.g-in{appearance:auto}
       <div class="subtabs" id="subFun" style="margin-top:12px">
         <button data-fun="funcao" aria-selected="true">Por função</button>
         <button data-fun="militar" aria-selected="false">Por militar</button>
+        <button data-fun="os" aria-selected="false">Inserir OS</button>
       </div>
-      <div class="funBarra">
+      <div class="funBarra" id="funBarra">
         <input type="text" id="funBusca" placeholder="Buscar função ou militar">
         <select id="funFiltro"><option value="">Todas</option><option value="vagas">Só sem titular a bordo</option><option value="ocupadas">Só com titular</option></select>
         <span class="hint" id="funResumo" style="margin:0"></span>
-        <button class="btn" id="funNova" style="margin-left:auto">Nova função</button>
+        <span style="margin-left:auto;display:flex;gap:8px"><button class="btn ghost" id="funPassagem">Passagem</button><button class="btn" id="funNova">Nova função</button></span>
       </div>
       <div id="funLista"></div>
+      <div id="funOsPainel" class="hidden"></div>
     </div>
   </div>
 
@@ -4066,7 +4074,7 @@ async function load(first){
   if(!DM.baseline)DM.baseline=[];
   if(!DM.termos)DM.termos=[];
   FUN=m.funcoes||null;
-  if(FUN&&!Array.isArray(FUN.funcoes))FUN.funcoes=[];
+  funNormaliza();
   TMFT=m.tmft||{campos:{}};
   if(!TMFT.campos)TMFT.campos={};
   /* migra registros antigos: inspeção sem etapa passa a valer como concluída */
@@ -9807,21 +9815,36 @@ function renderEfetivo(){
   if(SUB_EFE==='tmi')renderTmi();
 }
 /* ═══════════ Funções e Encargos (Pessoal) ═══════════
-   Quem é o titular de cada função/encargo colateral, segundo as Ordens de
-   Serviço de 2022 a 2026 (levantamento de 15/10/2026). Cada função guarda o
-   titular atual (NIP + nome), a OS e a data, e o histórico de passagens e
-   assunções. Só aparece quem está no efetivo (tripulação e destacados): se o
-   titular não está mais lá, o cartão fica vermelho. Nada é vinculado a
-   divisão — há funções de divisão e outras que não são.
+   Quem é titular de cada função/encargo colateral, segundo as Ordens de
+   Serviço de 2022 a 2026 (levantamento de 15/10/2026). Cada função guarda a
+   LISTA de titulares (uma função pode ter vários: "Fiel de Armazenagem" tem
+   quatro na OS 138/2026), cada um com NIP, nome, OS e data, e o histórico de
+   passagens e assunções. Só aparece quem está no efetivo (tripulação e
+   destacados): função sem nenhum titular no efetivo fica vermelha. Nada é
+   vinculado a divisão — há funções de divisão e outras que não são.
    Enquanto ninguém grava, o painel mostra a carga inicial abaixo; a primeira
    edição de quem tem permissão grava a lista inteira em 'funcoes'. */
 const SEED_FUNCOES={"m":[["LUIZ CARLOS NUNES DE SOUZA",""],["JHONATAN PEREIRA DA SILVA","15.0937.01"],["GABRIEL AUGUSTO DE OLIVEIRA","18.0288.88"],["BRUNO VICENTE CANDIDO",""],["THIAGO OLIVEIRA SEABRA DOS SANTOS","09.0223.76"],["LUCAS BASSANI DA SILVA","15.0076.69"],["SANRLLEY BENTES CORDEIRO","17.0054.18"],["CARLOS SEIJIRO FERREIRA FUKUSHIMA",""],["LUCIANO TEIXEIRA DE LIMA",""],["MANOEL VICTOR FREITAS DE SENA","07.2032.50"],["EDILSON JUNIOR BORGES DA COSTA","08.1081.02"],["WILLIAM GALVÃO ROCHA","15.0326.80"],["FELIPE THADEU MOTA DE AZEVEDO","13.0190.15"],["HENRIQUE BRITO FREITAS","12.0208.77"],["ALESSANDRO CHAGAS DE SOUSA","15.0198.29"],["CALEB LOPES AMARAL","21.0830.45"],["LEANDRO DE VASCONCELOS CARDOSO","23.0445.43"],["HELYSON JORGE FREITAS SALLES","09.0071.30"],["VICTOR DA SILVA LIMA","17.0553.00"],["MATHEUS DA SILVA PORTAL","19.1068.23"],["LUCAS ANGELIM GUIMARÃES","15.0116.31"],["ERICK SANTOS DO NASCIMENTO",""],["JOSÉ RICARDO DA SILVA MAIA","99.1003.06"],["MAURO DA LUZ ARAUJO","21.0787.42"],["BRENO DA SILVA FOURAUX","99.1445.31"],["ANDERSON DA SILVA DOS SANTOS",""],["ALBERSON SILVA DO ESPIRITO SANTO AYROSA","13.0373.91"],["PEDRO COSTA DO NASCIMENTO",""],["ALMIR FREIRE PEREIRA LODI",""],["SANDERSON RENAN LOPES DE LIMA","17.0082.39"],["GLAUBER ROQUE MOURA","12.0164.89"],["RAPHAEL DE SOUZA BARBOSA","14.0222.65"],["BRUNO VICENTE CANDIDO","19.0075.07"],["NAURO AUGUSTO DE MORAES SOUZA","10.0093.37"],["RENAN SILVA MACIEL",""],["CRISOSTOMO CORDEIRO DA SILVA JUNIOR","07.3580.24"],["AFONSO DOS SANTOS MACHADO","14.1696.06"],["JAIME DANIEL AZEVEDO DA SILVA",""],["RAMON COSTA MONTEIRO",""],["ALAN CELSO PRADO",""],["AMÉRICO ALVES NETO",""],["CAIO RAFAEL DE OLIVEIRA ALVES","03.0710.14"]],"f":[["Administrador da Rede Local (ADMIN)",3,"93/2026","2026-05-11",[["2022-01-10","09/2022","p",0],["2022-01-10","09/2022","a",1],["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2],["2026-05-11","93/2026","p",2],["2026-05-11","93/2026","a",3]]],["Agente de Pagamento",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Agente Fiscal",6,"105/2026","2026-07-09",[["2024-01-30","21/2024","p",4],["2024-01-30","21/2024","a",5],["2026-07-09","105/2026","p",5],["2026-07-09","105/2026","a",6]]],["Auxiliar da Faxina do Mestre",-1,"07/2024","",[["2024-01-08","06/2024","p",7],["2024-01-08","07/2024","p",8]]],["Auxiliar de Inteligência",10,"37/2025","2025-05-07",[["2025-02-14","17/2025","p",2],["2025-02-14","17/2025","a",9],["2025-05-07","37/2025","p",9],["2025-05-07","37/2025","a",10]]],["Auxiliar de Segurança Orgânica",10,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",11],["2024-10-23","95/2024","a",12],["2025-05-07","37/2025","p",12],["2025-05-07","37/2025","a",9],["2026-05-02","61/2026","p",9],["2026-05-02","61/2026","a",10]]],["Auxiliar do Adestramento",13,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",13]]],["Auxiliar do Encarregado de Material Controlado",2,"72/2024","2024-07-19",[["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Auxiliar do Fiel de Pagamento",14,"61/2026","2026-05-02",[["2026-05-02","61/2026","p",10],["2026-05-02","61/2026","a",14]]],["Auxiliar do Grupo MO",16,"05/2024","2024-01-08",[["2024-01-08","05/2024","p",15],["2024-01-08","05/2024","a",16]]],["Auxiliar do Oficial de Inteligência",1,"85/2023","2023-08-21",[["2023-08-21","85/2023","a",1]]],["Auxiliar do Oficial de Inteligência e Contra-Inteligência",2,"72/2024","2024-07-19",[["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Auxiliar do Oficial de Relações Públicas",15,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",15]]],["Auxiliar do Oficial de Segurança Orgânica",11,"85/2023","2023-08-21",[["2022-06-26","70/2022","a",1],["2023-08-21","85/2023","a",11]]],["Auxiliar do Sargenteante Geral",17,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",17]]],["Auxiliar do Supervisor da Divisão de Hidroceanografia",18,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",18]]],["Auxiliar do Supervisor de Comunicações",18,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",18]]],["Camarote de Oficiais / Paioleiro de Mantimentos / Enc. Alojamento CB-MN",19,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",19]]],["Coordenador do PQS",6,"109/2026","2026-07-09",[["2023-01-01","11/2023","a",4],["2024-01-30","19/2024","p",4],["2024-01-30","19/2024","a",5],["2026-07-09","109/2026","p",5],["2026-07-09","109/2026","a",6]]],["Despenseiro do Comandante",19,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",19]]],["Elemento de Ligação com o NAS",20,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",4],["2023-07-14","67/2023","a",20]]],["Elemento de Ligação e Assessoria em Situação de Óbito",20,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",4],["2023-07-14","67/2023","a",20]]],["Encarregado da Divisão de Máquinas",22,"71/2023","2023-07-21",[["2023-07-21","71/2023","p",21],["2023-07-21","71/2023","a",22]]],["Encarregado da Incumbência 0808 (Material de SJ/TI — Folha N)",6,"106/2026","2026-07-09",[["2025-02-18","20/2025","a",5],["2026-07-09","106/2026","p",5],["2026-07-09","106/2026","a",6]]],["Encarregado da Navegação",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado da Saúde",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado de Adestramento",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado de Informática",20,"17/2025","2025-02-14",[["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20]]],["Encarregado de Pessoal",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado do Alojamento SO/SG",23,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",23]]],["Encarregado do Armamento",24,"73/2025","2025-10-27",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22],["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado do Conforto",26,"62/2026","2026-04-28",[["2026-04-28","62/2026","p",25],["2026-04-28","62/2026","a",26]]],["Encarregado do Convés",24,"73/2025","2025-10-27",[["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado do Material Controlado",24,"73/2025","2025-10-27",[["2022-07-27","82/2022","p",27],["2022-07-27","82/2022","a",28],["2023-07-14","67/2023","p",28],["2023-07-14","67/2023","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado pelo Acompanhamento de Processos",6,"107/2026","2026-07-09",[["2024-01-30","22/2024","p",4],["2024-01-30","22/2024","a",5],["2026-07-09","107/2026","p",5],["2026-07-09","107/2026","a",6]]],["Fiel da Aguada",31,"61/2026","2026-02-05",[["2022-06-26","70/2022","a",29],["2026-02-05","61/2026","p",30],["2026-02-05","61/2026","a",31]]],["Fiel de Armazenagem / Suprimento",32,"88/2024","2024-10-04",[["2024-10-04","88/2024","a",32]]],["Fiel de CAV",31,"61/2026","2026-02-05",[["2026-02-05","61/2026","p",30],["2026-02-05","61/2026","a",31]]],["Fiel de Material Comum",32,"80/2024","2024-08-01",[["2024-08-01","80/2024","p",18],["2024-08-01","80/2024","a",32]]],["Fiel de Municiamento",26,"62/2026","2026-04-28",[["2026-04-28","62/2026","p",25],["2026-04-28","62/2026","a",26]]],["Fiel de Pagamento",33,"80/2024","2024-08-01",[["2024-08-01","80/2024","p",1],["2024-08-01","80/2024","a",33]]],["Fiel do Óleo",36,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",34],["2024-10-23","95/2024","a",35],["2026-05-02","61/2026","p",35],["2026-05-02","61/2026","a",36]]],["Gestor de Energia e Eficiência Energética",22,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22]]],["Gestor de Municiamento",20,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",20]]],["Imediato",6,"112/2026","2026-07-10",[["2026-07-10","112/2026","p",5],["2026-07-10","112/2026","a",6]]],["Mestre do Navio",12,"102/2023","2023-12-01",[["2023-12-01","102/2023","p",37],["2023-12-01","102/2023","a",12]]],["Oficial de Adestramento",4,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",4]]],["Oficial de Inteligência",6,"104/2026","2026-07-09",[["2024-01-30","23/2024","p",4],["2024-01-30","23/2024","a",5],["2026-07-09","104/2026","p",5],["2026-07-09","104/2026","a",6]]],["Oficial de Relações Públicas",24,"73/2025","2025-10-27",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Oficial de Segurança da Informação e Comunicação (OSIC)",20,"17/2025","2025-02-14",[["2022-01-28","10/2022","p",4],["2022-01-28","10/2022","a",21],["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22],["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20]]],["Oficial de Segurança Orgânica",22,"67/2023","2023-07-14",[["2022-01-28","10/2022","p",4],["2022-01-28","10/2022","a",21],["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22]]],["Oficial Responsável pela Custódia",4,"22/2026","2026-01-30",[["2022-07-27","82/2022","p",27],["2022-07-27","82/2022","a",28],["2023-07-25","73/2023","p",28],["2023-07-25","73/2023","a",38],["2024-07-31","78/2024","p",38],["2024-07-31","78/2024","a",39],["2026-01-30","22/2026","p",39],["2026-01-30","22/2026","a",4]]],["Ordenador de Despesas",4,"21/2026","2026-01-30",[["2022-07-27","81/2022","p",27],["2022-07-27","81/2022","a",28],["2023-07-25","72/2023","p",28],["2023-07-25","72/2023","a",38],["2024-07-24","74/2024","p",38],["2024-07-24","74/2024","a",39],["2026-01-30","21/2026","p",39],["2026-01-30","21/2026","a",4]]],["Ordenador de Despesas Substituto",6,"105/2026","2026-07-09",[["2024-01-30","21/2024","p",4],["2024-01-30","21/2024","a",5],["2026-07-09","105/2026","p",5],["2026-07-09","105/2026","a",6]]],["Paioleiro de Sobressalentes",29,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",29]]],["Sargenteante Geral",41,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",40],["2024-10-23","95/2024","a",30],["2026-02-05","61/2026","p",30],["2026-05-02","61/2026","a",41]]],["Secretário / Supervisor CN",2,"72/2024","2024-07-19",[["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Supervisor da Divisão de Hidroceanografia",17,"17/2025","2025-02-14",[["2025-02-14","17/2025","p",18],["2025-02-14","17/2025","a",17]]],["Supervisor de Comunicações",3,"93/2026","2026-05-11",[["2026-05-11","93/2026","p",2],["2026-05-11","93/2026","a",3]]],["Supervisor do Adestramento",35,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",35]]],["Supervisor EL",13,"69/2022","2022-06-26",[["2022-06-26","69/2022","a",13]]],["Supervisor SECOM",1,"95/2023","2023-11-06",[["2023-11-06","95/2023","p",0],["2023-11-06","95/2023","a",1]]]]};
 function funSeed(){
   const M=SEED_FUNCOES.m.map(x=>({nome:x[0],nip:x[1]}));
-  return {v:1,semeado:true,funcoes:SEED_FUNCOES.f.map((f,i)=>({
-    id:'f'+(i+1),nome:f[0],titular:f[1]>=0?Object.assign({},M[f[1]]):null,os:f[2]||'',desde:f[3]||'',obs:'',
+  return {v:2,semeado:true,osAplicadas:[],funcoes:SEED_FUNCOES.f.map((f,i)=>({
+    id:'f'+(i+1),nome:f[0],obs:'',
+    titulares:f[1]>=0?[{nip:M[f[1]].nip,nome:M[f[1]].nome,os:f[2]||'',desde:f[3]||''}]:[],
     hist:f[4].map(h=>({data:h[0],os:h[1],acao:h[2]==='a'?'assume':'passa',
       nip:M[h[3]]?M[h[3]].nip:'',nome:M[h[3]]?M[h[3]].nome:''}))}))};
+}
+/* O primeiro formato guardava um titular só (f.titular, f.os, f.desde). */
+function funNormaliza(){
+  if(!FUN)return;
+  if(!Array.isArray(FUN.funcoes))FUN.funcoes=[];
+  if(!Array.isArray(FUN.osAplicadas))FUN.osAplicadas=[];
+  FUN.funcoes.forEach(f=>{
+    if(!Array.isArray(f.titulares))
+      f.titulares=f.titular?[{nip:f.titular.nip||'',nome:f.titular.nome,os:f.os||'',desde:f.desde||''}]:[];
+    delete f.titular; delete f.os; delete f.desde;
+    if(!Array.isArray(f.hist))f.hist=[];
+    f.obs=f.obs||'';
+  });
 }
 const funABordo=()=>grupo('tripulacao').concat(grupo('destacado'));
 const funDig=s=>String(s||'').replace(/\D/g,'');
@@ -9832,63 +9855,103 @@ function funAchaMil(t){
   const b=funABordo(), dg=funDig(t.nip);
   return (dg&&b.find(x=>funDig(x.nip)===dg))||b.find(x=>chave(x.completo||x.nome)===chave(t.nome))||null;
 }
-function funMesmoTitular(a,b){
-  if(!a||!b)return !a&&!b;
+function funMesmaPessoa(a,b){
+  if(!a||!b)return false;
   const da=funDig(a.nip), db=funDig(b.nip);
-  return (da&&da===db)||chave(a.nome)===chave(b.nome);
+  if((da&&da===db)||chave(a.nome)===chave(b.nome))return true;
+  const ma=funAchaMil(a), mb=funAchaMil(b);
+  return !!(ma&&mb&&ma.id===mb.id);
+}
+const funRefDe=m=>({nip:m.nip||'',nome:m.completo||m.nome});
+/* assume/passa: as duas únicas formas de mexer nos titulares, para que o
+   histórico nunca fique de fora (usadas por edição, passagem e OS) */
+function funAssume(f,ref,os,data){
+  if(f.titulares.some(x=>funMesmaPessoa(x,ref)))return false;
+  f.titulares.push({nip:ref.nip||'',nome:ref.nome,os:os||'',desde:data||''});
+  f.hist.push({data:data||'',os:os||'',acao:'assume',nip:ref.nip||'',nome:ref.nome});
+  return true;
+}
+function funPassa(f,ref,os,data){
+  const i=f.titulares.findIndex(x=>funMesmaPessoa(x,ref));
+  if(i<0)return false;
+  const t=f.titulares.splice(i,1)[0];
+  f.hist.push({data:data||'',os:os||'',acao:'passa',nip:t.nip||'',nome:t.nome});
+  return true;
 }
 function funGrava(copia){
   FUN.ts=Date.now();
-  return salvar('funcoes',FUN).then(ok=>{ if(!ok&&copia)FUN=JSON.parse(copia); return ok; });
+  return salvar('funcoes',FUN).then(ok=>{ if(!ok&&copia){FUN=JSON.parse(copia);funNormaliza();} return ok; });
 }
-function funCartaoHtml(f,m,ed){
-  const vago=!m;
-  const tit=m?rotulo(m):'Sem titular a bordo';
-  const sub=m?('OS '+f.os+(f.desde?' · desde '+brDate(f.desde):'')):
-    (f.titular?'último: '+f.titular.nome+(f.os?' (OS '+f.os+')':''):'vago');
+/* linha da função: titulares no efetivo (dentro) e fora dele */
+function funLinha(f){
+  const tb=f.titulares.map(t=>({t,m:funAchaMil(t)}));
+  return {f,dentro:tb.filter(x=>x.m),fora:tb.filter(x=>!x.m)};
+}
+function funCartaoHtml(l,ed){
+  const f=l.f, vago=!l.dentro.length;
+  const tits=vago?
+    '<div class="funTit">Sem titular a bordo</div>'+
+    '<div class="funOs">'+esc(l.fora.length?'último: '+l.fora.map(x=>x.t.nome).join(', ')+(l.fora[l.fora.length-1].t.os?' (OS '+l.fora[l.fora.length-1].t.os+')':''):'vago')+'</div>':
+    l.dentro.map(x=>'<div class="funTit">'+esc(rotulo(x.m))+'</div>'+
+      '<div class="funOs">'+esc((x.t.os?'OS '+x.t.os:'')+(x.t.desde?(x.t.os?' · ':'')+'desde '+brDate(x.t.desde):''))+'</div>').join('')+
+    (l.fora.length?'<div class="funObs">fora do efetivo: '+esc(l.fora.map(x=>x.t.nome).join(', '))+'</div>':'');
   return '<div class="funCard'+(vago?' vago':'')+'" data-fun="'+esc(f.id)+'">'+
-    '<div class="funNome">'+esc(f.nome)+'</div><div class="funTit">'+esc(tit)+'</div>'+
-    '<div class="funOs">'+esc(sub)+'</div>'+(f.obs?'<div class="funObs">'+esc(f.obs)+'</div>':'')+
+    '<div class="funNome">'+esc(f.nome)+'</div>'+tits+(f.obs?'<div class="funObs">'+esc(f.obs)+'</div>':'')+
     '<div class="funActs"><button class="mini" data-funhist="'+esc(f.id)+'">Histórico</button>'+
-    (ed?'<button class="mini" data-funedit="'+esc(f.id)+'">Editar</button>'+
+    (ed?'<button class="mini" data-funpass="'+esc(f.id)+'">Passagem</button>'+
+        '<button class="mini" data-funedit="'+esc(f.id)+'">Editar</button>'+
         '<button class="mini" data-fundel="'+esc(f.id)+'" style="color:var(--alert)">Excluir</button>':'')+'</div></div>';
 }
 function renderFuncoes(){
-  if(!FUN)FUN=funSeed();
+  if(!FUN){FUN=funSeed();}
+  funNormaliza();
   const host=$('#funLista'); if(!host)return;
   const ed=podeEditar('efetivo');
+  if(FUN_VISAO==='os'&&!ed)FUN_VISAO='funcao';
+  $$('#subFun button').forEach(o=>o.setAttribute('aria-selected',o.dataset.fun===FUN_VISAO));
+  $('#subFun button[data-fun="os"]').classList.toggle('hidden',!ed);
+  const osv=FUN_VISAO==='os';
+  $('#funBarra').classList.toggle('hidden',osv); host.classList.toggle('hidden',osv);
+  $('#funOsPainel').classList.toggle('hidden',!osv);
+  $('#nFun').textContent=FUN.funcoes.length;
+  if(osv){renderFunOs();return;}
   $('#funNova').classList.toggle('hidden',!ed);
+  $('#funPassagem').classList.toggle('hidden',!ed);
   $('#funFiltro').classList.toggle('hidden',FUN_VISAO!=='funcao');
   const q=chave($('#funBusca').value), filtro=$('#funFiltro').value;
-  const linhas=FUN.funcoes.map(f=>({f,m:funAchaMil(f.titular)}));
-  const vagas=linhas.filter(l=>!l.m).length;
-  $('#nFun').textContent=FUN.funcoes.length;
+  const linhas=FUN.funcoes.map(funLinha);
+  const vagas=linhas.filter(l=>!l.dentro.length).length;
   $('#funResumo').innerHTML=vagas?'<b style="color:var(--alert)">'+vagas+' sem titular a bordo</b>':'todas com titular a bordo';
   const ordem=(a,b)=>a.localeCompare(b,'pt-BR');
+  const bordo=funABordo();
   if(FUN_VISAO==='funcao'){
     const lst=linhas.filter(l=>{
-      if(filtro==='vagas'&&l.m)return false;
-      if(filtro==='ocupadas'&&!l.m)return false;
-      return !q||chave(l.f.nome).includes(q)||(l.m&&chave(rotulo(l.m)+' '+(l.m.completo||'')).includes(q))||
-        (!l.m&&l.f.titular&&chave(l.f.titular.nome).includes(q));
+      const vago=!l.dentro.length;
+      if(filtro==='vagas'&&!vago)return false;
+      if(filtro==='ocupadas'&&vago)return false;
+      return !q||chave(l.f.nome).includes(q)||l.f.titulares.some(t=>{
+        const m=funAchaMil(t); return chave((m?rotulo(m)+' '+(m.completo||''):'')+' '+t.nome).includes(q);});
     });
-    /* antiguidade do titular (a posição dele no efetivo); as vagas vão sempre para o fim */
-    const pos=l=>l.m?funABordo().indexOf(l.m):Infinity;
+    /* antiguidade do titular (a posição dele no efetivo; com vários, o mais antigo); vagas sempre no fim */
+    const pos=l=>l.dentro.length?Math.min.apply(null,l.dentro.map(x=>bordo.indexOf(x.m))):Infinity;
     lst.sort((a,b)=>(pos(a)===pos(b)?0:(pos(a)<pos(b)?-1:1))||ordem(a.f.nome,b.f.nome));
-    host.innerHTML=lst.length?'<div class="funGrid">'+lst.map(l=>funCartaoHtml(l.f,l.m,ed)).join('')+'</div>':
+    host.innerHTML=lst.length?'<div class="funGrid">'+lst.map(l=>funCartaoHtml(l,ed)).join('')+'</div>':
       '<p class="hint">Nenhuma função encontrada.</p>';
   }else{
     const porMil=new Map();
-    linhas.forEach(l=>{ if(l.m){ if(!porMil.has(l.m.id))porMil.set(l.m.id,[]); porMil.get(l.m.id).push(l.f.nome); } });
-    const bordo=funABordo();
+    linhas.forEach(l=>l.dentro.forEach(x=>{
+      if(!porMil.has(x.m.id))porMil.set(x.m.id,[]);
+      porMil.get(x.m.id).push({id:l.f.id,nome:l.f.nome});
+    }));
     const com=bordo.filter(x=>porMil.has(x.id)&&(!q||chave(rotulo(x)+' '+(x.completo||'')).includes(q)||
-      porMil.get(x.id).some(n=>chave(n).includes(q))));
+      porMil.get(x.id).some(n=>chave(n.nome).includes(q))));
     const sem=bordo.filter(x=>!porMil.has(x.id));
     host.innerHTML=(com.length?'<div class="funGrid">'+com.map(x=>{
-      const fs=porMil.get(x.id).slice().sort(ordem);
+      const fs=porMil.get(x.id).slice().sort((a,b)=>ordem(a.nome,b.nome));
       return '<div class="funMil"><h4>'+esc(rotulo(x))+'<span class="funQtd">'+fs.length+'</span></h4>'+
-        fs.map(n=>'<span class="funChip">'+esc(n)+'</span>').join('')+'</div>';
-    }).join('')+'</div>':'<p class="hint">Nenhum militar encontrado.</p>')+
+        fs.map(n=>'<button type="button" class="funChip" data-funabrir="'+esc(n.id)+'">'+esc(n.nome)+'</button>').join('')+
+        (ed?'<div class="funActs"><button class="mini" data-funpassmil="'+esc(x.id)+'">Passagem</button></div>':'')+'</div>';
+    }).join('')+'</div><p class="hint" style="margin:10px 2px 0">Toque numa função para abrir'+(ed?', editar, excluir ou fazer a passagem':' e ver o histórico')+'.</p>':'<p class="hint">Nenhum militar encontrado.</p>')+
       (sem.length&&!q?'<p class="hint">Sem função cadastrada: '+esc(sem.map(rotulo).join(', '))+'.</p>':'');
   }
 }
@@ -9897,7 +9960,7 @@ function funHistorico(id){
   const h=(f.hist||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
   const host=$('#modalHost');
   host.innerHTML='<div class="backdrop"><div class="modal"><h3>'+esc(f.nome)+'</h3>'+
-    '<p class="sub">Histórico de passagens e assunções (OS 2022–2026).</p>'+
+    '<p class="sub">Histórico de passagens e assunções.</p>'+
     (h.length?'<ul class="funHist">'+h.map(x=>'<li><span class="d">'+esc(brDate(x.data))+'</span>'+
       '<span class="a '+esc(x.acao)+'">'+(x.acao==='assume'?'assume':'passa')+'</span>'+
       '<span>'+esc(x.nome||'—')+(x.os?' <span style="color:var(--muted)">· OS '+esc(x.os)+'</span>':'')+'</span></li>').join('')+'</ul>':
@@ -9909,20 +9972,25 @@ function funHistorico(id){
 function funAbrirForm(id){
   if(!podeEditar('efetivo')){avisaSoLeitura();return;}
   if(!FUN)FUN=funSeed();
+  funNormaliza();
   const f=id?FUN.funcoes.find(x=>x.id===id):null;
   if(id&&!f)return;
-  const achado=f?funAchaMil(f.titular):null;
-  const opts='<option value="">— vago —</option>'+funABordo().map(x=>
-    '<option value="'+esc(x.id)+'"'+(achado&&achado.id===x.id?' selected':'')+'>'+esc(pad(idx(x))+'  '+rotulo(x))+'</option>').join('')+
-    (f&&f.titular&&!achado?'<option value="__antigo" selected>'+esc(f.titular.nome)+' (não está a bordo)</option>':'');
+  const atuais=f?f.titulares:[];
+  const foraList=atuais.filter(t=>!funAchaMil(t));
+  const marcado=m=>atuais.some(t=>{const a=funAchaMil(t);return a&&a.id===m.id;});
+  const caixas=funABordo().map(x=>'<label><input type="checkbox" class="funTitChk" value="'+esc(x.id)+'"'+(marcado(x)?' checked':'')+'>'+
+      esc(pad(idx(x))+'  '+rotulo(x))+'</label>').join('')+
+    foraList.map((t,i)=>'<label><input type="checkbox" class="funTitChk" value="x:'+i+'" checked>'+esc(t.nome)+
+      ' <span style="color:var(--muted)">(não está a bordo)</span></label>').join('');
   const host=$('#modalHost');
   host.innerHTML='<div class="backdrop"><div class="modal"><h3>'+(f?'Editar função':'Nova função')+'</h3>'+
-    '<p class="sub">Trocar o titular registra no histórico a passagem de quem saiu e a assunção de quem entrou.</p>'+
+    '<p class="sub">Quem for marcado passa a ser titular; quem for desmarcado deixa de ser. Cada mudança entra no histórico.</p>'+
     '<div class="fields">'+
       '<div><label>Função ou encargo</label><input type="text" id="funNomeIn" value="'+esc(f?f.nome:'')+'"></div>'+
-      '<div><label>Titular</label><select id="funTitIn">'+opts+'</select></div>'+
-      '<div class="row"><div><label>OS</label><input type="text" id="funOsIn" placeholder="Ex.: 112/2026" value="'+esc(f?f.os:'')+'"></div>'+
-      '<div><label>Desde</label><input type="date" id="funDesdeIn" value="'+esc(f?f.desde:'')+'"></div></div>'+
+      '<div><label>Titulares <span style="float:right;text-transform:none;letter-spacing:0;color:var(--muted)">pode haver mais de um</span></label>'+
+        '<div class="funPassLista" id="funTitLista">'+caixas+'</div></div>'+
+      '<div class="row"><div><label>OS (de quem entra ou sai)</label><input type="text" id="funOsIn" placeholder="Ex.: 112/2026"></div>'+
+      '<div><label>Data</label><input type="date" id="funDesdeIn" value="'+esc(hoje())+'"></div></div>'+
       '<div><label>Observação</label><input type="text" id="funObsIn" value="'+esc(f?f.obs:'')+'"></div>'+
     '</div><div class="actions"><button class="btn ghost" id="funCancel">Cancelar</button>'+
     '<button class="btn" id="funSalvar">Salvar</button></div></div></div>';
@@ -9932,19 +10000,18 @@ function funAbrirForm(id){
     const nome=$('#funNomeIn').value.replace(/\s+/g,' ').trim();
     if(!nome){toast('Dê um nome à função.',true);return;}
     if(FUN.funcoes.some(x=>x!==f&&chave(x.nome)===chave(nome))){toast('Já existe uma função com esse nome.',true);return;}
-    const sel=$('#funTitIn').value;
-    const mil=sel&&sel!=='__antigo'?milPorId(sel):null;
-    const novoT=!sel?null:(sel==='__antigo'?f.titular:(mil?{nip:mil.nip||'',nome:mil.completo||mil.nome}:null));
-    const os=$('#funOsIn').value.trim(), desde=$('#funDesdeIn').value, obs=$('#funObsIn').value.trim();
+    const os=$('#funOsIn').value.trim(), data=$('#funDesdeIn').value||hoje(), obs=$('#funObsIn').value.trim();
+    const marcados=$$('.funTitChk').filter(c=>c.checked).map(c=>c.value);
+    const refs=marcados.map(v=>{
+      if(v.startsWith('x:'))return foraList[+v.slice(2)];
+      const m=milPorId(v); return m?funRefDe(m):null;
+    }).filter(Boolean);
     const copia=JSON.stringify(FUN);
     let alvo=f;
-    if(!alvo){ alvo={id:'f'+uid(),nome,titular:null,os:'',desde:'',obs:'',hist:[]}; FUN.funcoes.push(alvo); }
-    if(!funMesmoTitular(alvo.titular,novoT)){
-      const data=desde||hoje();
-      if(alvo.titular)alvo.hist.push({data,os,acao:'passa',nip:alvo.titular.nip||'',nome:alvo.titular.nome});
-      if(novoT)alvo.hist.push({data,os,acao:'assume',nip:novoT.nip||'',nome:novoT.nome});
-    }
-    alvo.nome=nome; alvo.titular=novoT; alvo.os=os; alvo.desde=desde; alvo.obs=obs;
+    if(!alvo){ alvo={id:'f'+uid(),nome,obs:'',titulares:[],hist:[]}; FUN.funcoes.push(alvo); }
+    alvo.titulares.slice().forEach(t=>{ if(!refs.some(r=>funMesmaPessoa(r,t)))funPassa(alvo,t,os,data); });
+    refs.forEach(r=>{ funAssume(alvo,r,os,data); });
+    alvo.nome=nome; alvo.obs=obs;
     const ok=await funGrava(copia);
     if(ok){host.innerHTML='';toast(f?'Função atualizada.':'Função incluída.');}
     renderFuncoes();
@@ -9961,11 +10028,345 @@ function funExcluir(id){
     renderFuncoes();
   });
 }
+/* Toque numa função (visão por militar): abre o cartão dela, com o que o perfil permite */
+function funDetalhe(id){
+  const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
+  const l=funLinha(f), ed=podeEditar('efetivo'), vago=!l.dentro.length;
+  const host=$('#modalHost');
+  host.innerHTML='<div class="backdrop"><div class="modal" style="'+(vago?'border-top-color:var(--alert)':'')+'"><h3>'+esc(f.nome)+'</h3>'+
+    '<p class="sub">'+(vago?
+      '<b style="color:var(--alert)">Sem titular a bordo</b>'+(l.fora.length?' · último: '+esc(l.fora.map(x=>x.t.nome).join(', ')):' · vago'):
+      (l.dentro.length>1?'Titulares: ':'Titular: ')+l.dentro.map(x=>'<b>'+esc(rotulo(x.m))+'</b>'+(x.t.os?' · OS '+esc(x.t.os):'')+(x.t.desde?' · desde '+esc(brDate(x.t.desde)):'')).join('<br>'))+'</p>'+
+    (f.obs?'<p class="hint" style="margin:0 0 10px">'+esc(f.obs)+'</p>':'')+
+    '<div class="actions" style="flex-wrap:wrap">'+
+      '<button class="btn ghost" id="fdHist">Histórico</button>'+
+      (ed?'<button class="btn ghost" id="fdPass">Passagem</button><button class="btn ghost" id="fdEdit">Editar</button>'+
+          '<button class="btn ghost" id="fdDel" style="color:var(--alert)">Excluir</button>':'')+
+      '<button class="btn" id="fdFecha">Fechar</button></div></div></div>';
+  $('#fdFecha').onclick=()=>host.innerHTML='';
+  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+  $('#fdHist').onclick=()=>funHistorico(id);
+  if(ed){
+    $('#fdPass').onclick=()=>funAbrirPassagem({funId:id});
+    $('#fdEdit').onclick=()=>funAbrirForm(id);
+    $('#fdDel').onclick=()=>funExcluir(id);
+  }
+}
+/* Passagem: passa uma ou várias funções de um militar para outro do efetivo.
+   Registra no histórico o "passa" de quem sai e o "assume" de quem entra. */
+function funAbrirPassagem(op){
+  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!FUN)FUN=funSeed();
+  funNormaliza();
+  op=op||{};
+  const alfa=(a,b)=>a.nome.localeCompare(b.nome,'pt-BR');
+  const linhas=FUN.funcoes.map(funLinha);
+  const doMil=id=>linhas.filter(l=>l.dentro.some(x=>x.m.id===id)).map(l=>l.f).sort(alfa);
+  const vagas=linhas.filter(l=>!l.dentro.length).map(l=>l.f).sort(alfa);
+  const donos=funABordo().filter(x=>doMil(x.id).length);
+  let de=op.deId||'';
+  if(op.funId){
+    const l=linhas.find(v=>v.f.id===op.funId);
+    de=l?(l.dentro.length?(op.deId||l.dentro[0].m.id):'__vagas'):'';
+  }
+  const optMil=x=>'<option value="'+esc(x.id)+'">'+esc(pad(idx(x))+'  '+rotulo(x))+'</option>';
+  const host=$('#modalHost');
+  host.innerHTML='<div class="backdrop"><div class="modal"><h3>Passagem de função</h3>'+
+    '<p class="sub">Passa funções e encargos de um militar para outro do efetivo. Registra no histórico quem passou e quem assumiu.</p>'+
+    '<div class="fields">'+
+      '<div><label>De</label><select id="funPassDe"><option value="">— escolha —</option>'+
+        donos.map(x=>'<option value="'+esc(x.id)+'">'+esc(pad(idx(x))+'  '+rotulo(x))+' ('+doMil(x.id).length+')</option>').join('')+
+        (vagas.length?'<option value="__vagas">Funções sem titular a bordo ('+vagas.length+')</option>':'')+'</select></div>'+
+      '<div><label>Funções <span style="float:right;text-transform:none;letter-spacing:0">'+
+        '<a href="#" id="funPassTodas">todas</a> · <a href="#" id="funPassNenhuma">nenhuma</a></span></label>'+
+        '<div class="funPassLista" id="funPassLista"><span class="hint" style="margin:0">Escolha de quem as funções saem.</span></div></div>'+
+      '<div><label>Para</label><select id="funPassPara"><option value="">— escolha —</option>'+funABordo().map(optMil).join('')+'</select></div>'+
+      '<div class="row"><div><label>OS</label><input type="text" id="funPassOs" placeholder="Ex.: 130/2026"></div>'+
+      '<div><label>Data</label><input type="date" id="funPassData" value="'+esc(hoje())+'"></div></div>'+
+    '</div><div class="actions"><button class="btn ghost" id="funPassCancel">Cancelar</button>'+
+    '<button class="btn" id="funPassOk">Passar</button></div></div></div>';
+  const lista=marcadas=>{
+    const v=$('#funPassDe').value;
+    const fs=v==='__vagas'?vagas:(v?doMil(v):[]);
+    $('#funPassLista').innerHTML=fs.length?fs.map(f=>'<label><input type="checkbox" class="funPassChk" value="'+esc(f.id)+'"'+
+      (!marcadas||marcadas.includes(f.id)?' checked':'')+'>'+esc(f.nome)+'</label>').join(''):
+      '<span class="hint" style="margin:0">Escolha de quem as funções saem.</span>';
+  };
+  const marca=v=>$$('.funPassChk').forEach(c=>c.checked=v);
+  $('#funPassDe').value=de;
+  lista(op.funId?[op.funId]:null);
+  $('#funPassDe').onchange=()=>lista(null);
+  $('#funPassTodas').onclick=e=>{e.preventDefault();marca(true);};
+  $('#funPassNenhuma').onclick=e=>{e.preventDefault();marca(false);};
+  $('#funPassCancel').onclick=()=>host.innerHTML='';
+  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+  $('#funPassOk').onclick=async()=>{
+    const dv=$('#funPassDe').value, pv=$('#funPassPara').value;
+    const ids=$$('.funPassChk').filter(c=>c.checked).map(c=>c.value);
+    if(!dv){toast('Escolha de quem as funções saem.',true);return;}
+    if(!ids.length){toast('Marque ao menos uma função.',true);return;}
+    if(!pv){toast('Escolha quem recebe.',true);return;}
+    if(pv===dv){toast('Quem recebe é o mesmo que passa.',true);return;}
+    const mil=milPorId(pv); if(!mil)return;
+    const novoT=funRefDe(mil), quem=dv==='__vagas'?null:milPorId(dv);
+    const os=$('#funPassOs').value.trim(), data=$('#funPassData').value||hoje();
+    const copia=JSON.stringify(FUN);
+    ids.forEach(id=>{
+      const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
+      if(quem)f.titulares.slice().forEach(t=>{ const m=funAchaMil(t); if(m&&m.id===quem.id)funPassa(f,t,os,data); });
+      else f.titulares.slice().forEach(t=>funPassa(f,t,os,data));
+      funAssume(f,novoT,os,data);
+    });
+    const ok=await funGrava(copia);
+    if(ok){host.innerHTML='';toast(ids.length+(ids.length===1?' função passada':' funções passadas')+' para '+rotulo(mil)+'.');}
+    renderFuncoes();
+  };
+}
+
+/* ═══════════ Inserir OS: a IA lê a OS de passagem/assunção, você ratifica ═══════════
+   A leitura vai pela função 'ler-nota' (modo "os"), a mesma da leitura de notas.
+   O PDF dessas OS tem uma tabela em que CADA FUNÇÃO é uma célula e posto/NIP/nome
+   são células mescladas na vertical: um militar pode ter várias funções. O que
+   ela devolve nunca grava sozinho: abre a conferência, linha a linha, com o
+   efeito de cada uma, e só a sua ratificação atualiza as funções. */
+let FUN_OS=null;
+const FUN_STOP=['de','do','da','dos','das','e','o','a','ao','para','em'];
+const FUN_TIPOS={assuncao:'Assunção',passagem:'Passagem',dispensa:'Dispensa'};
+function funToks(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+    .replace(/\benc\b\.?/g,'encarregado').replace(/\bof\b\.?/g,'oficial').replace(/\baux\b\.?/g,'auxiliar')
+    .replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(w=>w&&!FUN_STOP.includes(w));
+}
+/* parecença entre dois nomes de função: Dice sobre as palavras que sobram sem "de/do/da" */
+function funScore(a,b){
+  const A=funToks(a), B=funToks(b);
+  if(!A.length||!B.length)return 0;
+  const sb=new Set(B); let c=0; new Set(A).forEach(w=>{ if(sb.has(w))c++; });
+  return 2*c/(new Set(A).size+sb.size);
+}
+function funMelhorFuncao(nome){
+  let melhor=null, ms=0;
+  FUN.funcoes.forEach(f=>{ const s=funScore(nome,f.nome); if(s>ms){ms=s;melhor=f;} });
+  return {f:melhor,score:ms};
+}
+const funIso=s=>{
+  s=String(s||'').trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?m[3]+'-'+pad(+m[2])+'-'+pad(+m[1]):'';
+};
+function funTipoDe(it){
+  const t=chave((it.tipo||'')+' '+(it.secao||''));
+  if(/DISPENS/.test(t))return 'dispensa';
+  if(/PASSA/.test(t))return 'passagem';
+  if(/ASSUN|ASSUM|DESIGN/.test(t))return 'assuncao';
+  return '';
+}
+/* o que a IA devolveu → linhas {militar × função}, uma por função */
+function funOsNormaliza(j){
+  const raiz=(j&&j.resultado)||j||{};
+  const mo=String(raiz.os||'').match(/(\d{1,4})\s*\/\s*(\d{4})/);
+  const linhas=[];
+  (raiz.itens||[]).forEach(it=>{
+    const tipo=funTipoDe(it); if(!tipo)return;
+    const natureza=/ENCARGO/.test(chave((it.natureza||'')+' '+(it.secao||'')))?'encargo':'função';
+    const fs=Array.isArray(it.funcoes)?it.funcoes:(it.funcao?[it.funcao]:[]);
+    fs.map(x=>String(x||'').replace(/\s+/g,' ').replace(/[\s.;,]+$/,'').trim()).filter(Boolean).forEach(fn=>{
+      const l={id:uid(),tipo,natureza,secao:String(it.secao||''),funcao:fn,posto:String(it.posto||'').trim(),
+        nip:String(it.nip||'').trim(),nome:String(it.nome||'').replace(/\s+/g,' ').trim(),
+        efeito:funIso(it.efeito),incluir:true,mapId:''};
+      const r=funMelhorFuncao(fn);
+      if(r.f&&r.score>=0.75){ l.mapId=r.f.id; l.parecido=r.score<1; }
+      linhas.push(l);
+    });
+  });
+  return {os:mo?(+mo[1])+'/'+mo[2]:String(raiz.os||'').trim(),data:funIso(raiz.data),
+    assunto:String(raiz.assunto||'').trim(),linhas};
+}
+/* Aplica a OS (ou simula, numa cópia): primeiro as passagens e dispensas, depois as
+   assunções — assim "A passa, B assume" termina com B, qualquer que seja a ordem na OS.
+   Devolve, por linha, o que aconteceu e o que a ratificação precisa mostrar. */
+function funOsExecuta(F,est){
+  const res={}, criadas={};
+  const funcaoDe=l=>{
+    let f=l.mapId?F.funcoes.find(x=>x.id===l.mapId):null;
+    if(f)return {f,nova:false};
+    const k=chave(l.funcao);
+    f=criadas[k]||F.funcoes.find(x=>chave(x.nome)===k);
+    if(f)return {f,nova:!!criadas[k]};
+    f={id:'f'+uid(),nome:l.funcao,obs:'',titulares:[],hist:[]};
+    F.funcoes.push(f); criadas[k]=f;
+    return {f,nova:true,criou:true};
+  };
+  const usadas=est.linhas.filter(l=>l.incluir);
+  const ordenadas=usadas.filter(l=>l.tipo!=='assuncao').concat(usadas.filter(l=>l.tipo==='assuncao'));
+  ordenadas.forEach(l=>{
+    const {f,nova,criou}=funcaoDe(l);
+    const m=funAchaMil({nip:l.nip,nome:l.nome});
+    const ref={nip:l.nip,nome:m?(m.completo||m.nome):l.nome};
+    const data=l.efeito||est.data||hoje();
+    const r=res[l.id]={fid:f.id,avisos:[],semEfeito:false,criou:!!criou,nova};
+    if(!m)r.avisos.push('não está no efetivo');
+    if(l.tipo==='assuncao'){
+      if(!funAssume(f,ref,est.os,data)){r.semEfeito=true;r.avisos.push('já é titular');}
+    }else if(!funPassa(f,ref,est.os,data)){
+      if(nova){ f.hist.push({data,os:est.os,acao:'passa',nip:ref.nip,nome:ref.nome}); r.avisos.push('função nova: não havia titular registrado'); }
+      else{ r.semEfeito=true; r.avisos.push('não consta como titular'); }
+    }
+  });
+  ordenadas.forEach(l=>{
+    const r=res[l.id], f=F.funcoes.find(x=>x.id===r.fid);
+    r.depois=f.titulares.map(t=>t.nome);
+    const nb=f.titulares.filter(t=>funAchaMil(t)).length;
+    if(l.tipo==='assuncao'&&nb>1)r.avisos.push('a função fica com '+nb+' titulares no efetivo');
+  });
+  return res;
+}
+function funOsSimula(){
+  const clone=JSON.parse(JSON.stringify(FUN));
+  return funOsExecuta(clone,FUN_OS);
+}
+async function lerOsIA(f){
+  const c=leituraCfg();
+  if(!c.url)throw new Error('a leitura inteligente ainda não foi configurada (Configurações → Leitura inteligente de notas)');
+  let b64, mime=f.type||'application/octet-stream';
+  if(ehImagem(f)){
+    const r=await imagemReduzida(f,2200,3.2);
+    b64=r.dados; mime=r.mime;
+    if(r.mb>4.4)throw new Error('mesmo comprimida a foto ficou com '+r.mb.toFixed(1)+' MB — fotografe uma página por vez');
+  }else{
+    b64=await arquivoParaBase64(f);
+    const mb=(b64.length*3/4)/1048576;
+    if(mb>4.4)throw new Error('o arquivo tem '+mb.toFixed(1)+' MB — o limite é 4,4 MB');
+  }
+  const ctrl=new AbortController();
+  const corta=setTimeout(()=>ctrl.abort(),120000);
+  let r;
+  try{
+    r=await fetch(c.url,{method:'POST',signal:ctrl.signal,
+      headers:Object.assign({'Content-Type':'application/json'},cabecalhoLeitura(c)),
+      body:JSON.stringify({mime,nome:f.name,dados:b64,modo:'os'})});
+  }catch(e){ clearTimeout(corta);
+    throw new Error('a leitura não respondeu em 2 minutos — conexão lenta ou arquivo grande'); }
+  clearTimeout(corta);
+  const bruto=await r.text();
+  if(!r.ok){
+    let msg=bruto.slice(0,200);
+    try{const j0=JSON.parse(bruto); if(j0&&j0.erro)msg=j0.erro;}catch(e){}
+    if(r.status===401||r.status===403||/AUTH|authorization/i.test(bruto))
+      msg='o serviço recusou a credencial ('+r.status+'). Veja Configurações → Leitura inteligente de notas.';
+    throw new Error(msg);
+  }
+  let j; try{ j=JSON.parse(bruto); }catch(e){ throw new Error('resposta inesperada do serviço'); }
+  return j;
+}
+async function funOsLerArquivo(file){
+  const msg=$('#funOsMsg');
+  msg.textContent='Lendo a OS… (pode levar até um minuto)'; msg.style.color='';
+  try{
+    const j=await lerOsIA(file);
+    const est=funOsNormaliza(j);
+    if(!est.linhas.length)throw new Error('não achei passagem, assunção ou dispensa nesse documento — confira se é a OS certa');
+    est.arquivo=file.name;
+    FUN_OS=est;
+    renderFunOs();
+  }catch(e){
+    msg.textContent=e.message||String(e); msg.style.color='var(--alert)';
+  }
+}
+function renderFunOs(){
+  const host=$('#funOsPainel'); if(!host)return;
+  if(!FUN_OS){
+    const ap=(FUN.osAplicadas||[]).slice().reverse();
+    host.innerHTML='<p class="hint" style="margin:12px 0">Insira uma Ordem de Serviço de passagem, assunção ou dispensa de função/encargo (PDF ou foto). '+
+      'O sistema lê o documento, mostra <b>o que entendeu</b> — OS, data, função, militar e se é passagem, assunção ou dispensa — '+
+      'e só atualiza as funções depois que você <b>ratificar</b>.</p>'+
+      '<div class="row" style="align-items:center"><button class="btn" id="funOsEscolher">Escolher OS (PDF ou foto)</button>'+
+      '<input type="file" id="funOsArq" accept="application/pdf,image/*" class="hidden"></div>'+
+      '<p class="hint" id="funOsMsg" style="margin:10px 0 0"></p>'+
+      (ap.length?'<h3 style="font-size:13px;margin:18px 0 6px;color:var(--terra);text-transform:uppercase;letter-spacing:.05em">OS já aplicadas</h3>'+
+        '<ul class="funHist">'+ap.map(a=>'<li><span class="d">'+esc(brDate(a.data))+'</span><span>OS '+esc(a.os)+
+          ' <span style="color:var(--muted)">· '+a.n+(a.n===1?' alteração':' alterações')+'</span></span></li>').join('')+'</ul>':'');
+    return;
+  }
+  const sim=funOsSimula();
+  const opcoes=FUN.funcoes.slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const dup=(FUN.osAplicadas||[]).find(a=>a.os===FUN_OS.os);
+  const nSel=FUN_OS.linhas.filter(l=>l.incluir).length;
+  const linhasHtml=FUN_OS.linhas.map(l=>{
+    const r=sim[l.id]||{avisos:[],depois:null};
+    const m=funAchaMil({nip:l.nip,nome:l.nome});
+    const sel='<select class="funOsMap" data-lin="'+esc(l.id)+'" style="max-width:260px"><option value="">— nova função —</option>'+
+      opcoes.map(f=>'<option value="'+esc(f.id)+'"'+(f.id===l.mapId?' selected':'')+'>'+esc(f.nome)+'</option>').join('')+'</select>';
+    const efeito=l.incluir?(l.tipo==='assuncao'?'passa a ser titular':'deixa de ser titular')+
+      (r.depois?'<div class="obtmeta">depois: '+(r.depois.length?esc(r.depois.join(', ')):'<b style="color:var(--alert)">vago</b>')+'</div>':''):'<span class="obtmeta">não será aplicada</span>';
+    const av=l.incluir?r.avisos.map(a=>'<div class="obtmeta" style="color:var(--terra)">⚠ '+esc(a)+'</div>').join(''):'';
+    return '<tr'+(l.incluir?'':' style="opacity:.55"')+'><td style="vertical-align:top;padding-top:10px"><input type="checkbox" class="funOsChk" data-lin="'+esc(l.id)+'"'+(l.incluir?' checked':'')+'></td>'+
+      '<td style="vertical-align:top;padding-top:10px"><span class="pill'+(l.tipo==='assuncao'?'':' red')+'">'+esc(FUN_TIPOS[l.tipo])+'</span>'+
+        '<div class="obtmeta">'+esc(l.natureza)+'</div></td>'+
+      '<td style="vertical-align:top;padding-top:8px"><b>'+esc(l.funcao)+'</b><div style="margin-top:4px">'+sel+'</div>'+
+        (l.mapId&&l.parecido?'<div class="obtmeta" style="color:var(--terra)">parecida com uma já cadastrada — confirme</div>':'')+
+        (!l.mapId?'<div class="obtmeta">será criada como função nova</div>':'')+'</td>'+
+      '<td style="vertical-align:top;padding-top:10px">'+(m?'<b>'+esc(rotulo(m))+'</b>':'<b>'+esc(l.nome)+'</b>')+
+        '<div class="obtmeta">'+esc((l.posto?l.posto+' · ':'')+l.nip)+'</div>'+(m?'':'<div class="obtmeta" style="color:var(--terra)">não está no efetivo</div>')+'</td>'+
+      '<td style="vertical-align:top;padding-top:10px">'+efeito+av+'</td></tr>';
+  }).join('');
+  host.innerHTML='<div class="fields" style="margin-top:12px">'+
+    '<p class="hint" style="margin:0">Conferência da leitura de <b>'+esc(FUN_OS.arquivo||'')+'</b>. Corrija o que precisar, desmarque o que não quiser aplicar e ratifique.</p>'+
+    (dup?'<p class="hint" style="margin:0;color:var(--alert)"><b>Esta OS já foi aplicada em '+esc(brDate(dup.data))+'.</b> Aplicar de novo pode duplicar o histórico.</p>':'')+
+    '<div class="row"><div style="flex:0 1 140px"><label>OS</label><input type="text" id="funOsNum" value="'+esc(FUN_OS.os)+'"></div>'+
+    '<div style="flex:0 1 170px"><label>Data</label><input type="date" id="funOsData" value="'+esc(FUN_OS.data)+'"></div>'+
+    '<div><label>Assunto</label><input type="text" id="funOsAssunto" value="'+esc(FUN_OS.assunto)+'"></div></div>'+
+    '<div class="row" style="align-items:center"><button type="button" class="mini" id="funOsTodas">Marcar todas</button> '+
+    '<button type="button" class="mini" id="funOsNenhuma">Desmarcar todas</button></div></div>'+
+    '<div class="scroller" style="margin-top:10px"><table class="obttab"><thead><tr><th></th><th>O que ocorre</th><th>Função / encargo</th><th>Militar</th><th>Efeito</th></tr></thead><tbody>'+
+    linhasHtml+'</tbody></table></div>'+
+    '<div class="actions" style="margin-top:12px;display:flex;gap:9px"><button class="btn ghost" id="funOsDescarta">Descartar</button>'+
+    '<button class="btn" id="funOsAplica"'+(nSel?'':' disabled')+'>Ratificar e aplicar '+nSel+' alteraç'+(nSel===1?'ão':'ões')+'</button></div>';
+}
+async function funOsAplicar(){
+  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  const est=FUN_OS; if(!est)return;
+  est.os=($('#funOsNum').value||'').trim(); est.data=$('#funOsData').value||''; est.assunto=($('#funOsAssunto').value||'').trim();
+  if(!est.os){toast('Informe o número da OS.',true);return;}
+  if(!est.data){toast('Informe a data da OS.',true);return;}
+  const sel=est.linhas.filter(l=>l.incluir);
+  if(!sel.length){toast('Marque ao menos uma alteração.',true);return;}
+  const copia=JSON.stringify(FUN);
+  const res=funOsExecuta(FUN,est);
+  const efetivas=sel.filter(l=>!(res[l.id]&&res[l.id].semEfeito)).length;
+  FUN.osAplicadas.push({os:est.os,data:est.data,ts:Date.now(),n:efetivas});
+  const ok=await funGrava(copia);
+  if(ok){
+    FUN_OS=null; FUN_VISAO='funcao';
+    toast('OS '+est.os+' aplicada: '+efetivas+(efetivas===1?' alteração.':' alterações.'));
+  }
+  renderFuncoes();
+}
+$('#funPassagem').onclick=()=>funAbrirPassagem({});
 $('#funLista').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b)return;
   if(b.dataset.funhist)funHistorico(b.dataset.funhist);
   else if(b.dataset.funedit)funAbrirForm(b.dataset.funedit);
   else if(b.dataset.fundel)funExcluir(b.dataset.fundel);
+  else if(b.dataset.funpass)funAbrirPassagem({funId:b.dataset.funpass});
+  else if(b.dataset.funpassmil)funAbrirPassagem({deId:b.dataset.funpassmil});
+  else if(b.dataset.funabrir)funDetalhe(b.dataset.funabrir);
+});
+$('#funOsPainel').addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t)return;
+  if(t.id==='funOsEscolher')$('#funOsArq').click();
+  else if(t.id==='funOsDescarta'){FUN_OS=null;renderFunOs();}
+  else if(t.id==='funOsTodas'||t.id==='funOsNenhuma'){FUN_OS.linhas.forEach(l=>l.incluir=(t.id==='funOsTodas'));renderFunOs();}
+  else if(t.id==='funOsAplica')funOsAplicar();
+});
+$('#funOsPainel').addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='funOsArq'){ const f=t.files[0]; t.value=''; if(f)await funOsLerArquivo(f); }
+  else if(t.classList.contains('funOsChk')){ FUN_OS.linhas.find(l=>l.id===t.dataset.lin).incluir=t.checked; renderFunOs(); }
+  else if(t.classList.contains('funOsMap')){ const l=FUN_OS.linhas.find(x=>x.id===t.dataset.lin); l.mapId=t.value; l.parecido=false; renderFunOs(); }
+  else if(t.id==='funOsNum'){ FUN_OS.os=t.value.trim(); }
+  else if(t.id==='funOsData'){ FUN_OS.data=t.value; }
+  else if(t.id==='funOsAssunto'){ FUN_OS.assunto=t.value.trim(); }
 });
 
 /* ═══════════════════ TAF — teste de aptidão física ═══════════════════
