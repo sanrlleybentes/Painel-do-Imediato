@@ -557,6 +557,25 @@ select.obtfase{min-width:210px;font-size:12px}
 .progEditToggle:hover{border-color:var(--brass);color:var(--ink)}
 .progEditToggle.on{border-color:var(--brass);background:#F3E9D2;color:var(--ink)}
 
+.funBarra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 0}
+.funBarra input,.funBarra select{max-width:250px}
+.funGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:14px}
+.funCard{background:#fff;border:1px solid var(--line);border-left:4px solid var(--bordo);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:2px}
+.funCard.vago{border-left-color:var(--alert);background:#FBF1EE}
+.funCard .funNome{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.funCard .funTit{font-weight:600;color:var(--ink)}
+.funCard.vago .funTit{color:var(--alert)}
+.funCard .funOs,.funCard .funObs{font-size:11.5px;color:var(--muted)}
+.funCard .funActs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.funMil{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.funMil h4{margin:0 0 6px;font-size:14px;display:flex;align-items:baseline;gap:8px}
+.funMil h4 .funQtd{margin-left:auto;background:var(--brass);color:#fff;border-radius:99px;padding:1px 9px;font-size:12px}
+.funChip{display:inline-block;background:#EEF2E6;border:1px solid #CFDABF;color:var(--bordo);border-radius:99px;padding:2px 9px;margin:2px 4px 2px 0;font-size:11.5px}
+.funHist{list-style:none;margin:0;padding:0;max-height:50vh;overflow:auto}
+.funHist li{display:flex;gap:10px;padding:6px 2px;border-bottom:1px solid var(--line);font-size:13px}
+.funHist li .d{min-width:84px;color:var(--muted);font-variant-numeric:tabular-nums}
+.funHist li .a{min-width:56px;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.funHist li .a.assume{color:var(--bordo)}.funHist li .a.passa{color:var(--terra)}
 .backdrop{position:fixed;inset:0;background:rgba(58,51,36,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 .modal{background:rgba(255,255,255,.86);border:1px solid var(--line);border-top:3px solid var(--brass);border-radius:4px;width:100%;
   backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
@@ -1483,9 +1502,8 @@ select.g-in{appearance:auto}
 <section id="tab-efetivo" class="hidden">
   <div class="subtabs" id="subEfetivo">
     <button data-sub="tripulacao" aria-selected="true">Tripulação</button>
+    <button data-sub="funcoes" aria-selected="false">Funções e Encargos</button>
     <button data-sub="diasmar" aria-selected="false">Dias de Mar</button>
-    <button data-sub="movimentacao" aria-selected="false">Movimentação</button>
-    <button data-sub="controlegeral" aria-selected="false">Controle Geral</button>
     <button data-sub="saude" aria-selected="false">Saúde</button>
     <button data-sub="plano" aria-selected="false">Plano de Busca</button>
     <button data-sub="tmft" aria-selected="false">TMFT</button>
@@ -1493,6 +1511,12 @@ select.g-in{appearance:auto}
   </div>
 
   <div id="sub-tripulacao">
+    <div class="subtabs" id="subTri">
+      <button data-tri="efetivo" aria-selected="true">Efetivo</button>
+      <button data-tri="movimentacao" aria-selected="false">Movimentação</button>
+      <button data-tri="controlegeral" aria-selected="false">Controle Geral</button>
+    </div>
+    <div id="tri-efetivo">
     <div class="card reveal">
       <h2>Tripulação <span class="n" id="nTri">0</span></h2>
       <p class="hint" style="margin:0 0 12px">Arraste pela alça <span style="color:#607983">⠿</span> para acertar a antiguidade — a posição na lista <b>é</b> a antiguidade. No celular, use as setas.</p>
@@ -1519,48 +1543,7 @@ select.g-in{appearance:auto}
       </div>
       <div style="margin-top:12px"><button class="btn ghost" id="addDes">Incluir destacado</button></div>
     </div>
-  </div>
-
-  <!-- ---------- DIAS DE MAR ---------- -->
-  <div id="sub-diasmar" class="hidden">
-    <div class="subtabs" id="subDM">
-      <button data-dm="controle" aria-selected="true">Controle de DM</button>
-      <button data-dm="controletv" aria-selected="false">Controle TV</button>
-      <button data-dm="insercao" aria-selected="false">Inserção de DM</button>
     </div>
-
-    <div id="dm-controle">
-      <div class="card reveal">
-        <h2>Dias de Mar <span class="n" id="nDmRoster">0</span></h2>
-        <p class="hint" style="margin:0 0 12px">Coluna <b>Base</b> é o saldo de dias de mar já feito antes de este controle existir — edite uma vez só, por militar. O resto vem somado automaticamente dos Termos de Viagem importados na aba <b>Inserção de DM</b>. 500/750/1000 dias dão direito, respectivamente, à Medalha Mérito Marinheiro com 1, 2 e 3 ferros — toque ou passe o mouse na bolinha pra ver qual.</p>
-        <div class="scroller" id="dmRoster"></div>
-      </div>
-    </div>
-
-    <div id="dm-controletv" class="hidden">
-      <div class="card reveal">
-        <h2>Termos de Viagem <span class="n" id="nDmTV">0</span></h2>
-        <p class="hint" style="margin:0 0 12px">Todos os TVs já computados nos dias de mar da tripulação: os antigos que vieram da planilha (contados na coluna <b>Base</b> de cada militar, em Controle de DM) e os lançados aqui pela aba <b>Inserção de DM</b>. Serve pra conferir que nenhum TV ficou de fora nem foi contado duas vezes. Clique numa linha para ver o período completo, a comissão e os militares do documento.</p>
-        <div class="scroller" id="dmTVLista"></div>
-      </div>
-    </div>
-
-    <div id="dm-insercao" class="hidden">
-      <div class="card reveal">
-        <h2>Importar Termo de Viagem (PDF)</h2>
-        <p class="hint" style="margin:0 0 12px">Envie um ou mais PDFs de Termo de Viagem do SisTempos/SISPES. Cada TV pode virar vários arquivos — um por período de embarque, quando militares diferentes embarcaram em datas diferentes na mesma comissão. O painel lê cada um, mostra abaixo pra você conferir, e só grava quando você confirmar.</p>
-        <div class="row" style="align-items:flex-end">
-          <div style="flex:1 1 260px"><label>Arquivos PDF</label><input type="file" id="dmArquivo" accept="application/pdf" multiple></div>
-          <div style="flex:0 1 auto"><button class="btn ghost" id="dmAddManual">+ Adicionar sem PDF</button></div>
-        </div>
-        <p class="hint" id="dmInsStatus" style="margin:10px 2px 0"></p>
-      </div>
-      <div id="dmPendHost"></div>
-      <div id="dmPendAcoes" class="hidden" style="margin:14px 0">
-        <button class="btn" id="dmSalvarTudo">Confirmar e gravar todos os pendentes</button>
-      </div>
-    </div>
-  </div>
 
   <div id="sub-movimentacao" class="hidden">
     <div class="card reveal">
@@ -1649,6 +1632,67 @@ select.g-in{appearance:auto}
       <p class="hint" style="margin:6px 2px 0">Toque numa barra para ver as datas. Arraste para os lados para ver o ano inteiro &mdash; no celular, com o dedo mesmo.</p>
     </div>
     <div class="progChip" id="cgChip"></div>
+  </div>
+  </div>
+
+  <!-- ---------- FUNÇÕES E ENCARGOS ---------- -->
+  <div id="sub-funcoes" class="hidden">
+    <div class="card reveal">
+      <h2>Funções e Encargos <span class="n" id="nFun">0</span></h2>
+      <p class="hint" style="margin:0 0 4px">Titulares conforme as Ordens de Serviço (2022–2026). Só aparece quem está no efetivo; função cujo titular não está mais a bordo fica em <b style="color:var(--alert)">vermelho</b>.</p>
+      <div class="subtabs" id="subFun" style="margin-top:12px">
+        <button data-fun="funcao" aria-selected="true">Por função</button>
+        <button data-fun="militar" aria-selected="false">Por militar</button>
+      </div>
+      <div class="funBarra">
+        <input type="text" id="funBusca" placeholder="Buscar função ou militar">
+        <select id="funFiltro"><option value="">Todas</option><option value="vagas">Só sem titular a bordo</option><option value="ocupadas">Só com titular</option></select>
+        <span class="hint" id="funResumo" style="margin:0"></span>
+        <button class="btn" id="funNova" style="margin-left:auto">Nova função</button>
+      </div>
+      <div id="funLista"></div>
+    </div>
+  </div>
+
+  <!-- ---------- DIAS DE MAR ---------- -->
+  <div id="sub-diasmar" class="hidden">
+    <div class="subtabs" id="subDM">
+      <button data-dm="controle" aria-selected="true">Controle de DM</button>
+      <button data-dm="controletv" aria-selected="false">Controle TV</button>
+      <button data-dm="insercao" aria-selected="false">Inserção de DM</button>
+    </div>
+
+    <div id="dm-controle">
+      <div class="card reveal">
+        <h2>Dias de Mar <span class="n" id="nDmRoster">0</span></h2>
+        <p class="hint" style="margin:0 0 12px">Coluna <b>Base</b> é o saldo de dias de mar já feito antes de este controle existir — edite uma vez só, por militar. O resto vem somado automaticamente dos Termos de Viagem importados na aba <b>Inserção de DM</b>. 500/750/1000 dias dão direito, respectivamente, à Medalha Mérito Marinheiro com 1, 2 e 3 ferros — toque ou passe o mouse na bolinha pra ver qual.</p>
+        <div class="scroller" id="dmRoster"></div>
+      </div>
+    </div>
+
+    <div id="dm-controletv" class="hidden">
+      <div class="card reveal">
+        <h2>Termos de Viagem <span class="n" id="nDmTV">0</span></h2>
+        <p class="hint" style="margin:0 0 12px">Todos os TVs já computados nos dias de mar da tripulação: os antigos que vieram da planilha (contados na coluna <b>Base</b> de cada militar, em Controle de DM) e os lançados aqui pela aba <b>Inserção de DM</b>. Serve pra conferir que nenhum TV ficou de fora nem foi contado duas vezes. Clique numa linha para ver o período completo, a comissão e os militares do documento.</p>
+        <div class="scroller" id="dmTVLista"></div>
+      </div>
+    </div>
+
+    <div id="dm-insercao" class="hidden">
+      <div class="card reveal">
+        <h2>Importar Termo de Viagem (PDF)</h2>
+        <p class="hint" style="margin:0 0 12px">Envie um ou mais PDFs de Termo de Viagem do SisTempos/SISPES. Cada TV pode virar vários arquivos — um por período de embarque, quando militares diferentes embarcaram em datas diferentes na mesma comissão. O painel lê cada um, mostra abaixo pra você conferir, e só grava quando você confirmar.</p>
+        <div class="row" style="align-items:flex-end">
+          <div style="flex:1 1 260px"><label>Arquivos PDF</label><input type="file" id="dmArquivo" accept="application/pdf" multiple></div>
+          <div style="flex:0 1 auto"><button class="btn ghost" id="dmAddManual">+ Adicionar sem PDF</button></div>
+        </div>
+        <p class="hint" id="dmInsStatus" style="margin:10px 2px 0"></p>
+      </div>
+      <div id="dmPendHost"></div>
+      <div id="dmPendAcoes" class="hidden" style="margin:14px 0">
+        <button class="btn" id="dmSalvarTudo">Confirmar e gravar todos os pendentes</button>
+      </div>
+    </div>
   </div>
 
   <div id="sub-plano" class="hidden">
@@ -3495,10 +3539,10 @@ const RELACAO=[
  ['MN','23.0062.42','ANTÔNIO JOSÉ MARTINS DE SOUZA','ANTÔNIO'],
  ['MN','25.0268.44','VICTOR VAZ DE QUEIROZ','QUEIROZ']];
 
-let TAF=null;
+let TAF=null, FUN=null, FUN_VISAO='funcao';
 let PES_RES={dados:{}}, PES_OK=false;   /* resumo público (aniversário, sangue) e se o Plano completo veio */
 let CREW=null,CFG=null,EFE=null,FER=null,PAG=null,PAI=null,GAS=null,RAN=null,CAR=null,DOCS=null,PAP=null,SRV=null,DET=null,TRC=null,SAU=null,MED=null,FOR=null,PES=null,COM=null,DM=null,TMFT=null;
-let TAB='painel', SUB_PAINEL='visao', SUB='gastos', SUB_EFE='tripulacao', SUB_DM='controle', SUB_FER='programadas', SUB_SRV='detalhes', SUB_DET='porto', SUB_SVCAT='sporto',
+let TAB='painel', SUB_PAINEL='visao', SUB='gastos', SUB_EFE='tripulacao', SUB_TRI='efetivo', SUB_DM='controle', SUB_FER='programadas', SUB_SRV='detalhes', SUB_DET='porto', SUB_SVCAT='sporto',
   SUB_VIAGEM_GRADE='condicao3', SUB_VIAGEM_SRV='scondicao3', SUB_SAUDE='inspecoes', SUB_TMFT='metadados', SUB_TMFTMETA='planilha', TMFT_MIL='',
   SUB_TMI='consulta', TMI_MIL='', lastSync=null;
 const DIAS_SEMANA=['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'];
@@ -4021,6 +4065,8 @@ async function load(first){
   DM=m.diasmar||{baseline:[],termos:[]};
   if(!DM.baseline)DM.baseline=[];
   if(!DM.termos)DM.termos=[];
+  FUN=m.funcoes||null;
+  if(FUN&&!Array.isArray(FUN.funcoes))FUN.funcoes=[];
   TMFT=m.tmft||{campos:{}};
   if(!TMFT.campos)TMFT.campos={};
   /* migra registros antigos: inspeção sem etapa passa a valer como concluída */
@@ -5403,9 +5449,24 @@ $$('#subPainel button').forEach(b=>b.onclick=()=>{
 $$('#subEfetivo button').forEach(b=>b.onclick=()=>{
   SUB_EFE=b.dataset.sub;
   $$('#subEfetivo button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['tripulacao','diasmar','movimentacao','controlegeral','saude','plano','tmft','tmi'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB_EFE));
+  ['tripulacao','funcoes','diasmar','saude','plano','tmft','tmi'].forEach(s=>$('#sub-'+s).classList.toggle('hidden',s!==SUB_EFE));
   renderEfetivo();
 });
+$$('#subTri button').forEach(b=>b.onclick=()=>{
+  SUB_TRI=b.dataset.tri;
+  $$('#subTri button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  [['efetivo','tri-efetivo'],['movimentacao','sub-movimentacao'],['controlegeral','sub-controlegeral']]
+    .forEach(([k,id])=>$('#'+id).classList.toggle('hidden',k!==SUB_TRI));
+  renderEfetivo();
+});
+$$('#subFun button').forEach(b=>b.onclick=()=>{
+  FUN_VISAO=b.dataset.fun;
+  $$('#subFun button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  renderFuncoes();
+});
+$('#funBusca').oninput=()=>renderFuncoes();
+$('#funFiltro').onchange=()=>renderFuncoes();
+$('#funNova').onclick=()=>funAbrirForm('');
 $$('#subDM button').forEach(b=>b.onclick=()=>{
   SUB_DM=b.dataset.dm;
   $$('#subDM button').forEach(o=>o.setAttribute('aria-selected',o===b));
@@ -9729,19 +9790,184 @@ function renderDetalhes(){
   if(SUB_DET==='dbanco')renderDetBanco();
 }
 function renderEfetivo(){
-  if(SUB_EFE==='tripulacao')renderPessoal();
+  if(SUB_EFE==='tripulacao'){
+    if(SUB_TRI==='efetivo')renderPessoal();
+    if(SUB_TRI==='movimentacao')renderEfe();
+    if(SUB_TRI==='controlegeral')renderControleGeral();
+  }
+  if(SUB_EFE==='funcoes')renderFuncoes();
   if(SUB_EFE==='diasmar'){
     if(SUB_DM==='controle')renderControleDM();
     else if(SUB_DM==='controletv')renderControleTV();
     else renderInsercaoDM();
   }
-  if(SUB_EFE==='movimentacao')renderEfe();
-  if(SUB_EFE==='controlegeral')renderControleGeral();
   if(SUB_EFE==='saude')renderSaude();
   if(SUB_EFE==='plano')renderPlano();
   if(SUB_EFE==='tmft')renderTmft();
   if(SUB_EFE==='tmi')renderTmi();
 }
+/* ═══════════ Funções e Encargos (Pessoal) ═══════════
+   Quem é o titular de cada função/encargo colateral, segundo as Ordens de
+   Serviço de 2022 a 2026 (levantamento de 15/10/2026). Cada função guarda o
+   titular atual (NIP + nome), a OS e a data, e o histórico de passagens e
+   assunções. Só aparece quem está no efetivo (tripulação e destacados): se o
+   titular não está mais lá, o cartão fica vermelho. Nada é vinculado a
+   divisão — há funções de divisão e outras que não são.
+   Enquanto ninguém grava, o painel mostra a carga inicial abaixo; a primeira
+   edição de quem tem permissão grava a lista inteira em 'funcoes'. */
+const SEED_FUNCOES={"m":[["LUIZ CARLOS NUNES DE SOUZA",""],["JHONATAN PEREIRA DA SILVA","15.0937.01"],["GABRIEL AUGUSTO DE OLIVEIRA","18.0288.88"],["BRUNO VICENTE CANDIDO",""],["THIAGO OLIVEIRA SEABRA DOS SANTOS","09.0223.76"],["LUCAS BASSANI DA SILVA","15.0076.69"],["SANRLLEY BENTES CORDEIRO","17.0054.18"],["CARLOS SEIJIRO FERREIRA FUKUSHIMA",""],["LUCIANO TEIXEIRA DE LIMA",""],["MANOEL VICTOR FREITAS DE SENA","07.2032.50"],["EDILSON JUNIOR BORGES DA COSTA","08.1081.02"],["WILLIAM GALVÃO ROCHA","15.0326.80"],["FELIPE THADEU MOTA DE AZEVEDO","13.0190.15"],["HENRIQUE BRITO FREITAS","12.0208.77"],["ALESSANDRO CHAGAS DE SOUSA","15.0198.29"],["CALEB LOPES AMARAL","21.0830.45"],["LEANDRO DE VASCONCELOS CARDOSO","23.0445.43"],["HELYSON JORGE FREITAS SALLES","09.0071.30"],["VICTOR DA SILVA LIMA","17.0553.00"],["MATHEUS DA SILVA PORTAL","19.1068.23"],["LUCAS ANGELIM GUIMARÃES","15.0116.31"],["ERICK SANTOS DO NASCIMENTO",""],["JOSÉ RICARDO DA SILVA MAIA","99.1003.06"],["MAURO DA LUZ ARAUJO","21.0787.42"],["BRENO DA SILVA FOURAUX","99.1445.31"],["ANDERSON DA SILVA DOS SANTOS",""],["ALBERSON SILVA DO ESPIRITO SANTO AYROSA","13.0373.91"],["PEDRO COSTA DO NASCIMENTO",""],["ALMIR FREIRE PEREIRA LODI",""],["SANDERSON RENAN LOPES DE LIMA","17.0082.39"],["GLAUBER ROQUE MOURA","12.0164.89"],["RAPHAEL DE SOUZA BARBOSA","14.0222.65"],["BRUNO VICENTE CANDIDO","19.0075.07"],["NAURO AUGUSTO DE MORAES SOUZA","10.0093.37"],["RENAN SILVA MACIEL",""],["CRISOSTOMO CORDEIRO DA SILVA JUNIOR","07.3580.24"],["AFONSO DOS SANTOS MACHADO","14.1696.06"],["JAIME DANIEL AZEVEDO DA SILVA",""],["RAMON COSTA MONTEIRO",""],["ALAN CELSO PRADO",""],["AMÉRICO ALVES NETO",""],["CAIO RAFAEL DE OLIVEIRA ALVES","03.0710.14"]],"f":[["Administrador da Rede Local (ADMIN)",3,"93/2026","2026-05-11",[["2022-01-10","09/2022","p",0],["2022-01-10","09/2022","a",1],["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2],["2026-05-11","93/2026","p",2],["2026-05-11","93/2026","a",3]]],["Agente de Pagamento",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Agente Fiscal",6,"105/2026","2026-07-09",[["2024-01-30","21/2024","p",4],["2024-01-30","21/2024","a",5],["2026-07-09","105/2026","p",5],["2026-07-09","105/2026","a",6]]],["Auxiliar da Faxina do Mestre",-1,"07/2024","",[["2024-01-08","06/2024","p",7],["2024-01-08","07/2024","p",8]]],["Auxiliar de Inteligência",10,"37/2025","2025-05-07",[["2025-02-14","17/2025","p",2],["2025-02-14","17/2025","a",9],["2025-05-07","37/2025","p",9],["2025-05-07","37/2025","a",10]]],["Auxiliar de Segurança Orgânica",10,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",11],["2024-10-23","95/2024","a",12],["2025-05-07","37/2025","p",12],["2025-05-07","37/2025","a",9],["2026-05-02","61/2026","p",9],["2026-05-02","61/2026","a",10]]],["Auxiliar do Adestramento",13,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",13]]],["Auxiliar do Encarregado de Material Controlado",2,"72/2024","2024-07-19",[["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Auxiliar do Fiel de Pagamento",14,"61/2026","2026-05-02",[["2026-05-02","61/2026","p",10],["2026-05-02","61/2026","a",14]]],["Auxiliar do Grupo MO",16,"05/2024","2024-01-08",[["2024-01-08","05/2024","p",15],["2024-01-08","05/2024","a",16]]],["Auxiliar do Oficial de Inteligência",1,"85/2023","2023-08-21",[["2023-08-21","85/2023","a",1]]],["Auxiliar do Oficial de Inteligência e Contra-Inteligência",2,"72/2024","2024-07-19",[["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Auxiliar do Oficial de Relações Públicas",15,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",15]]],["Auxiliar do Oficial de Segurança Orgânica",11,"85/2023","2023-08-21",[["2022-06-26","70/2022","a",1],["2023-08-21","85/2023","a",11]]],["Auxiliar do Sargenteante Geral",17,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",17]]],["Auxiliar do Supervisor da Divisão de Hidroceanografia",18,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",18]]],["Auxiliar do Supervisor de Comunicações",18,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",18]]],["Camarote de Oficiais / Paioleiro de Mantimentos / Enc. Alojamento CB-MN",19,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",19]]],["Coordenador do PQS",6,"109/2026","2026-07-09",[["2023-01-01","11/2023","a",4],["2024-01-30","19/2024","p",4],["2024-01-30","19/2024","a",5],["2026-07-09","109/2026","p",5],["2026-07-09","109/2026","a",6]]],["Despenseiro do Comandante",19,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",19]]],["Elemento de Ligação com o NAS",20,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",4],["2023-07-14","67/2023","a",20]]],["Elemento de Ligação e Assessoria em Situação de Óbito",20,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",4],["2023-07-14","67/2023","a",20]]],["Encarregado da Divisão de Máquinas",22,"71/2023","2023-07-21",[["2023-07-21","71/2023","p",21],["2023-07-21","71/2023","a",22]]],["Encarregado da Incumbência 0808 (Material de SJ/TI — Folha N)",6,"106/2026","2026-07-09",[["2025-02-18","20/2025","a",5],["2026-07-09","106/2026","p",5],["2026-07-09","106/2026","a",6]]],["Encarregado da Navegação",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado da Saúde",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado de Adestramento",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado de Informática",20,"17/2025","2025-02-14",[["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20]]],["Encarregado de Pessoal",6,"108/2026","2026-07-09",[["2024-01-30","20/2024","p",4],["2024-01-30","20/2024","a",5],["2026-07-09","108/2026","p",5],["2026-07-09","108/2026","a",6]]],["Encarregado do Alojamento SO/SG",23,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",23]]],["Encarregado do Armamento",24,"73/2025","2025-10-27",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22],["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado do Conforto",26,"62/2026","2026-04-28",[["2026-04-28","62/2026","p",25],["2026-04-28","62/2026","a",26]]],["Encarregado do Convés",24,"73/2025","2025-10-27",[["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado do Material Controlado",24,"73/2025","2025-10-27",[["2022-07-27","82/2022","p",27],["2022-07-27","82/2022","a",28],["2023-07-14","67/2023","p",28],["2023-07-14","67/2023","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Encarregado pelo Acompanhamento de Processos",6,"107/2026","2026-07-09",[["2024-01-30","22/2024","p",4],["2024-01-30","22/2024","a",5],["2026-07-09","107/2026","p",5],["2026-07-09","107/2026","a",6]]],["Fiel da Aguada",31,"61/2026","2026-02-05",[["2022-06-26","70/2022","a",29],["2026-02-05","61/2026","p",30],["2026-02-05","61/2026","a",31]]],["Fiel de Armazenagem / Suprimento",32,"88/2024","2024-10-04",[["2024-10-04","88/2024","a",32]]],["Fiel de CAV",31,"61/2026","2026-02-05",[["2026-02-05","61/2026","p",30],["2026-02-05","61/2026","a",31]]],["Fiel de Material Comum",32,"80/2024","2024-08-01",[["2024-08-01","80/2024","p",18],["2024-08-01","80/2024","a",32]]],["Fiel de Municiamento",26,"62/2026","2026-04-28",[["2026-04-28","62/2026","p",25],["2026-04-28","62/2026","a",26]]],["Fiel de Pagamento",33,"80/2024","2024-08-01",[["2024-08-01","80/2024","p",1],["2024-08-01","80/2024","a",33]]],["Fiel do Óleo",36,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",34],["2024-10-23","95/2024","a",35],["2026-05-02","61/2026","p",35],["2026-05-02","61/2026","a",36]]],["Gestor de Energia e Eficiência Energética",22,"67/2023","2023-07-14",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22]]],["Gestor de Municiamento",20,"17/2025","2025-02-14",[["2025-02-14","17/2025","a",20]]],["Imediato",6,"112/2026","2026-07-10",[["2026-07-10","112/2026","p",5],["2026-07-10","112/2026","a",6]]],["Mestre do Navio",12,"102/2023","2023-12-01",[["2023-12-01","102/2023","p",37],["2023-12-01","102/2023","a",12]]],["Oficial de Adestramento",4,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",4]]],["Oficial de Inteligência",6,"104/2026","2026-07-09",[["2024-01-30","23/2024","p",4],["2024-01-30","23/2024","a",5],["2026-07-09","104/2026","p",5],["2026-07-09","104/2026","a",6]]],["Oficial de Relações Públicas",24,"73/2025","2025-10-27",[["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",20],["2025-10-27","73/2025","p",20],["2025-10-27","73/2025","a",24]]],["Oficial de Segurança da Informação e Comunicação (OSIC)",20,"17/2025","2025-02-14",[["2022-01-28","10/2022","p",4],["2022-01-28","10/2022","a",21],["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22],["2025-02-14","17/2025","p",22],["2025-02-14","17/2025","a",20]]],["Oficial de Segurança Orgânica",22,"67/2023","2023-07-14",[["2022-01-28","10/2022","p",4],["2022-01-28","10/2022","a",21],["2023-07-14","67/2023","p",21],["2023-07-14","67/2023","a",22]]],["Oficial Responsável pela Custódia",4,"22/2026","2026-01-30",[["2022-07-27","82/2022","p",27],["2022-07-27","82/2022","a",28],["2023-07-25","73/2023","p",28],["2023-07-25","73/2023","a",38],["2024-07-31","78/2024","p",38],["2024-07-31","78/2024","a",39],["2026-01-30","22/2026","p",39],["2026-01-30","22/2026","a",4]]],["Ordenador de Despesas",4,"21/2026","2026-01-30",[["2022-07-27","81/2022","p",27],["2022-07-27","81/2022","a",28],["2023-07-25","72/2023","p",28],["2023-07-25","72/2023","a",38],["2024-07-24","74/2024","p",38],["2024-07-24","74/2024","a",39],["2026-01-30","21/2026","p",39],["2026-01-30","21/2026","a",4]]],["Ordenador de Despesas Substituto",6,"105/2026","2026-07-09",[["2024-01-30","21/2024","p",4],["2024-01-30","21/2024","a",5],["2026-07-09","105/2026","p",5],["2026-07-09","105/2026","a",6]]],["Paioleiro de Sobressalentes",29,"70/2022","2022-06-26",[["2022-06-26","70/2022","a",29]]],["Sargenteante Geral",41,"61/2026","2026-05-02",[["2024-10-23","95/2024","p",40],["2024-10-23","95/2024","a",30],["2026-02-05","61/2026","p",30],["2026-05-02","61/2026","a",41]]],["Secretário / Supervisor CN",2,"72/2024","2024-07-19",[["2022-06-26","70/2022","a",1],["2024-07-19","72/2024","p",1],["2024-07-19","72/2024","a",2]]],["Supervisor da Divisão de Hidroceanografia",17,"17/2025","2025-02-14",[["2025-02-14","17/2025","p",18],["2025-02-14","17/2025","a",17]]],["Supervisor de Comunicações",3,"93/2026","2026-05-11",[["2026-05-11","93/2026","p",2],["2026-05-11","93/2026","a",3]]],["Supervisor do Adestramento",35,"08/2023","2023-01-13",[["2023-01-13","08/2023","a",35]]],["Supervisor EL",13,"69/2022","2022-06-26",[["2022-06-26","69/2022","a",13]]],["Supervisor SECOM",1,"95/2023","2023-11-06",[["2023-11-06","95/2023","p",0],["2023-11-06","95/2023","a",1]]]]};
+function funSeed(){
+  const M=SEED_FUNCOES.m.map(x=>({nome:x[0],nip:x[1]}));
+  return {v:1,semeado:true,funcoes:SEED_FUNCOES.f.map((f,i)=>({
+    id:'f'+(i+1),nome:f[0],titular:f[1]>=0?Object.assign({},M[f[1]]):null,os:f[2]||'',desde:f[3]||'',obs:'',
+    hist:f[4].map(h=>({data:h[0],os:h[1],acao:h[2]==='a'?'assume':'passa',
+      nip:M[h[3]]?M[h[3]].nip:'',nome:M[h[3]]?M[h[3]].nome:''}))}))};
+}
+const funABordo=()=>grupo('tripulacao').concat(grupo('destacado'));
+const funDig=s=>String(s||'').replace(/\D/g,'');
+/* o militar do efetivo que é o titular: pelo NIP e, se o NIP divergir entre
+   o cadastro e a OS (acontece), pelo nome completo */
+function funAchaMil(t){
+  if(!t)return null;
+  const b=funABordo(), dg=funDig(t.nip);
+  return (dg&&b.find(x=>funDig(x.nip)===dg))||b.find(x=>chave(x.completo||x.nome)===chave(t.nome))||null;
+}
+function funMesmoTitular(a,b){
+  if(!a||!b)return !a&&!b;
+  const da=funDig(a.nip), db=funDig(b.nip);
+  return (da&&da===db)||chave(a.nome)===chave(b.nome);
+}
+function funGrava(copia){
+  FUN.ts=Date.now();
+  return salvar('funcoes',FUN).then(ok=>{ if(!ok&&copia)FUN=JSON.parse(copia); return ok; });
+}
+function funCartaoHtml(f,m,ed){
+  const vago=!m;
+  const tit=m?rotulo(m):'Sem titular a bordo';
+  const sub=m?('OS '+f.os+(f.desde?' · desde '+brDate(f.desde):'')):
+    (f.titular?'último: '+f.titular.nome+(f.os?' (OS '+f.os+')':''):'vago');
+  return '<div class="funCard'+(vago?' vago':'')+'" data-fun="'+esc(f.id)+'">'+
+    '<div class="funNome">'+esc(f.nome)+'</div><div class="funTit">'+esc(tit)+'</div>'+
+    '<div class="funOs">'+esc(sub)+'</div>'+(f.obs?'<div class="funObs">'+esc(f.obs)+'</div>':'')+
+    '<div class="funActs"><button class="mini" data-funhist="'+esc(f.id)+'">Histórico</button>'+
+    (ed?'<button class="mini" data-funedit="'+esc(f.id)+'">Editar</button>'+
+        '<button class="mini" data-fundel="'+esc(f.id)+'" style="color:var(--alert)">Excluir</button>':'')+'</div></div>';
+}
+function renderFuncoes(){
+  if(!FUN)FUN=funSeed();
+  const host=$('#funLista'); if(!host)return;
+  const ed=podeEditar('efetivo');
+  $('#funNova').classList.toggle('hidden',!ed);
+  $('#funFiltro').classList.toggle('hidden',FUN_VISAO!=='funcao');
+  const q=chave($('#funBusca').value), filtro=$('#funFiltro').value;
+  const linhas=FUN.funcoes.map(f=>({f,m:funAchaMil(f.titular)}));
+  const vagas=linhas.filter(l=>!l.m).length;
+  $('#nFun').textContent=FUN.funcoes.length;
+  $('#funResumo').innerHTML=vagas?'<b style="color:var(--alert)">'+vagas+' sem titular a bordo</b>':'todas com titular a bordo';
+  const ordem=(a,b)=>a.localeCompare(b,'pt-BR');
+  if(FUN_VISAO==='funcao'){
+    const lst=linhas.filter(l=>{
+      if(filtro==='vagas'&&l.m)return false;
+      if(filtro==='ocupadas'&&!l.m)return false;
+      return !q||chave(l.f.nome).includes(q)||(l.m&&chave(rotulo(l.m)+' '+(l.m.completo||'')).includes(q))||
+        (!l.m&&l.f.titular&&chave(l.f.titular.nome).includes(q));
+    });
+    /* antiguidade do titular (a posição dele no efetivo); as vagas vão sempre para o fim */
+    const pos=l=>l.m?funABordo().indexOf(l.m):Infinity;
+    lst.sort((a,b)=>(pos(a)===pos(b)?0:(pos(a)<pos(b)?-1:1))||ordem(a.f.nome,b.f.nome));
+    host.innerHTML=lst.length?'<div class="funGrid">'+lst.map(l=>funCartaoHtml(l.f,l.m,ed)).join('')+'</div>':
+      '<p class="hint">Nenhuma função encontrada.</p>';
+  }else{
+    const porMil=new Map();
+    linhas.forEach(l=>{ if(l.m){ if(!porMil.has(l.m.id))porMil.set(l.m.id,[]); porMil.get(l.m.id).push(l.f.nome); } });
+    const bordo=funABordo();
+    const com=bordo.filter(x=>porMil.has(x.id)&&(!q||chave(rotulo(x)+' '+(x.completo||'')).includes(q)||
+      porMil.get(x.id).some(n=>chave(n).includes(q))));
+    const sem=bordo.filter(x=>!porMil.has(x.id));
+    host.innerHTML=(com.length?'<div class="funGrid">'+com.map(x=>{
+      const fs=porMil.get(x.id).slice().sort(ordem);
+      return '<div class="funMil"><h4>'+esc(rotulo(x))+'<span class="funQtd">'+fs.length+'</span></h4>'+
+        fs.map(n=>'<span class="funChip">'+esc(n)+'</span>').join('')+'</div>';
+    }).join('')+'</div>':'<p class="hint">Nenhum militar encontrado.</p>')+
+      (sem.length&&!q?'<p class="hint">Sem função cadastrada: '+esc(sem.map(rotulo).join(', '))+'.</p>':'');
+  }
+}
+function funHistorico(id){
+  const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
+  const h=(f.hist||[]).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+  const host=$('#modalHost');
+  host.innerHTML='<div class="backdrop"><div class="modal"><h3>'+esc(f.nome)+'</h3>'+
+    '<p class="sub">Histórico de passagens e assunções (OS 2022–2026).</p>'+
+    (h.length?'<ul class="funHist">'+h.map(x=>'<li><span class="d">'+esc(brDate(x.data))+'</span>'+
+      '<span class="a '+esc(x.acao)+'">'+(x.acao==='assume'?'assume':'passa')+'</span>'+
+      '<span>'+esc(x.nome||'—')+(x.os?' <span style="color:var(--muted)">· OS '+esc(x.os)+'</span>':'')+'</span></li>').join('')+'</ul>':
+      '<p class="hint">Sem registros.</p>')+
+    '<div class="actions" style="margin-top:14px"><button class="btn ghost" id="funFecha">Fechar</button></div></div></div>';
+  $('#funFecha').onclick=()=>host.innerHTML='';
+  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+}
+function funAbrirForm(id){
+  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!FUN)FUN=funSeed();
+  const f=id?FUN.funcoes.find(x=>x.id===id):null;
+  if(id&&!f)return;
+  const achado=f?funAchaMil(f.titular):null;
+  const opts='<option value="">— vago —</option>'+funABordo().map(x=>
+    '<option value="'+esc(x.id)+'"'+(achado&&achado.id===x.id?' selected':'')+'>'+esc(pad(idx(x))+'  '+rotulo(x))+'</option>').join('')+
+    (f&&f.titular&&!achado?'<option value="__antigo" selected>'+esc(f.titular.nome)+' (não está a bordo)</option>':'');
+  const host=$('#modalHost');
+  host.innerHTML='<div class="backdrop"><div class="modal"><h3>'+(f?'Editar função':'Nova função')+'</h3>'+
+    '<p class="sub">Trocar o titular registra no histórico a passagem de quem saiu e a assunção de quem entrou.</p>'+
+    '<div class="fields">'+
+      '<div><label>Função ou encargo</label><input type="text" id="funNomeIn" value="'+esc(f?f.nome:'')+'"></div>'+
+      '<div><label>Titular</label><select id="funTitIn">'+opts+'</select></div>'+
+      '<div class="row"><div><label>OS</label><input type="text" id="funOsIn" placeholder="Ex.: 112/2026" value="'+esc(f?f.os:'')+'"></div>'+
+      '<div><label>Desde</label><input type="date" id="funDesdeIn" value="'+esc(f?f.desde:'')+'"></div></div>'+
+      '<div><label>Observação</label><input type="text" id="funObsIn" value="'+esc(f?f.obs:'')+'"></div>'+
+    '</div><div class="actions"><button class="btn ghost" id="funCancel">Cancelar</button>'+
+    '<button class="btn" id="funSalvar">Salvar</button></div></div></div>';
+  $('#funCancel').onclick=()=>host.innerHTML='';
+  host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
+  $('#funSalvar').onclick=async()=>{
+    const nome=$('#funNomeIn').value.replace(/\s+/g,' ').trim();
+    if(!nome){toast('Dê um nome à função.',true);return;}
+    if(FUN.funcoes.some(x=>x!==f&&chave(x.nome)===chave(nome))){toast('Já existe uma função com esse nome.',true);return;}
+    const sel=$('#funTitIn').value;
+    const mil=sel&&sel!=='__antigo'?milPorId(sel):null;
+    const novoT=!sel?null:(sel==='__antigo'?f.titular:(mil?{nip:mil.nip||'',nome:mil.completo||mil.nome}:null));
+    const os=$('#funOsIn').value.trim(), desde=$('#funDesdeIn').value, obs=$('#funObsIn').value.trim();
+    const copia=JSON.stringify(FUN);
+    let alvo=f;
+    if(!alvo){ alvo={id:'f'+uid(),nome,titular:null,os:'',desde:'',obs:'',hist:[]}; FUN.funcoes.push(alvo); }
+    if(!funMesmoTitular(alvo.titular,novoT)){
+      const data=desde||hoje();
+      if(alvo.titular)alvo.hist.push({data,os,acao:'passa',nip:alvo.titular.nip||'',nome:alvo.titular.nome});
+      if(novoT)alvo.hist.push({data,os,acao:'assume',nip:novoT.nip||'',nome:novoT.nome});
+    }
+    alvo.nome=nome; alvo.titular=novoT; alvo.os=os; alvo.desde=desde; alvo.obs=obs;
+    const ok=await funGrava(copia);
+    if(ok){host.innerHTML='';toast(f?'Função atualizada.':'Função incluída.');}
+    renderFuncoes();
+  };
+}
+function funExcluir(id){
+  const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
+  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  confirmar('Excluir função','Excluir "'+f.nome+'"? O histórico dela também será apagado.',async()=>{
+    const copia=JSON.stringify(FUN);
+    FUN.funcoes=FUN.funcoes.filter(x=>x.id!==id);
+    const ok=await funGrava(copia);
+    if(ok)toast('Função excluída.');
+    renderFuncoes();
+  });
+}
+$('#funLista').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  if(b.dataset.funhist)funHistorico(b.dataset.funhist);
+  else if(b.dataset.funedit)funAbrirForm(b.dataset.funedit);
+  else if(b.dataset.fundel)funExcluir(b.dataset.fundel);
+});
+
 /* ═══════════════════ TAF — teste de aptidão física ═══════════════════
    Três modalidades por militar, uma marca cada: feito, não feito ou dispensado.
    O dispensado — restrição de saúde, LTSP — sai da base do percentual em vez de
@@ -12296,7 +12522,7 @@ function renderIsVencer(){
     ['painel','efetivo','ferias','servico','munic','pag','docs','export','config']
       .forEach(x=>$('#tab-'+x).classList.toggle('hidden',x!=='efetivo'));
     $$('#subEfetivo button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='saude'));
-    ['tripulacao','diasmar','movimentacao','controlegeral','saude','plano','tmft','tmi'].forEach(x=>$('#sub-'+x).classList.toggle('hidden',x!=='saude'));
+    ['tripulacao','funcoes','diasmar','saude','plano','tmft','tmi'].forEach(x=>$('#sub-'+x).classList.toggle('hidden',x!=='saude'));
     $$('#subSaude button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='inspecoes'));
     ['inspecoes','medicamentos'].forEach(x=>$('#saude-'+x).classList.toggle('hidden',x!=='inspecoes'));
     renderEfetivo();
