@@ -5792,13 +5792,31 @@ function lerNotaEmpenhoPdf(linhas){
   if(mNum)r.numero=mNum[1]+'NE'+mNum[2].padStart(6,'0');
   const mUg=t.match(/\bUG Emitente\b[\s\S]{0,200}?\n(\d{6})\s+\S/);
   if(mUg)r.ug=mUg[1];
-  const mEmis=t.match(/\b(\d{2}\/\d{2}\/\d{4})\s+\S+\s+([\d.]+\/\d{4}-\d{2})\s+[\d,]+\s+([\d.,]+)\s*$/m);
-  if(mEmis){ r.data=mEmis[1].split('/').reverse().join('-'); r.processo=mEmis[2]; r.valor=num(mEmis[3]); }
+  /* Processo: a impressão antiga trazia o NUP formatado (63387.000212/2026-67); a nova
+     ("Impressão Completa", de 2 páginas) traz os 17 dígitos corridos
+     (63387000200202632). As duas viram o NUP formatado. */
+  /* o NUP às vezes vem sem os dois dígitos finais (66387.00093/2026, digitado à mão no SIAFI) e
+     a taxa de câmbio, em NE de valor zero, vem como "-" */
+  const mEmis=t.match(/\b(\d{2}\/\d{2}\/\d{4})\s+\S+\s+([\d.]+\/\d{4}(?:-\d{2})?|\d{17})\s+[\d,.-]+\s+([\d.,]+)\s*$/m);
+  if(mEmis){
+    r.data=mEmis[1].split('/').reverse().join('-');
+    const p=mEmis[2];
+    r.processo=/^\d{17}$/.test(p)?p.slice(0,5)+'.'+p.slice(5,11)+'/'+p.slice(11,15)+'-'+p.slice(15):p;
+    r.valor=num(mEmis[3]);
+  }
   const mFav=t.match(/Favorecido\s*\n\s*C[oó0]digo\s+Nome\s*\n\s*([\d./-]{11,20})\s+(.+)/);
   if(mFav){ r.cnpj=obtCnpjFmt(mFav[1]); r.fornecedor=mFav[2].trim(); }
   /* o número da SOLEMP mora dentro da Descrição, com o prefixo da UASG na frente */
-  const mSol=t.match(/SOLEMP\)\s*-\s*\d+-(\d{4}\/\d{4})/i);
+  /* "SOLICITACAO DE EMPENHO (SOLEMP) - 84515-0001/2026" (impressão antiga) ou
+     "CONFORME SOLEMP 84515-0059/2026" (nova); se nenhuma das duas, qualquer
+     "UASG-NNNN/AAAA" que apareça no texto */
+  const mSol=t.match(/SOLEMP\)?[^0-9]{0,12}\d{4,6}-(\d{4}\/\d{4})/i)||t.match(/\b\d{5,6}-(\d{4}\/\d{4})\b/);
   if(mSol)r.solemp=mSol[1];
+  else{
+    /* "CONFORME SOLEMP 23/2026 DA UG-784515": sem o prefixo da UASG e sem os zeros */
+    const m2=t.match(/SOLEMP\s+(\d{1,4})\/(\d{4})\b/i);
+    if(m2)r.solemp=m2[1].padStart(4,'0')+'/'+m2[2];
+  }
   /* "Informação Complementar" é o número de controle do PREGÃO (ou outra
      licitação) que originou o item — 17 dígitos: UASG(6) + código da
      modalidade/sequência(5) + nº do certame(2) + ano(4). Confirmado em
