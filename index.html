@@ -15082,29 +15082,83 @@ async function dmLinhasDoPdf(arrayBuffer){
      <uma linha por militar creditado>
    O mesmo número de TV pode aparecer em vários PDFs diferentes — um por
    período de embarque — por isso cada documento é um lançamento à parte. */
-function dmParseLinhas(linhas,nomeArquivo){
+/* O SisPes também imprime o TV como página do navegador, com o MENU LATERAL do sistema
+   misturado ao texto, porque fica na mesma altura das linhas: "SISCURRICULO 28/09/2026
+   10/10/2026", "Exclusão 3SG 15019829 ALESSANDRO...", "PUNICOES pertinentes:". Nesse
+   formato os rótulos também quebram ("Número do" / "Tipo Termo: P" / "Termo: 149") e cada
+   trecho ocupa três linhas (datas / locais e números / horas). O menu fica à esquerda, então
+   sai sempre no COMEÇO da linha — é dali que ele é tirado. (TV 149, outubro/2026.) */
+const DM_MENU_SISPES=['Sistemas Disponíveis','DPM - Sistema de Pessoal (SISPES)','BANIP(SISNIP)','BDI',
+  'Sistema de Tempos - Consulta Documentos','CURSOS','DD_ELETRONICA','FAO_FECHAMENTO','FPCO','FPCP','FUNÇÕES',
+  'MAPA_CPE_VE','MODEAD','PUNICOES','SIGDIS','DIGITADOR - Dig','Termo de Viag','Inclusão','Exclusão','Impressão',
+  'Consulta Sta','Tramitação','Consulta Do','Manual de I','Termo de','Mapa de'];
+function dmLimpaMenu(l){
+  let s=String(l||'').replace(/\s+/g,' ').trim(), antes;
+  do{
+    antes=s;
+    for(const m of DM_MENU_SISPES){
+      if(s===m){s='';break;}
+      if(s.startsWith(m+' ')){s=s.slice(m.length+1).trim();break;}
+    }
+    s=s.replace(/^SIS[A-Z_]+(?:\s+|$)/,'').trim();
+  }while(s&&s!==antes);
+  return s;
+}
+function dmParseLinhas(linhasBrutas,nomeArquivo){
   const erros=[];
+  const linhas=(linhasBrutas||[]).map(dmLimpaMenu).filter(Boolean);
   const texto=linhas.join('\n');
+  let numero='', tipo='';
   const mNum=texto.match(/N[uú]mero do Termo:\s*(\d+)\s*Tipo Termo:\s*([A-Za-z])/i);
-  if(!mNum){
+  if(mNum){ numero=mNum[1]; tipo=mNum[2].toUpperCase(); }
+  else{
+    /* impresso pelo navegador: "Número do" / "Tipo Termo: P" / "Termo: 149" em linhas separadas */
+    const mN=texto.match(/(?:^|\s)Termo:\s*(\d+)/m), mT=texto.match(/Tipo Termo:\s*([PT])\b/i);
+    if(mN)numero=mN[1];
+    else{
+      /* outra impressão: "Número do Termo:" / "Tipo Termo: P" / "127" — o número sozinho numa linha */
+      const iN=linhas.findIndex(l=>/N[uú]mero do/i.test(l));
+      if(iN>=0)for(let k=iN;k<Math.min(linhas.length,iN+5);k++){
+        const m=linhas[k].match(/^(\d{1,5})$/); if(m){numero=m[1];break;}
+      }
+    }
+    if(numero)tipo=mT?mT[1].toUpperCase():'';
+  }
+  if(!numero){
     return {numero:'',tipo:'',periodoIni:'',periodoFim:'',comissao:'',pernas:[],diasCred:null,militares:[],
       arquivo:nomeArquivo,erros:['não achei "Número do Termo" — confira se é mesmo um Termo de Viagem do SisTempos']};
   }
-  const numero=mNum[1], tipo=mNum[2].toUpperCase();
+  if(!tipo)erros.push('não achei o tipo do termo (P ou T)');
 
-  const mPer=texto.match(/In[ií]cio:\s*(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})\s*T[eé]rmino:\s*(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/i);
-  const periodoIni=mPer?mPer[1]:'', periodoFim=mPer?mPer[2]:'';
-  if(!mPer)erros.push('não achei o período total da viagem');
+  /* "Início:dd/mm/aaaa hh:mm:ss Término:..." numa linha, ou as horas na linha de baixo
+     ("Viagem: 07:44:00 18:00:00") */
+  let periodoIni='', periodoFim='';
+  const mPer=texto.match(/In[ií]cio:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?\s*T[eé]rmino:\s*(\d{2}\/\d{2}\/\d{4})(?:\s+(\d{2}:\d{2}:\d{2}))?/i);
+  if(mPer){
+    let hi=mPer[2]||'', hf=mPer[4]||'';
+    if(!hi||!hf){
+      const mH=texto.match(/Viagem:\s*(\d{2}:\d{2}:\d{2})\s+(\d{2}:\d{2}:\d{2})/i);
+      if(mH){ hi=hi||mH[1]; hf=hf||mH[2]; }
+    }
+    periodoIni=(mPer[1]+' '+hi).trim(); periodoFim=(mPer[3]+' '+hf).trim();
+  }else erros.push('não achei o período total da viagem');
 
-  const iPert=linhas.findIndex(l=>/pertinentes:/i.test(l));
+  /* a comissão fica entre "Observações" e o cabeçalho dos trechos; os rótulos
+     "Observações julgadas pertinentes:" podem vir juntos ou espalhados no meio do texto */
   const iPartidaHeader=linhas.findIndex(l=>/^Partida\s+Data\s+Chegada\s+Data\s+Dias/i.test(l));
+  let iObs=linhas.findIndex(l=>/^Observa[çc][õo]es\b/i.test(l));
+  if(iObs<0)iObs=linhas.findIndex(l=>/pertinentes:/i.test(l));
   let comissao='';
-  if(iPert>=0&&iPartidaHeader>iPert){
-    comissao=linhas.slice(iPert,iPartidaHeader).join(' ').replace(/^.*pertinentes:\s*/i,'').trim();
-  }else erros.push('não achei o texto da comissão');
+  if(iObs>=0&&iPartidaHeader>iObs){
+    comissao=linhas.slice(iObs,iPartidaHeader).join(' ')
+      .replace(/^.*?Observa[çc][õo]es\s*/i,'').replace(/(^|\s)julgadas(?=\s|$)/i,' ').replace(/(^|\s)pertinentes:/i,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+  if(!comissao)erros.push('não achei o texto da comissão');
 
   const pernas=[];
   if(iPartidaHeader>=0){
+    const datas=[], horas=[], locais=[];
     for(let i=iPartidaHeader+1;i<linhas.length;i++){
       const l=linhas[i];
       if(/^C[aá]lculo do Termo de Viagem/i.test(l))break;
@@ -15112,8 +15166,19 @@ function dmParseLinhas(linhas,nomeArquivo){
       if(mp){
         pernas.push({partida:mp[1],dataP:mp[2],chegada:mp[3],dataC:mp[4],
           dias:+mp[5].replace(',','.'),horas:+mp[6],minutos:+mp[7],milhas:+mp[8].replace(',','.')});
+        continue;
       }
+      let m;
+      if((m=l.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})$/)))datas.push([m[1],m[2]]);
+      else if((m=l.match(/^(\d{2}:\d{2}:\d{2})\s+(\d{2}:\d{2}:\d{2})$/)))horas.push([m[1],m[2]]);
+      else if((m=l.match(/^(\S+)\s+(\S+)\s+([\d.,]+)\s+(\d+)\s+(\d+)\s+([\d.,]+)$/)))locais.push(m);
     }
+    /* formato em três linhas: o k-ésimo grupo de datas, de locais e de horas é o mesmo trecho */
+    if(!pernas.length)locais.forEach((m,k)=>{
+      const d=datas[k]||['',''], h=horas[k]||['',''];
+      pernas.push({partida:m[1],dataP:(d[0]+' '+h[0]).trim(),chegada:m[2],dataC:(d[1]+' '+h[1]).trim(),
+        dias:+m[3].replace(',','.'),horas:+m[4],minutos:+m[5],milhas:+m[6].replace(',','.')});
+    });
   }
 
   const mDias=texto.match(/C[aá]lculo do Termo de Viagem:\s*Dias:\s*([\d.,]+)/i);
@@ -15125,7 +15190,7 @@ function dmParseLinhas(linhas,nomeArquivo){
   if(iMilHeader>=0){
     for(let i=iMilHeader+1;i<linhas.length;i++){
       const l=linhas[i];
-      if(/^SisTempos/i.test(l)||/^Voltar/i.test(l))break;
+      if(/^SisTempos/i.test(l)||/^Voltar/i.test(l)||/^\d+ of \d+\b/i.test(l))break;
       const mm=l.match(/^(\S+)\s+(\d{6,9})\s+(.+)$/);
       if(mm)militares.push({posto:mm[1].toUpperCase(),nip:mm[2],nome:mm[3].trim().toUpperCase()});
     }
