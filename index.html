@@ -8256,9 +8256,18 @@ async function dispChamaIA(prompt,schema){
    exatamente como com o PDF. Loja que bloqueia não é contornada: o painel avisa
    e o operador tenta outro link, o PDF ou a descrição por escrito. */
 function dispParseLinks(txt){
+  /* O link é a primeira palavra da linha (um link não tem espaço). O que vem depois — "2",
+     "... 2", "x2", "2x", "qtd: 2", "- 2 un" — só serve para achar a quantidade: o primeiro
+     número. Sem número, a quantidade é 1. Link que não começa com http é linha inválida. */
   return String(txt||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
-    const m=l.match(/^(https?:\/\/\S+?)(?:[\s;]+(?:qtd\.?\s*:?\s*)?(\d+(?:[.,]\d+)?))?\s*$/i);
-    return m?{url:m[1],qtd:m[2]?(num(m[2])||1):1}:{erro:l};
+    const m=l.match(/^(https?:\/\/\S+)(?:\s+(.*))?$/i);
+    if(!m)return {erro:l};
+    /* "link;3" (quantidade colada no link por ponto e vírgula) */
+    let url=m[1], resto=m[2]||'';
+    const mp=url.match(/^(.*?);(\d+(?:[.,]\d+)?)$/);
+    if(mp){ url=mp[1]; resto=mp[2]+' '+resto; }
+    const q=resto.match(/(\d+(?:[.,]\d+)?)/);
+    return {url:url.replace(/[.,;)]+$/,''),qtd:q?(num(q[1])||1):1};
   });
 }
 const DISP_SCHEMA_PRODUTO={type:'object',properties:{
