@@ -8272,84 +8272,162 @@ function dispParseLinks(txt){
 }
 const DISP_SCHEMA_PRODUTO={type:'object',properties:{
     status:{type:'string',enum:['ok','bloqueado']},motivo:{type:'string'},
+    fonte:{type:'string',enum:['pagina','busca','texto','']},
     nome:{type:'string'},marca_modelo:{type:'string'},descricao:{type:'string'},
     especificacoes:{type:'string'},preco_unitario:{type:'string'},loja:{type:'string'},cnpj_loja:{type:'string'}},
-  required:['status','motivo','nome','marca_modelo','descricao','especificacoes','preco_unitario','loja','cnpj_loja'],
+  required:['status','motivo','fonte','nome','marca_modelo','descricao','especificacoes','preco_unitario','loja','cnpj_loja'],
   additionalProperties:false};
+/* A ferramenta web_fetch da API só abre URL de até 250 caracteres e só a URL que
+   veio escrita na mensagem (a IA não pode "encurtar" o link por conta própria:
+   a API recusa com url_not_in_prior_context). Link de loja vem cheio de
+   parâmetros de anúncio (gclid, gbraid, gad_*, matt_tool, utm_*...) e passa
+   dos 250 — foi o que derrubou a primeira leitura. Aqui o link é limpo antes:
+   primeiro saem os parâmetros de rastreio; se ainda passar de 250, ficam só os
+   que identificam o produto (sku, id, variante); em último caso, só o caminho. */
+const DISP_URL_RASTREIO=/^(utm_|gclid$|gbraid$|wbraid$|gad_|gclsrc$|dclid$|fbclid$|msclkid$|yclid$|mc_|matt_|ua$|srsltid$|_gl$|ref$|ref_|parceiro$|partner|origin$|sid$|wid$|action$|campaign|campanha|source$|medium$|ttclid$|igshid$|si$|spm$|tracking|afiliad|affiliate|cupom|coupon|pdp_filters$|position$|type$|tracking_id$|reco_|searchVariation$|c_id$|c_uid$|c_element|c_campaign|deal_id$|from$|pf_rd|pd_rd|psc$|th$|smid$)/i;
+const DISP_URL_PRODUTO=/^(id|sku|idsku|skuid|variant|variant_id|variante|produto|product|productid|pid|item|itemid|item_id|cod|codigo|p|v)$/i;
+function dispLimpaUrl(url){
+  let u; try{ u=new URL(url); }catch(e){ return url; }
+  u.hash='';
+  [...u.searchParams.keys()].forEach(k=>{ if(DISP_URL_RASTREIO.test(k))u.searchParams.delete(k); });
+  let s=u.toString();
+  if(s.length>250){
+    [...u.searchParams.keys()].forEach(k=>{ if(!DISP_URL_PRODUTO.test(k))u.searchParams.delete(k); });
+    s=u.toString();
+  }
+  if(s.length>250){ u.search=''; s=u.toString(); }
+  return s.replace(/\?$/,'');
+}
 function dispPromptLink(url){
+  const host=dispHost(url);
   return 'Abra com a ferramenta web_fetch a página de produto abaixo e monte a ficha do produto para um processo de '+
     'contratação pública (dispensa de licitação).\n'+
-    'Regras:\n- Copie só o que está na página. Não invente preço, especificação, marca nem CNPJ: o que a página não traz fica "".\n'+
+    'Regras:\n'+
+    '- Use EXATAMENTE o link abaixo no web_fetch; não altere nem encurte o link.\n'+
+    '- Se a página não abrir (bloqueio a robôs, erro, página feita só em JavaScript), use a ferramenta web_search, '+
+      'que está restrita à mesma loja ('+host+'), para achar ESTE MESMO produto nessa loja (mesmo nome e modelo do link) '+
+      'e tirar dele os dados; nesse caso devolva "fonte": "busca". Se leu a página, "fonte": "pagina".\n'+
+    '- Copie só o que está na fonte. Não invente preço, especificação, marca nem CNPJ: o que a fonte não traz fica "".\n'+
     '- "descricao": descrição objetiva do produto, como num termo de referência, sem linguagem de propaganda.\n'+
-    '- "especificacoes": as características técnicas da página (dimensões, potência, tensão, material, capacidade, garantia...), em uma linha, separadas por ponto e vírgula.\n'+
+    '- "especificacoes": as características técnicas (dimensões, potência, tensão, material, capacidade, garantia...), em uma linha, separadas por ponto e vírgula.\n'+
     '- "preco_unitario": o preço principal mostrado para uma unidade, à vista, no formato 1234,56.\n'+
-    '- Se a página não puder ser lida (bloqueio, erro, captcha, página de login) ou não for página de um produto, '+
-    'devolva status "bloqueado", o motivo em uma frase em "motivo" e os demais campos "".\n'+
+    '- Se nem a página nem a busca na mesma loja trouxerem o produto, devolva status "bloqueado", o motivo em uma frase '+
+      'em "motivo" (cite o erro da ferramenta, se houver) e os demais campos "".\n'+
     'Responda somente com o objeto JSON.\n\nLink: '+url;
 }
+/* uma chamada à API direto do navegador, com o que a tela de dispensa já usa */
+async function dispPedeAPI(corpo){
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':dispChaveIA(),
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(corpo)});
+  }catch(e){
+    throw new Error('não foi possível alcançar a API da Anthropic — em rede da Marinha o acesso costuma estar bloqueado por proxy');
+  }
+  return r;
+}
+function dispFichaDoTexto(j){
+  if(j.stop_reason==='refusal')return {status:'bloqueado',motivo:'a IA recusou a leitura desta página',fonte:''};
+  const txt=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  const i=txt.indexOf('{'), f=txt.lastIndexOf('}');
+  if(i<0||f<=i)return {status:'bloqueado',motivo:'a leitura não devolveu a ficha do produto',fonte:''};
+  try{ return JSON.parse(txt.slice(i,f+1)); }
+  catch(e){ return {status:'bloqueado',motivo:'a ficha do produto veio incompleta',fonte:''}; }
+}
+/* Lê um link. Começa com leitura da página + busca na mesma loja + JSON estruturado;
+   se a conta recusar algum desses recursos (400), tira só ele e tenta de novo. */
 async function dispLeLinkIA(url){
-  const chave=dispChaveIA();
-  const pedir=async(corpo)=>{
-    let r;
-    try{
-      r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':chave,
-          'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify(corpo)});
-    }catch(e){
-      throw new Error('não foi possível alcançar a API da Anthropic — em rede da Marinha o acesso costuma estar bloqueado por proxy');
-    }
-    return r;
+  const host=dispHost(url);
+  let usaBusca=true, comFormato=true;
+  const montar=messages=>{
+    const tools=[{type:'web_fetch_20260209',name:'web_fetch',max_uses:3,max_content_tokens:30000}];
+    if(usaBusca)tools.push({type:'web_search_20260209',name:'web_search',max_uses:2,allowed_domains:[host]});
+    const corpo={model:DISP_MODELO_IA,max_tokens:8000,tools,messages,output_config:{effort:'low'}};
+    if(comFormato)corpo.output_config.format={type:'json_schema',schema:DISP_SCHEMA_PRODUTO};
+    return corpo;
   };
-  const base={model:DISP_MODELO_IA,max_tokens:8000,
-    tools:[{type:'web_fetch_20260209',name:'web_fetch',max_uses:3}],
-    output_config:{effort:'low',format:{type:'json_schema',schema:DISP_SCHEMA_PRODUTO}}};
-  let messages=[{role:'user',content:dispPromptLink(url)}];
-  let comFormato=true, j=null;
-  /* a ferramenta web roda no servidor da Anthropic; numa leitura longa a resposta
-     volta com stop_reason "pause_turn" e a conversa é reenviada para continuar */
-  for(let volta=0;volta<5;volta++){
-    const corpo=Object.assign({},base,{messages});
-    if(!comFormato)corpo.output_config={effort:'low'};
-    let r=await pedir(corpo);
-    if(r.status===400&&comFormato){
+  let messages=[{role:'user',content:dispPromptLink(url)}], j=null;
+  for(let volta=0;volta<8;volta++){
+    const r=await dispPedeAPI(montar(messages));
+    if(r.status===400){
       const t=await r.text();
-      if(/format|output_config|json_schema/i.test(t)){ comFormato=false; volta--; continue; }
+      if(usaBusca&&/web.?search/i.test(t)){ usaBusca=false; continue; }
+      if(comFormato&&/format|output_config|json_schema/i.test(t)){ comFormato=false; continue; }
+      if(/web.?fetch/i.test(t))throw new Error('a leitura de páginas (web fetch) não está liberada nesta conta — habilite em Capabilities, no console da Anthropic');
       throw new Error('erro HTTP 400: '+t.slice(0,200));
     }
     if(!r.ok){
       const corpoErro=(await r.text()).slice(0,300);
       if(r.status===401)throw new Error('chave de IA inválida ou revogada — confira em "Chave de IA".');
       if(r.status===429)throw new Error('limite de uso atingido na conta Anthropic. Tente daqui a pouco.');
-      if(/web_fetch|web fetch/i.test(corpoErro))throw new Error('a leitura de páginas (web fetch) não está liberada nesta conta — habilite em Settings no console da Anthropic');
       throw new Error('erro HTTP '+r.status+': '+corpoErro);
     }
     j=await r.json();
+    /* a ferramenta roda no servidor; numa leitura longa a resposta volta com
+       "pause_turn" e a conversa é reenviada para continuar */
     if(j.stop_reason==='pause_turn'){ messages=messages.concat([{role:'assistant',content:j.content}]); continue; }
     break;
   }
   if(!j)throw new Error('a leitura não terminou');
-  if(j.stop_reason==='refusal')return {status:'bloqueado',motivo:'a IA recusou a leitura desta página'};
-  const txt=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-  const i=txt.indexOf('{'), f=txt.lastIndexOf('}');
-  if(i<0||f<=i)return {status:'bloqueado',motivo:'a leitura não devolveu a ficha do produto'};
-  try{ return JSON.parse(txt.slice(i,f+1)); }
-  catch(e){ return {status:'bloqueado',motivo:'a ficha do produto veio incompleta'}; }
+  return dispFichaDoTexto(j);
+}
+/* Saída garantida para loja que bloqueia: o operador abre a página no próprio
+   navegador, copia o texto (Ctrl+A, Ctrl+C) e cola aqui; a IA só organiza a ficha. */
+async function dispFichaDeTextoColado(url,texto){
+  const r=await dispPedeAPI({model:DISP_MODELO_IA,max_tokens:6000,output_config:{effort:'low',
+      format:{type:'json_schema',schema:DISP_SCHEMA_PRODUTO}},
+    messages:[{role:'user',content:'Abaixo está o texto copiado da página de um produto ('+url+'). Monte a ficha do produto para um '+
+      'processo de contratação pública. Copie só o que está no texto: não invente preço, especificação, marca nem CNPJ (o que '+
+      'não constar fica ""). "descricao" objetiva, sem propaganda; "especificacoes" em uma linha, separadas por ponto e vírgula; '+
+      '"preco_unitario" no formato 1234,56 (preço principal à vista). Use "fonte": "texto". Se o texto não for de um produto, '+
+      'status "bloqueado" com o motivo.\n\nTexto da página:\n'+String(texto).slice(0,60000)}]});
+  if(!r.ok){
+    const t=(await r.text()).slice(0,200);
+    if(r.status===401)throw new Error('chave de IA inválida ou revogada — confira em "Chave de IA".');
+    throw new Error('erro HTTP '+r.status+': '+t);
+  }
+  return dispFichaDoTexto(await r.json());
 }
 const dispHost=u=>{ try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; } };
+let DISP_LINKS_RES=[];
+const dispLinkLido=r=>!!(r&&r.p&&r.p.status==='ok'&&r.p.nome);
+const DISP_FONTE_ROT={pagina:'lido',busca:'lido pela busca na loja',texto:'lido do texto colado'};
 function dispRenderLinks(res){
   const host=$('#dpLinksRes'); if(!host)return;
+  const falhas=res.filter(r=>!r.lendo&&!dispLinkLido(r)).length, lidos=res.filter(dispLinkLido).length;
   host.innerHTML=res.length?'<div class="scroller"><table class="obttab"><thead><tr><th>#</th><th>Página</th><th>Produto lido</th>'+
     '<th class="num">Qtd</th><th class="num">Preço unit.</th><th>Situação</th></tr></thead><tbody>'+
     res.map((r,k)=>{
-      const ok=r.p&&r.p.status==='ok'&&r.p.nome;
+      const ok=dispLinkLido(r);
       return '<tr><td>'+(k+1)+'</td><td><a href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(dispHost(r.url))+'</a></td>'+
         '<td>'+(ok?esc(r.p.nome)+(r.p.marca_modelo?'<div class="obtmeta">'+esc(r.p.marca_modelo)+'</div>':''):'—')+'</td>'+
         '<td class="num">'+esc(String(r.qtd))+'</td><td class="num">'+(ok&&r.p.preco_unitario?'R$ '+esc(r.p.preco_unitario):'—')+'</td>'+
-        '<td>'+(r.lendo?'<span class="obtmeta">lendo…</span>':ok?'<span class="pill">lido</span>':
-          '<span class="pill red">não lido</span><div class="obtmeta" style="color:var(--alert)">'+esc((r.p&&r.p.motivo)||'falha na leitura')+
-          ' — tente outro link, o PDF ou a descrição por escrito</div>')+'</td></tr>';
-    }).join('')+'</tbody></table></div>':'';
+        '<td>'+(r.lendo?'<span class="obtmeta">lendo…</span>':ok?'<span class="pill">'+esc(DISP_FONTE_ROT[r.p.fonte]||'lido')+'</span>'+
+            (r.p.fonte==='busca'?'<div class="obtmeta" style="color:var(--terra)">a página não abriu; dados do índice de busca da loja — confira o preço</div>':''):
+          '<span class="pill red">não lido</span><div class="obtmeta" style="color:var(--alert)">'+esc((r.p&&r.p.motivo)||'falha na leitura')+'</div>'+
+          '<div style="margin-top:4px"><button type="button" class="mini" data-dpcolar="'+k+'">Colar texto da página</button></div>')+'</td></tr>';
+    }).join('')+'</tbody></table></div>'+
+    (!res.some(r=>r.lendo)&&falhas?'<p class="hint" style="margin:8px 2px 0">Para o que não foi lido: abra o link no seu navegador, '+
+      'selecione tudo (Ctrl+A), copie (Ctrl+C) e use <b>Colar texto da página</b>. Ou troque o link por outro da mesma loja ou de outra.</p>':'')+
+    (!res.some(r=>r.lendo)&&lidos&&res.__alterado?'<div style="margin-top:8px"><button type="button" class="btn" id="dpRefazLinks">'+
+      'Preencher de novo com os '+lidos+' itens lidos</button></div>':''):'';
+  host.querySelectorAll('[data-dpcolar]').forEach(b=>b.onclick=()=>dispColarTextoLink(+b.dataset.dpcolar));
+  const rf=$('#dpRefazLinks'); if(rf)rf.onclick=()=>dispPreencheComLinks(res);
+}
+function dispColarTextoLink(k){
+  const r=DISP_LINKS_RES[k]; if(!r)return;
+  dispCaixaTexto('Colar texto da página',
+    'Abra <b>'+esc(dispHost(r.url))+'</b> no seu navegador, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole abaixo. '+
+    'A IA só organiza a ficha do produto com o que estiver no texto.','','Ler o texto',async(txt,fecha)=>{
+      if(String(txt||'').trim().length<80){toast('cole o texto da página do produto',true);return;}
+      fecha();
+      r.lendo=true; dispRenderLinks(DISP_LINKS_RES);
+      try{ r.p=await dispFichaDeTextoColado(r.url,txt); }
+      catch(e){ r.p={status:'bloqueado',motivo:e.message||String(e),fonte:''}; }
+      r.lendo=false; DISP_LINKS_RES.__alterado=true; dispRenderLinks(DISP_LINKS_RES);
+    });
 }
 function dispOrcamentoDosLinks(ok){
   return 'Orçamento montado a partir de páginas de produto na internet (lidas em '+brDate(hoje())+'). '+
@@ -8364,6 +8442,23 @@ function dispOrcamentoDosLinks(ok){
         (p.especificacoes?'Especificações: '+p.especificacoes:'');
     }).join('\n\n');
 }
+async function dispPreencheComLinks(res){
+  const ok=res.filter(dispLinkLido);
+  if(!ok.length){
+    dispStatus('dpIaStatus','Nenhum item foi lido. Use "Colar texto da página" nas linhas em vermelho, troque o link, anexe o PDF ou descreva por escrito.','erro');
+    return;
+  }
+  res.__alterado=false; dispRenderLinks(res);
+  DISP_ORCAMENTO={tipo:'texto',dados:dispOrcamentoDosLinks(ok),nome:'Links de produtos'};
+  dispAtualizaBarra();
+  await dispPreencherIA();
+  const falhas=res.length-ok.length;
+  if(falhas){
+    const st=$('#dpIaStatus');
+    if(st)st.textContent+=' Atenção: '+falhas+' link'+(falhas>1?'s não puderam ser lidos e ficaram':' não pôde ser lido e ficou')+
+      ' de fora — use "Colar texto da página" na tabela acima e depois "Preencher de novo".';
+  }
+}
 async function dispLerLinks(){
   if(!dispChaveIA()){dispStatus('dpIaStatus','Não há chave de IA neste navegador — configure em "Chave de IA".','erro');return;}
   if(!DISP.tipo){dispStatus('dpIaStatus','Escolha o tipo da contratação no Passo 1.','erro');return;}
@@ -8374,27 +8469,16 @@ async function dispLerLinks(){
   const bt=$('#dpLerLinks'), rot=bt.textContent;
   bt.disabled=true; bt.textContent='Lendo '+linhas.length+' link'+(linhas.length>1?'s':'')+'…';
   dispStatus('dpIaStatus','Abrindo as páginas dos produtos. Costuma levar de vinte segundos a um minuto.','info');
-  const res=linhas.map(l=>Object.assign({},l,{lendo:true}));
+  /* o link é limpo dos parâmetros de anúncio antes de ir para a IA (limite de 250 caracteres) */
+  const res=linhas.map(l=>({url:dispLimpaUrl(l.url),original:l.url,qtd:l.qtd,lendo:true}));
+  DISP_LINKS_RES=res;
   dispRenderLinks(res);
   try{
     await Promise.all(res.map(r=>dispLeLinkIA(r.url)
       .then(p=>{ r.p=p; })
-      .catch(e=>{ r.p={status:'bloqueado',motivo:e.message||String(e)}; })
+      .catch(e=>{ r.p={status:'bloqueado',motivo:e.message||String(e),fonte:''}; })
       .then(()=>{ r.lendo=false; dispRenderLinks(res); })));
-    const ok=res.filter(r=>r.p&&r.p.status==='ok'&&r.p.nome);
-    const falhas=res.length-ok.length;
-    if(!ok.length){
-      dispStatus('dpIaStatus','Nenhuma página pôde ser lida. Tente outro link, anexe o PDF do orçamento ou descreva por escrito.','erro');
-      return;
-    }
-    DISP_ORCAMENTO={tipo:'texto',dados:dispOrcamentoDosLinks(ok),nome:'Links de produtos'};
-    dispAtualizaBarra();
-    await dispPreencherIA();
-    if(falhas){
-      const st=$('#dpIaStatus');
-      if(st)st.textContent+=' Atenção: '+falhas+' link'+(falhas>1?'s não puderam ser lidos e ficaram':' não pôde ser lido e ficou')+
-        ' de fora — veja a tabela acima e tente outro link, o PDF ou a descrição por escrito.';
-    }
+    await dispPreencheComLinks(res);
   }finally{ bt.disabled=false; bt.textContent=rot; }
 }
 /* Uma porta só para o JSON, venha ele da caixa ou do bloco embutido. */
