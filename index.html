@@ -12655,10 +12655,10 @@ function renderEfe(){
       const k=chaveMil(e);
       (linhas[k]=linhas[k]||{k,mil:e.mil,posto:e.posto,nome:((e.posto||'')+' '+(e.nome||'')).trim(),evs:[]}).evs.push(e);
     });
-    /* antiguidade: a posição na lista de tripulação/destacados; quem já não
-       está no quadro vai depois, por posto e nome */
-    const ordem=Object.values(linhas).sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||
-      movRankPosto(a.posto)-movRankPosto(b.posto)||a.nome.localeCompare(b.nome,'pt-BR'));
+    /* antiguidade: posto primeiro (do mais antigo ao mais moderno); no mesmo posto,
+       a posição na lista de tripulação/destacados e, por fim, o nome */
+    const ordem=Object.values(linhas).sort((a,b)=>movRankPosto(a.posto)-movRankPosto(b.posto)||
+      (ordemAtual(a.mil)%500)-(ordemAtual(b.mil)%500)||a.nome.localeCompare(b.nome,'pt-BR'));
     const cab=progCabecalho(anoNum,tot,hojeIso);
     const mostraHoje=cab.mostraHoje, hojePct=cab.hojePct;
     let g=cab.abre;
