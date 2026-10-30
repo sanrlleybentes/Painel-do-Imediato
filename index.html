@@ -1830,8 +1830,9 @@ select.g-in{appearance:auto}
     <div id="tmft-exportar" class="hidden">
       <div class="card reveal">
         <h2>Exportar Tabela Mestra</h2>
-        <p class="hint" style="margin:0 0 12px">Gera o PDF em paisagem, no mesmo layout da planilha original: tripulação e destacados, cada um em duas partes de colunas — e a assinatura do Imediato em todas as páginas.</p>
+        <p class="hint" style="margin:0 0 12px">Gera o PDF em paisagem, no mesmo layout da planilha original: tripulação e destacados, cada um em duas partes de colunas — e a assinatura do Imediato em todas as páginas. A planilha (.ods) abre direto no LibreOffice Calc, com tripulação e destacados em abas separadas, todas as colunas numa só linha por militar.</p>
         <button class="btn" id="tmftExportar">Gerar PDF</button>
+        <button class="btn" id="tmftExportarOds" style="margin-left:8px">Gerar planilha (.ods)</button>
       </div>
     </div>
   </div>
@@ -11538,6 +11539,34 @@ $('#tmftExportar').onclick=async()=>{
     pdfTmft(D);
     entregarPdf(D.bytes(),'Tabela_Mestra_TMFT_'+ddmmmCurto(hoje())+'.pdf');
   }catch(err){toast('Falhou ao montar o PDF: '+(err&&err.message?err.message:'erro'),true);}
+  finally{btn.disabled=false;btn.textContent=rot;}
+};
+
+/* planilha do LibreOffice Calc (.ods): as mesmas colunas do PDF, juntas, uma aba por grupo */
+function tmftAbaOds(X,lista){
+  const campos=TMFT_PAG1.concat(TMFT_PAG2);
+  const cab=['Nº bordo','Lotação','Efetivo','Nome'].concat(campos.map(k=>TMFT_ROT[k]));
+  const linhas=lista.map(x=>{
+    const c=tmftCampo(x.id);
+    return [c.bordo||'',c.lotacao||'',x.posto||'',x.nome||''].concat(
+      campos.map(k=>(k==='sangue'?tmftSangue(x.id):c[k])||''));
+  });
+  const ws=X.utils.aoa_to_sheet([cab].concat(linhas));
+  ws['!cols']=cab.map((h,i)=>({wch:i<4?[9,10,9,20][i]:Math.max(14,h.length+2)}));
+  return ws;
+}
+$('#tmftExportarOds').onclick=async()=>{
+  const btn=$('#tmftExportarOds'), rot=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando…';
+  try{
+    const X=await carregaSheetJS();
+    const trip=grupo('tripulacao'), dest=grupo('destacado');
+    const wb=X.utils.book_new();
+    X.utils.book_append_sheet(wb,tmftAbaOds(X,trip),'Tripulação');
+    if(dest.length)X.utils.book_append_sheet(wb,tmftAbaOds(X,dest),'Destacados');
+    X.writeFile(wb,'Tabela_Mestra_TMFT_'+ddmmmCurto(hoje())+'.ods',{bookType:'ods'});
+    toast('Planilha gerada — '+trip.length+' de tripulação e '+dest.length+' destacado(s).');
+  }catch(err){toast('Não consegui montar a planilha: '+(err&&err.message?err.message:'erro'),true);}
   finally{btn.disabled=false;btn.textContent=rot;}
 };
 
