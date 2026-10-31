@@ -12185,7 +12185,9 @@ $('#eAdd').onclick=async()=>{
         status:'bordo',desde:Date.now(),motivo:'',por:''};
       CREW.militares.push(x);id=x.id;
     }else{
-      if(tipo==='desembarque'||tipo==='destaque_saida')CREW.militares=CREW.militares.filter(v=>v.id!==id);
+      /* desembarque com data futura: o militar segue no quadro (e na TMFT) até o dia;
+         ativaMovimentosVencidos() tira quando a data chegar */
+      if((tipo==='desembarque'||tipo==='destaque_saida')&&data<=hoje())CREW.militares=CREW.militares.filter(v=>v.id!==id);
       /* Data futura: o militar ainda está a bordo até o destaque/curso
          começar de verdade — marcar "em terra" e pendurar a OM no nome
          antes da hora dava a entender que ele já tinha ido embora, ou que
@@ -12203,7 +12205,8 @@ $('#eAdd').onclick=async()=>{
     CREW.atualizado=Date.now();
     const fim=tipoTemPeriodo(tipo)?($('#eFim').value||''):'';
     if(tipoTemPeriodo(tipo)&&fim&&fim<data){toast('O fim do destaque não pode ser antes do início.',true);return;}
-    const precisaAtivar=(tipo==='destaque_ida'||(tipo==='curso_ida'&&destacado));
+    const saiDoQuadro=tipo==='desembarque'||tipo==='destaque_saida';
+    const precisaAtivar=(tipo==='destaque_ida'||(tipo==='curso_ida'&&destacado)||saiDoQuadro);
     EFE.eventos.push({id:uid(),ts:Date.now(),data,fim,tipo,mil:id,posto:x.posto,nome:x.nome,nip:x.nip||'',
       completo:x.completo||'',om,doc:$('#eDoc').value.trim(),msgref:$('#eMsgRef').value.trim(),
       obs:$('#eObs').value.trim(),por:$('#ePor').value.trim(),
@@ -12231,7 +12234,9 @@ function ativaMovimentosVencidos(){
     if(e.ativado!==false)return;
     if(e.data>hoje())return;
     const x=milPorId(e.mil); if(!x)return;
-    if(e.tipo==='destaque_ida'||(e.tipo==='curso_ida'&&e.destacado)){
+    if(e.tipo==='desembarque'||e.tipo==='destaque_saida'){
+      CREW.militares=CREW.militares.filter(v=>v.id!==e.mil);
+    }else if(e.tipo==='destaque_ida'||(e.tipo==='curso_ida'&&e.destacado)){
       x.om=e.om||x.om; x.status='terra';
       x.motivo=e.tipo==='curso_ida'?('Curso'+(e.curso?': '+e.curso:'')):'Saída Destaque';
       x.desde=Date.now();
