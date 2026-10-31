@@ -1273,6 +1273,13 @@ select.g-in{appearance:auto}
 .acSis{font:10px var(--mono);letter-spacing:.14em;color:var(--muted);flex-basis:100%;margin-top:4px}
 .acBtns{display:flex;flex-wrap:wrap;gap:6px}
 .acBtns .btn{padding:6px 10px;font-size:11px}
+.acAbre{border:1px solid var(--line);background:#FBF8F0;border-radius:6px;font:10px var(--mono);color:var(--muted);padding:1px 6px;cursor:pointer;margin-left:2px}
+.acAbre.parcial{background:#F1ECDD;color:var(--dest);border-color:#E2D3AE}
+.acAbre[aria-expanded="true"]{background:var(--bordo);color:#fff;border-color:var(--bordo)}
+.acSubs{flex-basis:100%;display:none;margin:4px 0;padding:8px 10px;border-left:3px solid var(--brass);background:#FBF8F0;border-radius:0 8px 8px 0;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.acSubs.on{display:flex}
+.acSubs .acSubTit{flex-basis:100%;font:10px var(--mono);letter-spacing:.12em;color:var(--muted)}
+.acResumo{font:11px var(--mono);color:var(--bordo);flex-basis:100%;margin-top:4px}
 .acRap{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .acRap label{font-size:12px}
 .acCmp{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
@@ -3930,6 +3937,8 @@ const tabelaDe=chave=>TAB_DE[chave]||'imediato_dados';
 async function gravarChave(chave,valor,acao){
   const r=await acessoChama('sigab_gravar',{chave:chave,valor:valor,modulo:TAB,acao_liberada:acao||null,aparelho_id:aparelhoId()});
   ATUAL_VISTO[chave]=Date.parse(r.versao)||Date.now(); /* gravação minha não deve disparar recarga */
+  /* submódulo liberado só em parte da chave (obtencao): o resto não foi gravado */
+  if(r.ignorados&&r.ignorados.length)toast('Gravado só o que você pode editar. Ficou de fora: '+r.ignorados.join(', ')+'.',true);
 }
 /* Trava de segurança: enquanto os dados não tiverem sido lidos com sucesso do banco,
    NADA pode ser gravado. Sem isso, uma falha de leitura deixa as listas vazias na
@@ -3940,7 +3949,7 @@ async function salvar(chave,valor,acao){
     toast('Dados ainda não carregados do banco. Recarregue a página antes de alterar.',true);
     return false;
   }
-  if(!podeEditar(TAB)&&!(acao&&podeAcao(acao))){avisaSoLeitura();return false;}
+  if(!podeGravar(chave)&&!(acao&&podeAcao(acao))){avisaSoLeitura();return false;}
   if(chave==='pessoal'&&valor===PES&&!PES_OK){toast('O Plano de Busca ainda não carregou. Abra-o de novo e tente outra vez.',true);return false;}
   try{await gravarChave(chave,valor,acao);lastSync=new Date();return true;}
   catch(e){toast('Não foi possível gravar: '+e.message,true);return false;}
@@ -5015,9 +5024,29 @@ const ACESSO_URL=SB_URL+'/functions/v1/acesso';
 const SESSAO_KEY='sigabSessao', PERFIL_KEY='sigabPerfil', RAPIDO_KEY='sigabRapido';
 const MOD_SIGAB=[['painel','Painel'],['efetivo','Pessoal'],['ferias','Férias'],['servico','Serviço'],
   ['munic','Municiamento'],['agenda','Agenda ADM'],['obtencao','Obtenção'],['config','Configurações']];
+/* Submódulos que dá para liberar sozinhos: cada um grava só as suas chaves (na obtencao,
+   só os seus campos). Espelho de SIGAB_SUBS na função `acesso` — é lá que vale de verdade.
+   Módulo sem lista aqui só se libera inteiro. `cfg` nunca é de submódulo. */
+const SUB_SIGAB={
+  efetivo:[['tripulacao','Tripulação e movimentação',['crew','efetivo']],['funcoes','Funções e Encargos',['funcoes']],
+    ['diasmar','Dias de Mar',['diasmar']],['saude','Saúde e TAF',['saude','medicamentos','taf']],
+    ['plano','Plano de Busca',['pessoal']],['tmft','TMFT',['tmft']]],
+  ferias:[['programadas','Programação',['ferias']],['papeletas','Papeletas',['papeletas']]],
+  servico:[['detalhes','Detalhes de Serviço',['detalhes']],['dservicos','Serviços',['servicos']],['dtrocas','Papeletas de troca',['trocas']]],
+  munic:[['gastos','Gastos e paiol',['gastos','paiol','fornecedores']],['cardapio','Cardápio',['cardapio']],['rancho','Municiados',['rancho']]],
+  obtencao:[['radar','Radar e processos',['obtencao']],['dispensa','Dispensa Eletrônica',['obtencao','dispensa_modelos']],
+    ['solemp','SOLEMPs e notas de empenho',['obtencao']],['pdm','Controle de PDM',['obtencao']]]
+};
+/* chave -> módulos donos (mesmo SIGAB_CHAVES da função `acesso`) */
+const CHAVE_DONOS={crew:['efetivo'],efetivo:['efetivo'],saude:['efetivo'],medicamentos:['efetivo'],taf:['efetivo'],
+  tmft:['efetivo'],pessoal:['efetivo'],funcoes:['efetivo'],ferias:['ferias'],papeletas:['ferias'],
+  servicos:['servico'],detalhes:['servico'],trocas:['servico'],gastos:['munic'],paiol:['munic'],fornecedores:['munic'],
+  rancho:['munic'],cardapio:['munic'],comissoes:['munic'],diasmar:['painel','munic'],agenda:['agenda'],
+  obtencao:['obtencao'],dispensa_modelos:['obtencao'],catalogo_compras:['config','obtencao'],
+  cfg:['painel','efetivo','ferias','servico','munic','agenda','obtencao','config']};
 const MOD_QUANTOCA=[['quadro','Quadro'],['historico','Histórico e Exportar'],['pessoal','Pessoal e Banco de dados']];
 /* Cada trava com 2FA só serve a quem EDITA o módulo dono dela: ter o 2FA não basta. */
-const TRAVA_MOD={'#pbTranca':['efetivo','Pessoal'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
+const TRAVA_MOD={'#pbTranca':['efetivo','Pessoal','plano'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
 /* Ações avulsas: liberadas além da permissão do módulo. Guardadas junto com o
    acesso rápido (modulo 'acao:<nome>'), lendo o nível assim:
      edita  = todos, inclusive o acesso rápido   (padrão quando não há linha)
@@ -5083,11 +5112,25 @@ function podeAcao(acao){
 }
 /* Plano de Busca (dados pessoais): só quem edita Pessoal, e sempre com o 2FA.
    O militar comum só preenche a própria ficha pelo link #ficha, que vai para ratificação. */
-function podeVerPlano(){return podeEditar('efetivo');}
-function podeEditar(tab){
+function podeVerPlano(){return podeEditar('efetivo','plano');}
+/* edita o módulo inteiro, ou (com `sub`) o módulo inteiro ou aquele submódulo */
+function permSigab(mod){ return (PERFIL.permissoes||[]).some(p=>p.sistema==='sigab'&&p.modulo===mod&&p.edita); }
+function podeEditar(tab,sub){
   if(MODO!=='conta'||!PERFIL||PERFIL.status!=='aprovado')return false;
   if(PERFIL.admin)return true;
-  return (PERFIL.permissoes||[]).some(p=>p.sistema==='sigab'&&p.modulo===tab&&p.edita);
+  return permSigab(tab)||(!!sub&&permSigab(tab+'/'+sub));
+}
+/* submódulos que a pessoa edita dentro de um módulo que ela não edita inteiro */
+function subsLiberados(tab){
+  if(MODO!=='conta'||!PERFIL||PERFIL.status!=='aprovado'||PERFIL.admin||permSigab(tab))return [];
+  return (SUB_SIGAB[tab]||[]).filter(([s])=>permSigab(tab+'/'+s));
+}
+/* pode gravar esta chave? mesma regra da função `acesso`: módulo dono ou submódulo que a grava */
+function podeGravar(chave){
+  if(MODO!=='conta'||!PERFIL||PERFIL.status!=='aprovado')return false;
+  if(PERFIL.admin)return true;
+  if((CHAVE_DONOS[chave]||[]).some(permSigab))return true;
+  return Object.keys(SUB_SIGAB).some(m=>SUB_SIGAB[m].some(([s,,ch])=>ch.includes(chave)&&permSigab(m+'/'+s)));
 }
 let AVISO_LEITURA=0;
 function avisaSoLeitura(){
@@ -5105,12 +5148,12 @@ function faixaSessao(){
   const f=$('#faixaSessao'); if(!f)return;
   if(!MODO){f.classList.add('hidden');return;}
   f.classList.remove('hidden');
-  const leit=!podeEditar(TAB);
+  const leit=!podeEditar(TAB), parte=subsLiberados(TAB);
   if(MODO==='rapido'){
     f.innerHTML='<span><b>Acesso rápido</b> · <span class="soLer">só leitura</span></span><a id="fsEntrar">Entrar com conta</a>';
   }else{
     f.innerHTML='<span><b>'+esc(nomePerfil())+'</b>'+(PERFIL.admin?' · ADMIN':'')+
-      (leit?' · <span class="soLer">só leitura neste módulo</span>':'')+'</span><a id="fsSair">Sair</a>';
+      (leit?(parte.length?' · <span class="soLer">edita só: '+esc(parte.map(x=>x[1]).join(', '))+'</span>':' · <span class="soLer">só leitura neste módulo</span>'):'')+'</span><a id="fsSair">Sair</a>';
   }
   const a=$('#fsEntrar')||$('#fsSair'); if(a)a.onclick=sairDaConta;
 }
@@ -5346,8 +5389,8 @@ async function tfaPreparaTrava(sel){
     if(linha)linha.style.display='none'; return;
   }
   if(linha)linha.style.display='';
-  if(TRAVA_MOD[sel]&&!podeEditar(TRAVA_MOD[sel][0])){
-    area.innerHTML='<p class="hint" style="margin:0;color:var(--terra)">Esta área só abre para quem <b>edita o módulo '+TRAVA_MOD[sel][1]+'</b>. O 2FA sozinho não basta — peça ao Imediato.</p>';
+  if(TRAVA_MOD[sel]&&!podeEditar(TRAVA_MOD[sel][0],TRAVA_MOD[sel][2])){
+    area.innerHTML='<p class="hint" style="margin:0;color:var(--terra)">Esta área só abre para quem <b>edita '+(TRAVA_MOD[sel][2]==='plano'?'o Plano de Busca':'o módulo '+TRAVA_MOD[sel][1])+'</b>. O 2FA sozinho não basta — peça ao Imediato.</p>';
     if(linha)linha.style.display='none'; return;
   }
   if(PERFIL&&PERFIL.tfa&&PERFIL.tfa.confirmado){area.innerHTML='';return;}
@@ -5375,13 +5418,46 @@ async function acCarrega(){
   catch(e){ el.innerHTML='<p class="hint" style="color:var(--alert)">'+esc(e.message)+'</p>'; }
 }
 function acNome(p){const m=p.militar;return m?((m.posto||'')+' '+(m.nome||'')).trim():p.email;}
+/* Marcar o módulo libera ele inteiro. O botão ao lado abre os submódulos, para liberar só
+   parte dele. Ver, todos veem tudo (menos o que é fechado, como o Plano de Busca). */
 function acChecks(p){
   const tem=(s,m)=>(p.permissoes||[]).some(x=>x.sistema===s&&x.modulo===m&&x.edita);
-  const cx=(s,lst)=>lst.map(([m,r])=>'<label><input type="checkbox" data-s="'+s+'" data-m="'+m+'"'+(tem(s,m)||p.admin?' checked':'')+(p.admin?' disabled':'')+'> '+esc(r)+'</label>').join('');
-  return '<div class="acPerms" data-perfil="'+p.id+'"><span class="acSis">EDITA NO SIGAB</span>'+cx('sigab',MOD_SIGAB)+
-    '<span class="acSis">EDITA NO QUANTOCA</span>'+cx('quantoca',MOD_QUANTOCA)+'</div>';
+  const dis=p.admin?' disabled':'';
+  const sig=MOD_SIGAB.map(([m,r])=>{
+    const subs=SUB_SIGAB[m]||[], tudo=p.admin||tem('sigab',m);
+    return '<label><input type="checkbox" data-s="sigab" data-m="'+m+'"'+(tudo?' checked':'')+dis+'> '+esc(r)+
+      (subs.length?'</label><button type="button" class="acAbre" data-acabre="'+m+'" aria-expanded="false"></button>':'</label>')+
+      (subs.length?'<div class="acSubs" data-acsubs="'+m+'"><span class="acSubTit">SUBMÓDULOS DE '+esc(r.toUpperCase())+' — marque só o que ele pode editar</span>'+
+        subs.map(([s,rs])=>'<label><input type="checkbox" data-s="sigab" data-m="'+m+'" data-sub="'+s+'"'+(tudo||tem('sigab',m+'/'+s)?' checked':'')+(tudo?' disabled':'')+'> '+esc(rs)+'</label>').join('')+'</div>':'');
+  }).join('');
+  const qtc=MOD_QUANTOCA.map(([m,r])=>'<label><input type="checkbox" data-s="quantoca" data-m="'+m+'"'+(tem('quantoca',m)||p.admin?' checked':'')+dis+'> '+esc(r)+'</label>').join('');
+  return '<div class="acPerms" data-perfil="'+p.id+'"><span class="acSis">EDITA NO SIGAB</span>'+sig+
+    '<span class="acSis">EDITA NO QUANTOCA</span>'+qtc+'<span class="acResumo"></span></div>';
 }
-function acPermsDe(id){return $$('.acPerms[data-perfil="'+id+'"] input:checked').map(i=>({sistema:i.dataset.s,modulo:i.dataset.m,edita:true}));}
+/* botões "▾ / 1 de 6 / tudo" e a linha de resumo, sem redesenhar o card */
+function acAtualizaCard(box){
+  const pega=(m,sub)=>box.querySelector('input[data-s="sigab"][data-m="'+m+'"]'+(sub?'[data-sub="'+sub+'"]':':not([data-sub])'));
+  const partes=[];
+  MOD_SIGAB.forEach(([m,r])=>{
+    const subs=SUB_SIGAB[m]||[], cMod=pega(m), tudo=cMod&&cMod.checked;
+    const marc=subs.filter(([s])=>{const c=pega(m,s);if(c){if(tudo)c.checked=true;c.disabled=tudo||cMod.disabled;}return c&&c.checked;});
+    const bt=box.querySelector('[data-acabre="'+m+'"]');
+    if(bt){bt.textContent=tudo?'tudo':marc.length?marc.length+' de '+subs.length:'▾';bt.classList.toggle('parcial',!tudo&&marc.length>0);}
+    if(tudo)partes.push(r+' (tudo)'); else if(marc.length)partes.push(r+': '+marc.map(x=>x[1]).join(', '));
+  });
+  const res=box.querySelector('.acResumo');
+  if(res)res.textContent='Edita no SIGAB: '+(partes.join(' · ')||'nada')+' — o resto ele só vê.';
+}
+function acPermsDe(id){
+  const box=$('.acPerms[data-perfil="'+id+'"]'); if(!box)return [];
+  const out=[];
+  box.querySelectorAll('input:checked').forEach(i=>{
+    if(!i.dataset.sub){out.push({sistema:i.dataset.s,modulo:i.dataset.m,edita:true});return;}
+    const mod=box.querySelector('input[data-s="sigab"][data-m="'+i.dataset.m+'"]:not([data-sub])');
+    if(!(mod&&mod.checked))out.push({sistema:'sigab',modulo:i.dataset.m+'/'+i.dataset.sub,edita:true});
+  });
+  return out;
+}
 function acRender(){
   const el=$('#acCorpo'); if(!el||!AC)return;
   const eu=PERFIL&&PERFIL.id;
@@ -5409,6 +5485,7 @@ function acRender(){
         return '<label>'+esc(r)+'<select data-rap-s="sigab" data-rap-m="acao:'+a+'"><option value="edita"'+(v==='edita'?' selected':'')+'>todos, inclusive acesso rápido</option><option value="ver"'+(v==='ver'?' selected':'')+'>só contas aprovadas</option><option value="nenhum"'+(v==='nenhum'?' selected':'')+'>só quem edita o módulo</option></select></label>';}).join('')+
     '</div><div class="acBtns" style="margin-top:8px">'+b('rapido','','Salvar acesso rápido e ações')+'</div></div>'+
     '<div class="acBloco"><h3>Rastro</h3><div class="acBtns">'+b('rastro','','Ver o rastro e conferir as cadeias','ghost')+'</div><div id="acRastro"></div></div>';
+  $$('#acCorpo .acPerms').forEach(acAtualizaCard);
 }
 async function acAcao(ac,id){
   const p=AC&&AC.perfis.find(x=>x.id===id), nome=p?acNome(p):'';
@@ -5438,8 +5515,16 @@ async function acAcao(ac,id){
   }
 }
 document.addEventListener('click',e=>{
+  const ab=e.target.closest('#acCorpo [data-acabre]');
+  if(ab){
+    const d=ab.parentNode.querySelector('[data-acsubs="'+ab.dataset.acabre+'"]'), on=!d.classList.contains('on');
+    d.classList.toggle('on',on); ab.setAttribute('aria-expanded',on); return;
+  }
   const x=e.target.closest('#acCorpo [data-ac]'); if(!x)return;
   acAcao(x.dataset.ac,x.dataset.id);
+});
+document.addEventListener('change',e=>{
+  const box=e.target.closest('#acCorpo .acPerms'); if(box)acAtualizaCard(box);
 });
 
 /* ---- fila de fichas do Plano de Busca (ratificação pelo ADMIN) ---- */
@@ -10474,7 +10559,7 @@ function renderFuncoes(){
   if(!FUN){FUN=funSeed();}
   funNormaliza();
   const host=$('#funLista'); if(!host)return;
-  const ed=podeEditar('efetivo');
+  const ed=podeEditar('efetivo','funcoes');
   if(FUN_VISAO==='os'&&!ed)FUN_VISAO='funcao';
   $$('#subFun button').forEach(o=>o.setAttribute('aria-selected',o.dataset.fun===FUN_VISAO));
   $('#subFun button[data-fun="os"]').classList.toggle('hidden',!ed);
@@ -10538,7 +10623,7 @@ function funHistorico(id){
   host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
 }
 function funAbrirForm(id){
-  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!podeEditar('efetivo','funcoes')){avisaSoLeitura();return;}
   if(!FUN)FUN=funSeed();
   funNormaliza();
   const f=id?FUN.funcoes.find(x=>x.id===id):null;
@@ -10587,7 +10672,7 @@ function funAbrirForm(id){
 }
 function funExcluir(id){
   const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
-  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!podeEditar('efetivo','funcoes')){avisaSoLeitura();return;}
   confirmar('Excluir função','Excluir "'+f.nome+'"? O histórico dela também será apagado.',async()=>{
     const copia=JSON.stringify(FUN);
     FUN.funcoes=FUN.funcoes.filter(x=>x.id!==id);
@@ -10599,7 +10684,7 @@ function funExcluir(id){
 /* Toque numa função (visão por militar): abre o cartão dela, com o que o perfil permite */
 function funDetalhe(id){
   const f=FUN.funcoes.find(x=>x.id===id); if(!f)return;
-  const l=funLinha(f), ed=podeEditar('efetivo'), vago=!l.dentro.length;
+  const l=funLinha(f), ed=podeEditar('efetivo','funcoes'), vago=!l.dentro.length;
   const host=$('#modalHost');
   host.innerHTML='<div class="backdrop"><div class="modal" style="'+(vago?'border-top-color:var(--alert)':'')+'"><h3>'+esc(f.nome)+'</h3>'+
     '<p class="sub">'+(vago?
@@ -10623,7 +10708,7 @@ function funDetalhe(id){
 /* Passagem: passa uma ou várias funções de um militar para outro do efetivo.
    Registra no histórico o "passa" de quem sai e o "assume" de quem entra. */
 function funAbrirPassagem(op){
-  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!podeEditar('efetivo','funcoes')){avisaSoLeitura();return;}
   if(!FUN)FUN=funSeed();
   funNormaliza();
   op=op||{};
@@ -10892,7 +10977,7 @@ function renderFunOs(){
     '<button class="btn" id="funOsAplica"'+(nSel?'':' disabled')+'>Ratificar e aplicar '+nSel+' alteraç'+(nSel===1?'ão':'ões')+'</button></div>';
 }
 async function funOsAplicar(){
-  if(!podeEditar('efetivo')){avisaSoLeitura();return;}
+  if(!podeEditar('efetivo','funcoes')){avisaSoLeitura();return;}
   const est=FUN_OS; if(!est)return;
   est.os=($('#funOsNum').value||'').trim(); est.data=$('#funOsData').value||''; est.assunto=($('#funOsAssunto').value||'').trim();
   if(!est.os){toast('Informe o número da OS.',true);return;}
