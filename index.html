@@ -6067,11 +6067,20 @@ const OBT_FASES=[
   'SOLEMP empenhada'
 ];
 
+/* Desfechos sem contratação: o processo acabou, mas não foi homologado. A base
+   aberta nem sempre registra; quem sabe é o Imediato, que marca no mesmo seletor.
+   Marcado, o processo sai das dispensas em trâmite. */
+const OBT_ENCERRA=['Cancelada','Anulada','Revogada'];
+const obtEncerrada=p=>OBT_ENCERRA.includes(p.fase);
+const obtOpcoesFase=(p,vazio)=>'<option value="">'+vazio+'</option>'+
+  '<optgroup label="Fases">'+OBT_FASES.map(f=>'<option'+(p.fase===f?' selected':'')+'>'+esc(f)+'</option>').join('')+'</optgroup>'+
+  '<optgroup label="Encerrada sem contratação">'+OBT_ENCERRA.map(f=>'<option'+(p.fase===f?' selected':'')+'>'+esc(f)+'</option>').join('')+'</optgroup>';
+
 const obtUasgNavio=()=>String((OBT.uasgs&&OBT.uasgs[0])||'784515');
 const obtDoNavio=p=>String(p.uasg)===obtUasgNavio();
 const obtHomologado=p=>p.homologado!=null&&p.homologado!=='';
 /* em trâmite: publicada e ainda sem homologação. É o que a base sustenta. */
-const obtEmTramite=p=>!obtHomologado(p)&&!/anulad|revogad|desert|fracassad/i.test(p.situacao||'');
+const obtEmTramite=p=>!obtHomologado(p)&&!obtEncerrada(p)&&!/anulad|revogad|desert|fracassad/i.test(p.situacao||'');
 
 /* O Radar lia só o que estava gravado. Resultado: dispensa nova do navio não
    aparecia até alguém ir em Processos, buscar e clicar em "Guardar na base" —
@@ -6147,8 +6156,7 @@ function renderObtRadar(){
              '<span class="pill '+(parado>60?'red':(parado>30?'out':'blue'))+'">'+parado+' dias</span>')+'</td>'+
          '<td class="num mono">'+esc(obtMoeda(p.estimado))+'</td>'+
          '<td><select class="obtfase" data-fase="'+esc(p.id)+'">'+
-             '<option value="">— não informada —</option>'+
-             OBT_FASES.map(f=>'<option'+(p.fase===f?' selected':'')+'>'+esc(f)+'</option>').join('')+
+             obtOpcoesFase(p,'— não informada —')+
            '</select></td>'+
          '<td><button class="obtxis" data-tiratramite="'+esc(chaveDe(p))+'" title="esta dispensa já terminou">tirar daqui</button></td>'+
          '</tr>';
@@ -6159,6 +6167,18 @@ function renderObtRadar(){
     $('#obtTramite').innerHTML+='<p class="obtocultos">'+tramiteOcultas+' dispensa'+(tramiteOcultas>1?'s que você tirou':' que você tirou')+
       ' daqui. <button id="obtVoltaTramite">Trazer de volta</button></p>';
   }
+  const encerradas=meus.filter(p=>obtEncerrada(p)&&!obtHomologado(p)&&/dispensa/i.test(p.modalidade||''));
+  if(encerradas.length){
+    $('#obtTramite').innerHTML+='<p class="obtocultos">Encerradas sem contratação, marcadas por você: '+
+      encerradas.map(p=>'<b>'+esc(p.compra)+'/'+esc(p.ano)+'</b> '+esc(p.fase.toLowerCase())+
+        ' <button data-reabre="'+esc(p.id)+'">reabrir</button>').join(' · ')+'</p>';
+  }
+  $$('[data-reabre]').forEach(b=>b.onclick=async()=>{
+    const p=OBT.processos.find(x=>x.id===b.dataset.reabre); if(!p)return;
+    p.fase='';
+    if(await salvar('obtencao',OBT))toast('dispensa reaberta');
+    renderObtRadar();
+  });
   $$('[data-tiratramite]').forEach(b=>b.onclick=async()=>{
     OBT.ignorados=[...new Set([...(OBT.ignorados||[]),b.dataset.tiratramite])];
     if(await salvar('obtencao',OBT))toast('dispensa tirada do trâmite');
@@ -6357,8 +6377,7 @@ function obtTabelaProcessos(lista,curta,comFase){
         '<td class="num mono">'+esc(obtMoeda(p.homologado))+'</td>'+
         '<td><span class="pill '+(p.temResultado?'in':'blue')+'">'+esc(p.situacao||'—')+'</span></td>'+
         (comFase?'<td><select class="obtfase" data-fase="'+esc(p.id)+'">'+
-            '<option value="">— marcar —</option>'+
-            OBT_FASES.map(f=>'<option'+(p.fase===f?' selected':'')+'>'+esc(f)+'</option>').join('')+
+            obtOpcoesFase(p,'— marcar —')+
           '</select></td>':'')+
         (curta?'':'<td class="mono obtmeta">'+esc(obtNup(p.nup))+'</td>')+
         '</tr>'+
