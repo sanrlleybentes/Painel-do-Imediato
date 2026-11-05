@@ -9611,9 +9611,18 @@ function obtLigaLinhasAta(fonte,idDe){
   });
 }
 
+/* Página da ata no PNCP, a que mostra a ata e os arquivos dela:
+   /app/atas/{cnpj}/{ano}/{sequencial da compra}/{sequencial da ata}.
+   Tudo sai do nº de controle (00394502000144-1-003150/2026-000027). Só
+   cnpj/ano abria a lista de todas as atas do órgão no ano, que não serve. */
+function obtLinkAta(a){
+  const m=String(a.pncpAta||'').match(/^(\d{14})-\d+-(\d+)\/(\d{4})-(\d+)$/);
+  return m?('https://pncp.gov.br/app/atas/'+m[1]+'/'+m[3]+'/'+m[2]+'/'+Number(m[4])):(a.linkAta||'');
+}
+
 function obtFichaAta(a){
   const v=obtVigencia(a);
-  const pag=a.pncpAta?('https://pncp.gov.br/app/atas/'+String(a.pncpAta).slice(0,14)+'/'+a.anoCompra+'/'):'';
+  const pag=obtLinkAta(a);
   return '<div class="obtgrid">'+
       '<div><span>Ata</span><b>'+esc(a.numero||'—')+'</b></div>'+
       '<div><span>Pregão que gerou</span><b>'+esc(a.compra||'—')+'/'+esc(a.anoCompra||'')+'</b></div>'+
