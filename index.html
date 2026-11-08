@@ -444,6 +444,11 @@ select.obtfase{min-width:210px;font-size:12px}
 .dpitens td{padding:5px 6px;vertical-align:middle}
 .dpitens input{padding:6px 8px;font-size:13px}
 .dpitens td.acao{width:34px;text-align:center}
+.dpitens tr.dpitdet td{padding-top:0;border-top:0}
+.dpitdetgrade{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+.dpitdetgrade label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dpitdetgrade textarea,.dpitdetgrade input{width:100%;font-size:13px;padding:6px 8px}
+@media (max-width:700px){.dpitdetgrade{grid-template-columns:1fr}}
 .dptot{display:flex;align-items:baseline;justify-content:flex-end;gap:12px;margin-top:12px;
   padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
 .dptot span{font-family:var(--display);text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--muted)}
@@ -7686,7 +7691,6 @@ function ceLiga(){
 const DISP_CATEGORIAS=[
   {id:'servNaoCont',rot:'Serviço não-continuado',dica:'Execução pontual, com entrega definida',campo:'checkServNaoCont',tipo:'servico'},
   {id:'servContSem', rot:'Serviço continuado SEM dedicação exclusiva',dica:'Prestação sucessiva, sem posto fixo a bordo',campo:'checkServContSem',tipo:'servico'},
-  {id:'servContCom', rot:'Serviço continuado COM dedicação exclusiva',dica:'Prestação sucessiva, com mão de obra dedicada',campo:'checkServContCom',tipo:'servico'},
   {id:'matCons',     rot:'Material de consumo',dica:'Consumível: se gasta com o uso',campo:'checkMatCons',tipo:'material'},
   {id:'matPerm',     rot:'Material permanente / equipamento',dica:'Vai para a carga patrimonial',campo:'checkMatPerm',tipo:'material'}
 ];
@@ -7739,11 +7743,17 @@ const DISP_SECOES=[
     {k:'criteriosRealizacao',rot:'Critérios de Realização',dica:'a) …;\nb) …;',linhas:7,col:4},
     {k:'garantiasCondicoes',rot:'Garantias / Condições Especiais',dica:'a) GARANTIA – …;',linhas:7,col:4},
     {k:'beneficios',rot:'Benefícios',dica:'a) …;\nb) …;',linhas:6,col:4},
-    {k:'providencias',rot:'Providências',dica:'a) …;\nb) …;',linhas:6,col:4}]},
+    {k:'providencias',rot:'Providências',dica:'a) …;\nb) …;',linhas:6,col:4},
+    {k:'justificativaParcelamento',rot:'Justificativa do Parcelamento (ETP 9)',dica:'A divisão em itens fundamenta-se no art. 40, § 2º… / Por se tratar de objeto único e indivisível…',linhas:4,col:4},
+    {k:'requisitosContratacao',rot:'Requisitos da Contratação (ETP 4 e TR 1.1)',dica:'A contratação deverá contemplar pessoa jurídica especializada…',linhas:7,col:4,so:'servico'},
+    {k:'escopoDetalhado',rot:'Escopo Detalhado do Serviço (TR e Aviso 1.1.1)',dica:'1.1.1.1. TÍTULO: …\n\n1.1.1.2. TÍTULO: …',linhas:10,col:4,so:'servico'},
+    {k:'qualificacaoEspecifica',rot:'Qualificação Técnica Específica (TR 9.7.5)',dica:'Ex.: credenciamento na DPC, registro no CREA. Vazio = a linha não sai',linhas:2,col:4,so:'servico'}]},
   {id:'valor',tit:'Itens, Valor e Prazos',
    sub:'A tabela alimenta o TR e soma sozinha o valor total, por extenso inclusive',
    itens:true,
    campos:[
+    {k:'criterioJulgamento',rot:'Critério de Julgamento',col:2,tipo:'select',
+     opcoes:['MENOR PREÇO POR ITEM','MENOR PREÇO POR GRUPO','MENOR PREÇO GLOBAL']},
     {k:'mesConclucao',rot:'Mês de Conclusão',dica:'DEZEMBRO',col:1},
     {k:'grauPrioridade',rot:'Grau de Prioridade',dica:'ALTA',col:1},
     {k:'prazoExecucao',rot:'Prazo de Execução',dica:'30',col:1,tipo:'dias',sufixo:'dias corridos'},
@@ -7773,12 +7783,25 @@ const DISP_DOCS={'01':'Capa','02':'Termo de Autuação','03':'DFD','04':'ETP',
   '05':'Ato de Aprovação do ETP','06':'Autorização de Abertura','07':'Mapa de Riscos',
   '09':'Declaração Orçamentária','12':'Aviso de Contratação Direta',
   '13':'Termo de Referência','14':'Ato de Aprovação do TR'};
+/* ETP, Aviso e TR têm uma versão para serviço; os outros oito valem para os dois */
+const DISP_DOCS_SERVICO={'04S':'ETP — serviço','12S':'Aviso — serviço','13S':'TR — serviço'};
+const dispChaveModelo=num=>DISP&&DISP.tipo==='servico'&&DISP_DOCS_SERVICO[num+'S']?num+'S':num;
 const DISP_COLS_ITEM=['especificacao','catser','unidade','qtd','valorUnitario'];
+/* material leva, por item, a descrição técnica e o modelo de referência que
+   saem no subitem 1.1.1 do TR e do Aviso; serviço descreve o escopo no texto */
+const DISP_COLS_ITEM_MAT=['descricaoDetalhada','modeloReferencia'];
+const dispColsItem=()=>DISP.tipo==='servico'?DISP_COLS_ITEM:DISP_COLS_ITEM.concat(DISP_COLS_ITEM_MAT);
 const DISP_IA_1=['assunto','finalidade','objeto','quantidade','localExecucao','justificativa'];
 const DISP_IA_2=['descricaoSolucao','justificativaViabilidade','etapasServico','criteriosRealizacao',
   'garantiasCondicoes','beneficios','providencias'];
-const DISP_IA=DISP_IA_1.concat(DISP_IA_2);
-const DISP_IA_3=['mesConclucao','grauPrioridade','prazoExecucaoDias','garantiaTecnicaDias'];
+/* campos acrescentados com os modelos novos (padrão da DE 18 para material e
+   do TR de serviço): o parcelamento vale para os dois; requisitos, escopo e
+   qualificação específica só para serviço */
+const DISP_IA_SERV=['requisitosContratacao','escopoDetalhado','qualificacaoEspecifica'];
+const dispIA1=()=>DISP_IA_1.concat(['justificativaParcelamento']);
+const dispIA2=()=>DISP.tipo==='servico'?DISP_IA_2.concat(DISP_IA_SERV):DISP_IA_2;
+const DISP_IA=DISP_IA_1.concat(DISP_IA_2,['justificativaParcelamento'],DISP_IA_SERV);
+const DISP_IA_3=['mesConclucao','grauPrioridade','prazoExecucaoDias','garantiaTecnicaDias','criterioJulgamento'];
 const DISP_DERIVADOS=['numETP','numAviso','numTR'];
 const DISP_RASCUNHO='dispensa_rascunho_v1';
 const DISP_CHAVE_IA='dispensa_api_key_v1';
@@ -7813,6 +7836,27 @@ const DISP_INSTRUCOES={
   garantiaTecnicaDias:'Prazo de garantia técnica do objeto em dias, apenas dígitos. Exemplo: 365'
 };
 
+/* Instruções dos campos novos e as que mudam conforme o tipo. As de cima
+   continuam intactas; estas só se somam ou, para um tipo, tomam o lugar. */
+const DISP_INSTR_NOVAS={
+  justificativaParcelamento:'Um ou dois parágrafos separados por \n\n. Se houver mais de um item independente: fundamente a divisão por itens ou agrupamentos no art. 40, § 2º, e no art. 47, inciso II, da Lei nº 14.133/2021, explicando como amplia a competitividade e a natureza dos itens/fornecedores. Se o objeto for único ou indivisível: justifique o não parcelamento com base na Súmula nº 247 do TCU, por não haver ganho de escala, aproveitamento de mercado ou ampliação da competitividade, sendo técnica e operacionalmente necessário que uma única empresa execute o objeto',
+  criterioJulgamento:'Exatamente um destes textos: MENOR PREÇO POR ITEM, MENOR PREÇO POR GRUPO ou MENOR PREÇO GLOBAL. Para serviço único ou indivisível use MENOR PREÇO GLOBAL; para vários itens independentes use MENOR PREÇO POR ITEM; use POR GRUPO só se o orçamento agrupar itens',
+  requisitosContratacao:'De três a seis parágrafos separados por \n\n. Descreva: o perfil da pessoa jurídica especializada exigida e os credenciamentos ou autorizações que constem da fonte ou decorram de norma obrigatória; tudo o que a contratada deve fornecer (mão de obra qualificada, supervisão técnica, ferramental, instrumentos de medição, materiais, peças e insumos novos); o escopo mínimo, remetendo ao subitem 1.1.1 do Termo de Referência; as normas técnicas, de segurança do trabalho (NR) e ambientais a observar; os testes finais e o relatório técnico detalhado a ser entregue; e a garantia mínima dos serviços. Não invente marca, modelo ou quantidade',
+  escopoDetalhado:'Detalhamento técnico do escopo do serviço em subitens numerados 1.1.1.1., 1.1.1.2., 1.1.1.3. ..., um por parágrafo, separados por \n\n. Cada subitem no formato: 1.1.1.n. TÍTULO EM MAIÚSCULAS: texto descrevendo as atividades, os procedimentos, os parâmetros de teste e os critérios de aceitação. Extraia da fonte e organize por etapa ou sistema. Termine com um subitem de testes e comissionamento final e, quando couber, com a emissão de relatório, laudo ou certificado. Não invente marca, modelo ou quantidade que não estejam na fonte',
+  qualificacaoEspecifica:'Exigência de qualificação técnica específica que conste da fonte ou que decorra de norma obrigatória para o serviço (por exemplo: credenciamento na Diretoria de Portos e Costas, registro no CREA, autorização técnica do fabricante), em uma frase terminada em ponto. Se não houver exigência específica, devolva string vazia',
+  descricaoDetalhada:'Descrição técnica detalhada do item: características mínimas exigidas (capacidade, dimensões, potência, tensão, interface, material, desempenho, normas ABNT/INMETRO aplicáveis e acessórios que acompanham), em texto corrido. Havendo lista de especificações, use \n entre elas. NÃO cite marca nem modelo aqui',
+  modeloReferencia:'Marca e modelo de referência do item APENAS se constarem na fonte, no formato Marca Modelo (código do fabricante, se houver). Se não constar, devolva string vazia. NUNCA invente'
+};
+const DISP_INSTR_MATERIAL={
+  especificacao:'Nome do item EM MAIÚSCULAS, curto, com a característica principal entre parênteses quando houver. Exemplo: DISCO RÍGIDO EXTERNO PORTÁTIL (4 TB). Deve corresponder ao ITEM de mesmo número do campo quantidade'
+};
+const DISP_INSTR_SERVICO={
+  quantidade:'Um ou dois parágrafos separados por \n\n: o que a contratação contempla (quantos equipamentos, sistemas ou unidades de serviço), como a estimativa foi definida (levantamento técnico a bordo) e, quando couber, que materiais e componentes de reposição estão incluídos no preço global. Termine afastando o fracionamento indevido de despesa (art. 75, § 1º, da Lei nº 14.133/2021)'
+};
+function dispInstr(c){
+  const v=DISP.tipo==='servico'?DISP_INSTR_SERVICO[c]:DISP_INSTR_MATERIAL[c];
+  return v||DISP_INSTR_NOVAS[c]||DISP_INSTRUCOES[c];
+}
 
 /* ---- números por extenso, em português ---- */
 function dispAte999(n){
@@ -7957,7 +8001,10 @@ function dispVoltaAuto(k){
 }
 
 /* ---- desenho ---- */
-function dispPreenchidos(){ return DISP_CHAVES.filter(k=>String(DISP.dados[k]||'').trim()).length; }
+/* campo com 'so' só existe para aquele tipo (material ou serviço) */
+const dispCampoVale=c=>!c.so||c.so===DISP.tipo;
+const dispChavesVisiveis=()=>DISP_SECOES.reduce((a,s)=>a.concat((s.campos||[]).filter(dispCampoVale).map(c=>c.k)),[]);
+function dispPreenchidos(){ return dispChavesVisiveis().filter(k=>String(DISP.dados[k]||'').trim()).length; }
 
 function dispCampoHtml(c){
   const v=DISP.dados[c.k]||'';
@@ -8408,7 +8455,7 @@ function dispItensHtml(){
     '<th style="width:80px">Unid.</th><th style="width:70px">Qtd</th>'+
     '<th style="width:120px">Valor unit.</th><th class="num" style="width:110px">Total</th><th style="width:34px"></th>'+
     '</tr></thead><tbody>'+
-    DISP.itens.map((it,i)=>'<tr>'+
+    DISP.itens.map((it,i)=>'<tr class="dpitlinha">'+
       '<td class="mono">'+(i+1)+'</td>'+
       '<td><input type="text" data-dpit="'+it.id+'|especificacao" value="'+esc(it.especificacao||'')+'" placeholder="descrição do item"></td>'+
       '<td><div class="catcel"><input type="text" data-dpit="'+it.id+'|catser" value="'+esc(it.catser||'')+'" placeholder="opcional">'+
@@ -8418,7 +8465,14 @@ function dispItensHtml(){
       '<td><input type="text" data-dpit="'+it.id+'|valorUnitario" value="'+esc(it.valorUnitario||'')+'" inputmode="decimal" placeholder="0,00"></td>'+
       '<td class="num mono">'+(dispTotalLinha(it)>0?brl(dispTotalLinha(it)):'—')+'</td>'+
       '<td class="acao"><button class="mini del" data-dpitdel="'+it.id+'" title="remover">&times;</button></td>'+
-    '</tr>').join('')+
+    '</tr>'+
+    (DISP.tipo==='servico'?'':
+      '<tr class="dpitdet"><td></td><td colspan="7"><div class="dpitdetgrade">'+
+        '<div><label>Descrição detalhada (TR e Aviso 1.1.1)</label>'+
+        '<textarea rows="3" data-dpit="'+it.id+'|descricaoDetalhada" placeholder="características mínimas exigidas, sem marca">'+esc(it.descricaoDetalhada||'')+'</textarea></div>'+
+        '<div><label>Modelo de referência</label>'+
+        '<input type="text" data-dpit="'+it.id+'|modeloReferencia" value="'+esc(it.modeloReferencia||'')+'" placeholder="marca e modelo — vazio, a linha não sai"></div>'+
+      '</div></td></tr>')).join('')+
     '</tbody></table></div>'+
     '<div class="row" style="margin-top:10px"><div style="flex:0 1 auto">'+
       '<button class="mini" id="dpAddItem">+ Incluir item</button></div></div>'+
@@ -8429,7 +8483,7 @@ function dispItensHtml(){
 function dispRenderCampos(){
   const alvo=$('#dpSecoes'); if(!alvo)return;
   alvo.innerHTML=DISP_SECOES.map(s=>{
-    const campos=s.campos||[];
+    const campos=(s.campos||[]).filter(dispCampoVale);
     const cheios=campos.filter(c=>String(DISP.dados[c.k]||'').trim()).length;
     const aberta=!!DISP.abertas[s.id];
     return '<div class="dpsec'+(aberta?' aberta':'')+'">'+
@@ -8447,7 +8501,7 @@ function dispRenderCampos(){
 }
 
 function dispAtualizaBarra(){
-  const n=dispPreenchidos(), t=DISP_CHAVES.length;
+  const n=dispPreenchidos(), t=dispChavesVisiveis().length;
   const c=$('#dpCont'); if(c)c.textContent=n+'/'+t+' · '+Math.round(n/t*100)+'%';
   const b=$('#dpBarra'); if(b)b.style.width=Math.round(n/t*100)+'%';
   const p1=$('#dpPasso1'); if(p1)p1.classList.toggle('ok',!!DISP.tipo);
@@ -8473,9 +8527,11 @@ function dispRenderEscolhas(){
 function dispRenderDocs(){
   const alvo=$('#dpDocs'); if(!alvo)return;
   const tem=DISP_MODELOS||{};
-  alvo.innerHTML=Object.keys(DISP_DOCS).map(n=>
-    '<div class="dpdoc'+(DISP_MODELOS&&!tem[n]?' falta':'')+'">'+
-    '<span class="n">'+n+'</span>'+esc(DISP_DOCS[n])+'</div>').join('');
+  /* mostra o conjunto do tipo escolhido: em serviço, ETP/Aviso/TR são os de serviço */
+  alvo.innerHTML=Object.keys(DISP_DOCS).map(n=>{
+    const k=dispChaveModelo(n);
+    return '<div class="dpdoc'+(DISP_MODELOS&&!tem[k]?' falta':'')+'">'+
+      '<span class="n">'+n+'</span>'+esc(DISP_DOCS_SERVICO[k]||DISP_DOCS[n])+'</div>';}).join('');
 }
 
 function dispRenderLista(){
@@ -8547,36 +8603,38 @@ function dispCabecalho(contexto){
   if(contexto)linhas.push('',contexto);
   return linhas.join('\n');
 }
-const dispBloco=cs=>'{\n'+cs.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(DISP_INSTRUCOES[c])).join(',\n')+'\n}';
+const dispBloco=cs=>'{\n'+cs.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(dispInstr(c))).join(',\n')+'\n}';
 const dispBlocoItens=()=>'  "itens": [\n    {\n'+
-  DISP_COLS_ITEM.map(c=>'      '+JSON.stringify(c)+': '+JSON.stringify(DISP_INSTRUCOES[c])).join(',\n')+
+  dispColsItem().map(c=>'      '+JSON.stringify(c)+': '+JSON.stringify(dispInstr(c))).join(',\n')+
   '\n    }\n  ]';
 function dispPrompt(parte){
   const cab=dispCabecalho(dispContexto());
-  if(parte===1)return cab+'\n\nRetorne APENAS este objeto JSON, com exatamente estas '+DISP_IA_1.length+
-    ' chaves. O valor de cada chave descreve o que você deve escrever nela:\n\n'+dispBloco(DISP_IA_1);
-  if(parte===2)return cab+'\n\nRetorne APENAS este objeto JSON, com exatamente estas '+DISP_IA_2.length+
-    ' chaves. O valor de cada chave descreve o que você deve escrever nela:\n\n'+dispBloco(DISP_IA_2);
+  const p1=dispIA1(), p2=dispIA2();
+  if(parte===1)return cab+'\n\nRetorne APENAS este objeto JSON, com exatamente estas '+p1.length+
+    ' chaves. O valor de cada chave descreve o que você deve escrever nela:\n\n'+dispBloco(p1);
+  if(parte===2)return cab+'\n\nRetorne APENAS este objeto JSON, com exatamente estas '+p2.length+
+    ' chaves. O valor de cada chave descreve o que você deve escrever nela:\n\n'+dispBloco(p2);
   return cab+'\n\nExtraia do orçamento a tabela de itens e os prazos. Retorne APENAS este objeto JSON. '+
     'O array "itens" deve ter uma entrada por item do orçamento, na mesma ordem:\n\n{\n'+dispBlocoItens()+',\n'+
-    DISP_IA_3.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(DISP_INSTRUCOES[c])).join(',\n')+'\n}';
+    DISP_IA_3.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(dispInstr(c))).join(',\n')+'\n}';
 }
 function dispPromptCompleto(){
   return dispCabecalho(dispContexto())+
     '\n\nCom base no orçamento/descrição colado ao final, retorne APENAS um objeto JSON — sem texto antes ou depois — com exatamente estas chaves. O valor de cada chave descreve o que você deve escrever nela:\n\n{\n'+
-    DISP_IA.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(DISP_INSTRUCOES[c])).join(',\n')+',\n'+
+    dispIA1().concat(dispIA2()).map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(dispInstr(c))).join(',\n')+',\n'+
     dispBlocoItens()+',\n'+
-    DISP_IA_3.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(DISP_INSTRUCOES[c])).join(',\n')+
+    DISP_IA_3.map(c=>'  '+JSON.stringify(c)+': '+JSON.stringify(dispInstr(c))).join(',\n')+
     '\n}\n\nOrçamento/descrição:\n[COLE AQUI O ORÇAMENTO OU ANEXE O PDF]';
 }
 const dispSchema=cs=>({type:'object',
   properties:Object.fromEntries(cs.map(c=>[c,{type:'string'}])),required:cs,additionalProperties:false});
-const DISP_SCHEMA_ITENS={type:'object',properties:{
+/* o esquema dos itens acompanha o tipo (material tem duas colunas a mais) */
+const dispSchemaItens=()=>{const cols=dispColsItem(); return {type:'object',properties:{
     itens:{type:'array',items:{type:'object',
-      properties:Object.fromEntries(DISP_COLS_ITEM.map(c=>[c,{type:'string'}])),
-      required:DISP_COLS_ITEM,additionalProperties:false}},
+      properties:Object.fromEntries(cols.map(c=>[c,{type:'string'}])),
+      required:cols,additionalProperties:false}},
     ...Object.fromEntries(DISP_IA_3.map(c=>[c,{type:'string'}]))},
-  required:['itens'].concat(DISP_IA_3),additionalProperties:false};
+  required:['itens'].concat(DISP_IA_3),additionalProperties:false};};
 
 /* ---- aplicação do que a IA devolveu ---- */
 function dispAplicaCampos(o){
@@ -8600,6 +8658,8 @@ function dispAplicaItens(o){
     DISP.itens=brutos.map(i=>{
       const v=dispNum(i.valorUnitario);
       return {id:uid(),especificacao:String(i.especificacao||'').trim(),
+        descricaoDetalhada:String(i.descricaoDetalhada||'').trim(),
+        modeloReferencia:String(i.modeloReferencia||'').trim(),
         catser:String(i.catser||'').replace(/\D/g,''),
         unidade:String(i.unidade||'').trim().toUpperCase(),
         qtd:String(i.qtd==null?'':i.qtd).replace(/[^\d]/g,''),
@@ -8613,6 +8673,8 @@ function dispAplicaItens(o){
   if(grau){DISP.dados.grauPrioridade=grau.toUpperCase();n++;}
   const pz=String(o.prazoExecucaoDias==null?'':o.prazoExecucaoDias).replace(/\D/g,'');
   if(pz){DISP.prazoNum=pz;DISP.dados.prazoExecucao=dispDias(pz,'dias corridos');n++;}
+  const crit=String(o.criterioJulgamento||'').trim().toUpperCase().replace(/[.\s]+$/,'');
+  if(/^MENOR PREÇO (POR ITEM|POR GRUPO|GLOBAL)$/.test(crit)){DISP.dados.criterioJulgamento=crit;n++;}
   const gr=String(o.garantiaTecnicaDias==null?'':o.garantiaTecnicaDias).replace(/\D/g,'');
   if(gr){DISP.garantiaNum=gr;DISP.dados.garantiaTecnica=dispDias(gr,'dias');n++;}
   return n;
@@ -8926,9 +8988,9 @@ async function dispPreencherIA(){
   dispStatus('dpIaStatus','Três chamadas em paralelo: textos curtos, textos longos e a tabela de itens. Costuma levar de trinta segundos a um minuto.','info');
   try{
     const [r1,r2,r3]=await Promise.all([
-      dispChamaIA(dispPrompt(1),dispSchema(DISP_IA_1)),
-      dispChamaIA(dispPrompt(2),dispSchema(DISP_IA_2)),
-      dispChamaIA(dispPrompt(3),DISP_SCHEMA_ITENS)]);
+      dispChamaIA(dispPrompt(1),dispSchema(dispIA1())),
+      dispChamaIA(dispPrompt(2),dispSchema(dispIA2())),
+      dispChamaIA(dispPrompt(3),dispSchemaItens())]);
     const n=dispAplicaCampos(Object.assign({},r1,r2))+dispAplicaItens(r3);
     DISP.abertas.objeto=true; DISP.abertas.valor=true;
     dispRenderCampos(); dispSalvaRascunho();
@@ -9015,13 +9077,21 @@ function dispQuebrasEmParagrafos(zip){
     partes.slice(0,-1).forEach(q=>{const pp=filho(q,'pPr'),sp=pp&&filho(pp,'sectPr');if(sp)pp.removeChild(sp);});
     /* o espaço antes/depois do modelo vale para o bloco inteiro, não para cada
        linha: só a primeira parte guarda o "antes" e só a última o "depois".
-       Assim 
-
- continua dando exatamente uma linha em branco, como antes. */
+       Assim duas quebras seguidas continuam dando exatamente uma linha em
+       branco, como antes. As linhas de continuação perdem o recuo pendente do
+       marcador (•) e alinham com o texto, não com o marcador. */
     partes.forEach((q,i)=>{
-      const pp=filho(q,'pPr'),sp=pp&&filho(pp,'spacing'); if(!sp)return;
-      if(i>0){sp.setAttributeNS(W_NS,'w:before','0');sp.removeAttributeNS(W_NS,'beforeAutospacing');}
-      if(i<partes.length-1){sp.setAttributeNS(W_NS,'w:after','0');sp.removeAttributeNS(W_NS,'afterAutospacing');}
+      const pp=filho(q,'pPr'); if(!pp)return;
+      const sp=filho(pp,'spacing'), ind=filho(pp,'ind');
+      if(sp&&i>0){sp.setAttributeNS(W_NS,'w:before','0');sp.removeAttributeNS(W_NS,'beforeAutospacing');}
+      if(sp&&i<partes.length-1){sp.setAttributeNS(W_NS,'w:after','0');sp.removeAttributeNS(W_NS,'afterAutospacing');}
+      if(ind&&i>0){
+        const neg=String(ind.getAttributeNS(W_NS,'firstLine')||ind.getAttribute('w:firstLine')||'');
+        if(ind.hasAttributeNS(W_NS,'hanging')||ind.hasAttribute('w:hanging')||/^-/.test(neg)){
+          ind.removeAttributeNS(W_NS,'hanging');ind.removeAttributeNS(W_NS,'firstLine');
+          ind.removeAttribute('w:hanging');ind.removeAttribute('w:firstLine');
+        }
+      }
     });
     partes.forEach(q=>p.parentNode.insertBefore(q,p));
     p.parentNode.removeChild(p);
@@ -9045,10 +9115,11 @@ async function dispGerar(){
     dispStatus('dpGerStatus','Buscando os modelos e as bibliotecas…','info');
     await dispCarregaLibs();
     await dispCarregaModelos();
-    const faltam=Object.keys(DISP_DOCS).filter(k=>!DISP_MODELOS[k]);
+    if(!DISP.tipo){dispStatus('dpGerStatus','Escolha no Passo 1 se é material ou serviço: cada um tem o seu ETP, Aviso e TR.','erro');return;}
+    const faltam=Object.keys(DISP_DOCS).filter(k=>!DISP_MODELOS[dispChaveModelo(k)]);
     if(faltam.length){
       dispStatus('dpGerStatus','Faltam '+faltam.length+' modelo(s) no banco: '+
-        faltam.map(k=>DISP_DOCS[k]).join(', ')+'. Use o botão "Modelos .docx" para enviá-los.','erro');
+        faltam.map(k=>DISP_DOCS_SERVICO[dispChaveModelo(k)]||DISP_DOCS[k]).join(', ')+'. Use o botão "Modelos .docx" para enviá-los.','erro');
       return;
     }
     const total=dispTotal();
@@ -9058,11 +9129,15 @@ async function dispGerar(){
     });
     /* o quadro do DFD é marcado com X numa linha só */
     DISP_CATEGORIAS.forEach(c=>dados[c.campo]=' ');
+    /* "Serviço continuado COM dedicação exclusiva" saiu do painel (nunca é
+       dispensa por valor), mas o quadro do DFD ainda tem a linha: fica vazia */
+    dados.checkServContCom=' ';
     const cat=DISP_CATEGORIAS.find(c=>c.id===DISP.categoria);
     if(cat)dados[cat.campo]='X';
     dados.itens=DISP.itens.map((it,i)=>({
       numItem:String(i+1),
       especificacao:it.especificacao||'', catser:it.catser||'',
+      descricaoDetalhada:it.descricaoDetalhada||'', modeloReferencia:it.modeloReferencia||'',
       unidade:it.unidade||'', qtd:it.qtd||'',
       /* o modelo do TR já escreve "R$ " antes de {valorUnitario}; repetir o
          símbolo aqui produzia "R$ R$ 843,00" na tabela 1.1 */
@@ -9093,7 +9168,7 @@ async function dispGerar(){
     const zipSaida=new window.JSZip();
     const erros=[];
     Object.keys(DISP_DOCS).forEach(num=>{
-      const m=DISP_MODELOS[num];
+      const m=DISP_MODELOS[dispChaveModelo(num)];
       try{
         const zip=new window.PizZip(dispB64ParaBuffer(m.b64));
         const doc=new window.docxtemplater(zip,{paragraphLoop:true,linebreaks:true,
@@ -9231,8 +9306,8 @@ function dispLigaCampos(){
       it[campo]=el.value;
       /* só o total da linha e o somatório mudam — redesenhar tudo tiraria o
          cursor do campo a cada tecla */
-      const tr=el.closest('tr');
-      if(tr)tr.querySelector('td.num').textContent=dispTotalLinha(it)>0?brl(dispTotalLinha(it)):'—';
+      const tr=el.closest('tr'), tdn=tr&&tr.querySelector('td.num');
+      if(tdn)tdn.textContent=dispTotalLinha(it)>0?brl(dispTotalLinha(it)):'—';
       const t=dispTotal();
       const cx=$('.dptot b'); if(cx)cx.textContent=brl(t);
       const ex=$('.dptot .dpext'); if(ex)ex.textContent=t>0?dispValorExtenso(t):'';
@@ -9272,7 +9347,8 @@ function dispLiga(){
     /* categoria que não combina com o novo tipo é descartada */
     const cat=DISP_CATEGORIAS.find(c=>c.id===DISP.categoria);
     if(cat&&DISP.tipo&&cat.tipo!==DISP.tipo)DISP.categoria='';
-    dispRenderEscolhas(); dispAtualizaBarra(); dispSalvaRascunho();
+    /* material e serviço têm campos e itens diferentes: redesenha o formulário */
+    dispRenderEscolhas(); dispRenderCampos(); dispRenderDocs(); dispSalvaRascunho();
   });
   $$('#dpModo button').forEach(b=>b.onclick=()=>{
     DISP_MODO=b.dataset.modo;
@@ -9386,7 +9462,11 @@ function dispAbrirModelos(){
     '<p class="sub">Os onze modelos ficam guardados no banco e valem para o navio inteiro. '+
     'Envie de uma vez os arquivos numerados de 01 a 14 — o número no começo do nome é o que diz a qual documento cada um pertence.</p>'+
     '<div class="dpdocs" style="margin:14px 0">'+Object.keys(DISP_DOCS).map(n=>
-      '<div class="dpdoc'+(tem[n]?'':' falta')+'"><span class="n">'+n+'</span>'+esc(DISP_DOCS[n])+'</div>').join('')+'</div>'+
+      '<div class="dpdoc'+(tem[n]?'':' falta')+'"><span class="n">'+n+'</span>'+esc(DISP_DOCS[n])+
+      (DISP_DOCS_SERVICO[n+'S']?' — material':'')+'</div>').join('')+
+      Object.keys(DISP_DOCS_SERVICO).map(n=>
+      '<div class="dpdoc'+(tem[n]?'':' falta')+'"><span class="n">'+n.slice(0,2)+'</span>'+esc(DISP_DOCS_SERVICO[n])+'</div>').join('')+'</div>'+
+    '<p class="sub" style="margin-top:0">ETP, Aviso e TR de serviço levam <b>SERVICO</b> no nome (04-ETP-SERVICO.docx); sem essa palavra, valem para material.</p>'+
     '<input type="file" id="dpMdlIn" accept=".docx" multiple>'+
     '<div id="dpMdlEstado" class="obtmeta" style="margin-top:10px"></div>'+
     '<div class="actions"><button class="btn ghost" id="dpMdlNo">Fechar</button>'+
@@ -9403,8 +9483,9 @@ function dispAbrirModelos(){
     let n=0, ignorados=[];
     for(const f of fs){
       const m=(f.name||'').match(/^(\d+)/);
-      const num=m?m[1].padStart(2,'0'):'';
+      let num=m?m[1].padStart(2,'0'):'';
       if(!num||!DISP_DOCS[num]){ignorados.push(f.name);continue;}
+      if(/SERVI[CÇ]O/i.test(f.name)&&DISP_DOCS_SERVICO[num+'S'])num+='S';
       novos[num]={filename:f.name,b64:await arquivoParaBase64(f)};
       n++;
     }
