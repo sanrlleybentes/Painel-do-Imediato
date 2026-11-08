@@ -2897,6 +2897,8 @@ select.g-in{appearance:auto}
       </div>
       <h2 style="margin:20px 0 4px">Categoria <span class="hint" style="text-transform:none;letter-spacing:0;font-size:12px">— marca o quadro do DFD</span></h2>
       <div class="dpescolhas" id="dpCategoria" style="margin-top:10px"></div>
+      <h2 style="margin:20px 0 4px">Modalidade de julgamento <span class="hint" style="text-transform:none;letter-spacing:0;font-size:12px">— como o Aviso e o TR vão julgar as propostas</span></h2>
+      <div class="dpescolhas" id="dpCriterio" style="margin-top:10px"></div>
     </div>
 
     <!-- PASSO 2 — orçamento e IA -->
@@ -7752,8 +7754,6 @@ const DISP_SECOES=[
    sub:'A tabela alimenta o TR e soma sozinha o valor total, por extenso inclusive',
    itens:true,
    campos:[
-    {k:'criterioJulgamento',rot:'Critério de Julgamento',col:2,tipo:'select',
-     opcoes:['MENOR PREÇO POR ITEM','MENOR PREÇO POR GRUPO','MENOR PREÇO GLOBAL']},
     {k:'mesConclucao',rot:'Mês de Conclusão',dica:'DEZEMBRO',col:1},
     {k:'grauPrioridade',rot:'Grau de Prioridade',dica:'ALTA',col:1},
     {k:'prazoExecucao',rot:'Prazo de Execução',dica:'30',col:1,tipo:'dias',sufixo:'dias corridos'},
@@ -7776,6 +7776,17 @@ const DISP_SECOES=[
     {k:'dataSessao',rot:'Data da Sessão',dica:'19/05/2026',col:1}]}
 ];
 
+/* A modalidade de julgamento é escolha do Imediato, feita logo no início: a IA
+   não decide isto, apenas redige o parcelamento e o resto de acordo com ela. */
+const DISP_CRITERIOS=[
+  {v:'MENOR PREÇO POR ITEM',rot:'Menor preço por item',dica:'Cada item é disputado e adjudicado sozinho'},
+  {v:'MENOR PREÇO POR GRUPO',rot:'Menor preço pelo lote de cada grupo',dica:'Itens reunidos em grupos; vence quem cobrar menos pelo lote de cada grupo'},
+  {v:'MENOR PREÇO PARA O LOTE DE SERVIÇOS',rot:'Menor preço para o lote de serviços',dica:'Todos os serviços num lote único, disputado pelo valor global'},
+  {v:'MENOR PREÇO POR SERVIÇO',rot:'Menor preço por serviço',dica:'Cada serviço é disputado e adjudicado sozinho'}];
+/* o regime de execução do serviço acompanha a modalidade: por serviço é preço
+   unitário (art. 6º, XXVIII); lote ou global é preço global (art. 6º, XXIX) */
+const dispRegime=c=>c==='MENOR PREÇO POR SERVIÇO'?'empreitada por preço unitário (art. 6º, inciso XXVIII, da Lei nº 14.133/2021)'
+  :'empreitada por preço global (art. 6º, inciso XXIX, da Lei nº 14.133/2021)';
 const DISP_CHAVES=DISP_SECOES.reduce((a,s)=>a.concat((s.campos||[]).map(c=>c.k)),[]);
 /* Os nomes são os do gerador original, letra por letra: quem está acostumado
    com ele reconhece a lista sem precisar traduzir. */
@@ -7801,7 +7812,7 @@ const DISP_IA_SERV=['requisitosContratacao','escopoDetalhado','qualificacaoEspec
 const dispIA1=()=>DISP_IA_1.concat(['justificativaParcelamento']);
 const dispIA2=()=>DISP.tipo==='servico'?DISP_IA_2.concat(DISP_IA_SERV):DISP_IA_2;
 const DISP_IA=DISP_IA_1.concat(DISP_IA_2,['justificativaParcelamento'],DISP_IA_SERV);
-const DISP_IA_3=['mesConclucao','grauPrioridade','prazoExecucaoDias','garantiaTecnicaDias','criterioJulgamento'];
+const DISP_IA_3=['mesConclucao','grauPrioridade','prazoExecucaoDias','garantiaTecnicaDias'];
 const DISP_DERIVADOS=['numETP','numAviso','numTR'];
 const DISP_RASCUNHO='dispensa_rascunho_v1';
 const DISP_CHAVE_IA='dispensa_api_key_v1';
@@ -7839,8 +7850,7 @@ const DISP_INSTRUCOES={
 /* Instruções dos campos novos e as que mudam conforme o tipo. As de cima
    continuam intactas; estas só se somam ou, para um tipo, tomam o lugar. */
 const DISP_INSTR_NOVAS={
-  justificativaParcelamento:'Um ou dois parágrafos separados por \n\n. Se houver mais de um item independente: fundamente a divisão por itens ou agrupamentos no art. 40, § 2º, e no art. 47, inciso II, da Lei nº 14.133/2021, explicando como amplia a competitividade e a natureza dos itens/fornecedores. Se o objeto for único ou indivisível: justifique o não parcelamento com base na Súmula nº 247 do TCU, por não haver ganho de escala, aproveitamento de mercado ou ampliação da competitividade, sendo técnica e operacionalmente necessário que uma única empresa execute o objeto',
-  criterioJulgamento:'Exatamente um destes textos: MENOR PREÇO POR ITEM, MENOR PREÇO POR GRUPO ou MENOR PREÇO GLOBAL. Para serviço único ou indivisível use MENOR PREÇO GLOBAL; para vários itens independentes use MENOR PREÇO POR ITEM; use POR GRUPO só se o orçamento agrupar itens',
+  justificativaParcelamento:'Um ou dois parágrafos separados por \\n\\n, coerentes com a "Modalidade de julgamento escolhida" informada nos dados do processo. MENOR PREÇO POR ITEM ou POR SERVIÇO: fundamente a divisão em itens ou serviços independentes no art. 40, § 2º, e no art. 47, inciso II, da Lei nº 14.133/2021, explicando como amplia a competitividade e a natureza dos itens e dos fornecedores. MENOR PREÇO POR GRUPO: explique o critério de agrupamento (afinidade da natureza dos itens e do perfil dos fornecedores) e que vence quem ofertar o menor valor pelo lote de cada grupo, podendo resultar em fornecedores distintos. MENOR PREÇO PARA O LOTE DE SERVIÇOS: justifique, com base na Súmula nº 247 do TCU, que os serviços formam um conjunto indivisível, sem ganho de escala ou de competitividade na divisão, sendo técnica e operacionalmente necessário que uma única empresa os execute integralmente',
   requisitosContratacao:'De três a seis parágrafos separados por \n\n. Descreva: o perfil da pessoa jurídica especializada exigida e os credenciamentos ou autorizações que constem da fonte ou decorram de norma obrigatória; tudo o que a contratada deve fornecer (mão de obra qualificada, supervisão técnica, ferramental, instrumentos de medição, materiais, peças e insumos novos); o escopo mínimo, remetendo ao subitem 1.1.1 do Termo de Referência; as normas técnicas, de segurança do trabalho (NR) e ambientais a observar; os testes finais e o relatório técnico detalhado a ser entregue; e a garantia mínima dos serviços. Não invente marca, modelo ou quantidade',
   escopoDetalhado:'Detalhamento técnico do escopo do serviço em subitens numerados 1.1.1.1., 1.1.1.2., 1.1.1.3. ..., um por parágrafo, separados por \n\n. Cada subitem no formato: 1.1.1.n. TÍTULO EM MAIÚSCULAS: texto descrevendo as atividades, os procedimentos, os parâmetros de teste e os critérios de aceitação. Extraia da fonte e organize por etapa ou sistema. Termine com um subitem de testes e comissionamento final e, quando couber, com a emissão de relatório, laudo ou certificado. Não invente marca, modelo ou quantidade que não estejam na fonte',
   qualificacaoEspecifica:'Exigência de qualificação técnica específica que conste da fonte ou que decorra de norma obrigatória para o serviço (por exemplo: credenciamento na Diretoria de Portos e Costas, registro no CREA, autorização técnica do fabricante), em uma frase terminada em ponto. Se não houver exigência específica, devolva string vazia',
@@ -7927,6 +7937,7 @@ let DISP_MODO='link';
 function dispZera(){
   const d={};
   DISP_CHAVES.forEach(k=>d[k]='');
+  d.criterioJulgamento='';
   d.dataAtual=dispHoje();
   const ab={};
   DISP_SECOES.forEach(s=>ab[s.id]=(s.id==='identificacao'||s.id==='objeto'||s.id==='valor'));
@@ -8504,7 +8515,7 @@ function dispAtualizaBarra(){
   const n=dispPreenchidos(), t=dispChavesVisiveis().length;
   const c=$('#dpCont'); if(c)c.textContent=n+'/'+t+' · '+Math.round(n/t*100)+'%';
   const b=$('#dpBarra'); if(b)b.style.width=Math.round(n/t*100)+'%';
-  const p1=$('#dpPasso1'); if(p1)p1.classList.toggle('ok',!!DISP.tipo);
+  const p1=$('#dpPasso1'); if(p1)p1.classList.toggle('ok',!!DISP.tipo&&!!DISP.dados.criterioJulgamento);
   const p2=$('#dpPasso2'); if(p2)p2.classList.toggle('ok',!!DISP_ORCAMENTO);
   const p3=$('#dpPasso3'); if(p3)p3.classList.toggle('ok',n>=t*0.8);
 }
@@ -8518,6 +8529,15 @@ function dispRenderEscolhas(){
   const lista=DISP.tipo?DISP_CATEGORIAS.filter(x=>x.tipo===DISP.tipo):DISP_CATEGORIAS;
   c.innerHTML=lista.map(x=>'<button class="dpescolha" data-dpcat="'+x.id+'" aria-pressed="'+
     (DISP.categoria===x.id)+'"><b>'+esc(x.rot)+'</b><span>'+esc(x.dica)+'</span></button>').join('');
+  const cr=$('#dpCriterio');
+  if(cr){
+    cr.innerHTML=DISP_CRITERIOS.map(x=>'<button class="dpescolha" data-dpcrit="'+esc(x.v)+'" aria-pressed="'+
+      (DISP.dados.criterioJulgamento===x.v)+'"><b>'+esc(x.rot)+'</b><span>'+esc(x.dica)+'</span></button>').join('');
+    $$('#dpCriterio button').forEach(b=>b.onclick=()=>{
+      DISP.dados.criterioJulgamento=DISP.dados.criterioJulgamento===b.dataset.dpcrit?'':b.dataset.dpcrit;
+      dispRenderEscolhas(); dispAtualizaBarra(); dispSalvaRascunho();
+    });
+  }
   $$('#dpCategoria button').forEach(b=>b.onclick=()=>{
     DISP.categoria=DISP.categoria===b.dataset.dpcat?'':b.dataset.dpcat;
     dispRenderEscolhas(); dispSalvaRascunho();
@@ -8580,7 +8600,8 @@ function dispContexto(){
   const pares=[['Organização Militar',d.omNormal],['Sigla da OM',d.siglaOM],['UASG',d.uasg],
     ['Cidade',d.cidade],['Área requisitante',d.areaRequisitante],
     ['Responsável pela contratação',d.responsavelNome],['Ordenador de despesas',d.ordenadorNome],
-    ['Local de execução',d.localExecucao]].filter(p=>String(p[1]||'').trim());
+    ['Local de execução',d.localExecucao],
+    ['Modalidade de julgamento escolhida (não altere)',d.criterioJulgamento]].filter(p=>String(p[1]||'').trim());
   if(!pares.length)return '';
   return 'Dados já preenchidos neste processo — use-os na redação:\n'+
     pares.map(p=>'- '+p[0]+': '+p[1]).join('\n');
@@ -8673,8 +8694,6 @@ function dispAplicaItens(o){
   if(grau){DISP.dados.grauPrioridade=grau.toUpperCase();n++;}
   const pz=String(o.prazoExecucaoDias==null?'':o.prazoExecucaoDias).replace(/\D/g,'');
   if(pz){DISP.prazoNum=pz;DISP.dados.prazoExecucao=dispDias(pz,'dias corridos');n++;}
-  const crit=String(o.criterioJulgamento||'').trim().toUpperCase().replace(/[.\s]+$/,'');
-  if(/^MENOR PREÇO (POR ITEM|POR GRUPO|GLOBAL)$/.test(crit)){DISP.dados.criterioJulgamento=crit;n++;}
   const gr=String(o.garantiaTecnicaDias==null?'':o.garantiaTecnicaDias).replace(/\D/g,'');
   if(gr){DISP.garantiaNum=gr;DISP.dados.garantiaTecnica=dispDias(gr,'dias');n++;}
   return n;
@@ -8979,6 +8998,7 @@ function dispRenderPasso2(){
 async function dispPreencherIA(){
   if(!DISP_ORCAMENTO){dispStatus('dpIaStatus','Anexe o orçamento ou escreva a descrição primeiro.','erro');return;}
   if(!DISP.tipo){dispStatus('dpIaStatus','Escolha o tipo da contratação no Passo 1.','erro');return;}
+  if(!DISP.dados.criterioJulgamento){dispStatus('dpIaStatus','Escolha no Passo 1 a modalidade de julgamento: a IA redige o parcelamento de acordo com ela.','erro');return;}
   if(!dispChaveIA()){
     dispStatus('dpIaStatus','Não há chave de IA neste navegador. Use "Copiar o prompt", rode no claude.ai e volte com "Colar o JSON da IA" — ou configure a chave em "Chave de IA".','erro');
     return;
@@ -9116,6 +9136,7 @@ async function dispGerar(){
     await dispCarregaLibs();
     await dispCarregaModelos();
     if(!DISP.tipo){dispStatus('dpGerStatus','Escolha no Passo 1 se é material ou serviço: cada um tem o seu ETP, Aviso e TR.','erro');return;}
+    if(!DISP.dados.criterioJulgamento){dispStatus('dpGerStatus','Escolha no Passo 1 a modalidade de julgamento (por item, por grupo, lote de serviços ou por serviço).','erro');return;}
     const faltam=Object.keys(DISP_DOCS).filter(k=>!DISP_MODELOS[dispChaveModelo(k)]);
     if(faltam.length){
       dispStatus('dpGerStatus','Faltam '+faltam.length+' modelo(s) no banco: '+
@@ -9127,6 +9148,7 @@ async function dispGerar(){
       valorEstimado:total>0?dispBR(total):'',
       valorPorExtenso:total>0?dispValorExtenso(total):''
     });
+    dados.regimeExecucao=dispRegime(dados.criterioJulgamento);
     /* o quadro do DFD é marcado com X numa linha só */
     DISP_CATEGORIAS.forEach(c=>dados[c.campo]=' ');
     /* "Serviço continuado COM dedicação exclusiva" saiu do painel (nunca é
