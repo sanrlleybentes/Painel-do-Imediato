@@ -8959,6 +8959,77 @@ async function dispCarregaModelos(){
   dispRenderDocs();
   return DISP_MODELOS;
 }
+/* Cada \n dos textos da IA vira uma quebra de linha manual (Shift+Enter) com o
+   linebreaks:true do docxtemplater. Em parágrafo justificado, o Word estica os
+   espaços da linha que termina numa quebra dessas até a margem: "Total de uma
+   (uma) unidade, assim distribuídas:" saía espalhada pela largura toda.
+   A correção é estrutural: depois de preencher o modelo, cada quebra manual vira
+   um parágrafo de verdade, com a mesma formatação do parágrafo do modelo. Última
+   linha de parágrafo nunca é esticada, em nenhum programa (Word, LibreOffice,
+   conversor de PDF), e o modelo .docx não precisa mudar.
+   Fica de fora: quebra de página/coluna e parágrafo de lista numerada (dividir
+   este repetiria o número em cada linha). */
+const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+function dispQuebrasEmParagrafos(zip){
+  /* parágrafo de lista numerada fica com a quebra manual; para ele, a opção do
+     Word "não expandir espaços em linha terminada em Shift+Enter". Vai logo
+     depois de <w:ulTrailSpace/>, que é a posição dela na ordem do esquema. */
+  const cfg=zip.file('word/settings.xml');
+  if(cfg){const t=cfg.asText();
+    if(t.indexOf('doNotExpandShiftReturn')<0&&t.indexOf('<w:ulTrailSpace/>')>=0)
+      zip.file('word/settings.xml',t.replace('<w:ulTrailSpace/>','<w:ulTrailSpace/><w:doNotExpandShiftReturn/>'));}
+  const arq=zip.file('word/document.xml'); if(!arq)return;
+  const xml=arq.asText();
+  if(xml.indexOf('<w:br')<0)return;
+  const d=new DOMParser().parseFromString(xml,'application/xml');
+  const filho=(n,nome)=>[...n.childNodes].find(c=>c.localName===nome);
+  const ehQuebra=b=>{const t=b.getAttributeNS(W_NS,'type')||b.getAttribute('w:type');return !t||t==='textWrapping';};
+  let mudou=false;
+  [...d.getElementsByTagNameNS(W_NS,'p')].forEach(p=>{
+    const brs=[...p.getElementsByTagNameNS(W_NS,'br')].filter(ehQuebra);
+    if(!brs.length)return;
+    /* só quebras em runs soltos no parágrafo; dentro de hiperlink ou campo, deixa */
+    if(brs.some(b=>b.parentNode.localName!=='r'||b.parentNode.parentNode!==p))return;
+    const pPr=filho(p,'pPr');
+    if(pPr&&pPr.getElementsByTagNameNS(W_NS,'numPr').length)return;
+    const novoP=()=>{const q=d.createElementNS(W_NS,'w:p');if(pPr)q.appendChild(pPr.cloneNode(true));return q;};
+    const partes=[]; let atual=novoP();
+    [...p.childNodes].forEach(n=>{
+      if(n===pPr)return;
+      if(n.localName!=='r'||![...n.childNodes].some(c=>c.localName==='br'&&ehQuebra(c))){atual.appendChild(n.cloneNode(true));return;}
+      const rPr=filho(n,'rPr');
+      const novoR=()=>{const r=d.createElementNS(W_NS,'w:r');if(rPr)r.appendChild(rPr.cloneNode(true));return r;};
+      const temConteudo=r=>r.childNodes.length>(rPr?1:0);
+      let r=novoR();
+      [...n.childNodes].forEach(c=>{
+        if(c===rPr)return;
+        if(c.localName==='br'&&ehQuebra(c)){
+          if(temConteudo(r))atual.appendChild(r);
+          partes.push(atual); atual=novoP(); r=novoR();
+        }else r.appendChild(c.cloneNode(true));
+      });
+      if(temConteudo(r))atual.appendChild(r);
+    });
+    partes.push(atual);
+    /* fim de seção (sectPr) mora no último parágrafo da seção: só o último fica com ele */
+    partes.slice(0,-1).forEach(q=>{const pp=filho(q,'pPr'),sp=pp&&filho(pp,'sectPr');if(sp)pp.removeChild(sp);});
+    /* o espaço antes/depois do modelo vale para o bloco inteiro, não para cada
+       linha: só a primeira parte guarda o "antes" e só a última o "depois".
+       Assim 
+
+ continua dando exatamente uma linha em branco, como antes. */
+    partes.forEach((q,i)=>{
+      const pp=filho(q,'pPr'),sp=pp&&filho(pp,'spacing'); if(!sp)return;
+      if(i>0){sp.setAttributeNS(W_NS,'w:before','0');sp.removeAttributeNS(W_NS,'beforeAutospacing');}
+      if(i<partes.length-1){sp.setAttributeNS(W_NS,'w:after','0');sp.removeAttributeNS(W_NS,'afterAutospacing');}
+    });
+    partes.forEach(q=>p.parentNode.insertBefore(q,p));
+    p.parentNode.removeChild(p);
+    mudou=true;
+  });
+  if(mudou)zip.file('word/document.xml',new XMLSerializer().serializeToString(d));
+}
+
 function dispB64ParaBuffer(b64){
   const bin=atob(b64), n=bin.length, buf=new ArrayBuffer(n), v=new Uint8Array(buf);
   for(let i=0;i<n;i++)v[i]=bin.charCodeAt(i);
@@ -9030,6 +9101,7 @@ async function dispGerar(){
              documento oficial */
           nullGetter:()=>''});
         doc.render(num==='13'?dadosTR:(num==='04'?dadosETP:dados));
+        dispQuebrasEmParagrafos(doc.getZip());
         zipSaida.file(String(m.filename||(num+'.docx')).replace(/\.docx?$/i,'')+'_gerado.docx',
           doc.getZip().generate({type:'arraybuffer'}));
       }catch(err){ erros.push(DISP_DOCS[num]+': '+(err.message||err)); }
