@@ -445,6 +445,13 @@ select.obtfase{min-width:210px;font-size:12px}
 .dpitens input{padding:6px 8px;font-size:13px}
 .dpitens td.acao{width:34px;text-align:center}
 .dpitens tr.dpitdet td{padding-top:0;border-top:0}
+.dpgrupos{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--brass);background:#FBF8F0;border-radius:0 8px 8px 0}
+.dpgrupostit{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.dpgrupostit b{font-family:var(--display);letter-spacing:.1em;text-transform:uppercase;font-size:12px}
+.dpgrupo{display:grid;grid-template-columns:70px 1fr auto 34px;gap:8px;align-items:center;margin:6px 0}
+.dpgrupo input{padding:6px 8px;font-size:13px}
+.dpgval{font-size:11.5px;color:var(--muted);white-space:nowrap}
+@media (max-width:700px){.dpgrupo{grid-template-columns:60px 1fr 34px}.dpgval{grid-column:1/-1}}
 .dpitdetgrade{display:grid;grid-template-columns:2fr 1fr;gap:8px}
 .dpitdetgrade label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .dpitdetgrade textarea,.dpitdetgrade input{width:100%;font-size:13px;padding:6px 8px}
@@ -7801,7 +7808,8 @@ const DISP_COLS_ITEM=['especificacao','catser','unidade','qtd','valorUnitario'];
 /* material leva, por item, a descrição técnica e o modelo de referência que
    saem no subitem 1.1.1 do TR e do Aviso; serviço descreve o escopo no texto */
 const DISP_COLS_ITEM_MAT=['descricaoDetalhada','modeloReferencia'];
-const dispColsItem=()=>DISP.tipo==='servico'?DISP_COLS_ITEM:DISP_COLS_ITEM.concat(DISP_COLS_ITEM_MAT);
+const dispColsItem=()=>(DISP.tipo==='servico'?DISP_COLS_ITEM:DISP_COLS_ITEM.concat(DISP_COLS_ITEM_MAT))
+  .concat(DISP&&DISP.dados&&DISP.dados.criterioJulgamento==='MENOR PREÇO POR GRUPO'?['grupo']:[]);
 const DISP_IA_1=['assunto','finalidade','objeto','quantidade','localExecucao','justificativa'];
 const DISP_IA_2=['descricaoSolucao','justificativaViabilidade','etapasServico','criteriosRealizacao',
   'garantiasCondicoes','beneficios','providencias'];
@@ -7850,10 +7858,11 @@ const DISP_INSTRUCOES={
 /* Instruções dos campos novos e as que mudam conforme o tipo. As de cima
    continuam intactas; estas só se somam ou, para um tipo, tomam o lugar. */
 const DISP_INSTR_NOVAS={
-  justificativaParcelamento:'Um ou dois parágrafos separados por \\n\\n, coerentes com a "Modalidade de julgamento escolhida" informada nos dados do processo. MENOR PREÇO POR ITEM ou POR SERVIÇO: fundamente a divisão em itens ou serviços independentes no art. 40, § 2º, e no art. 47, inciso II, da Lei nº 14.133/2021, explicando como amplia a competitividade e a natureza dos itens e dos fornecedores. MENOR PREÇO POR GRUPO: explique o critério de agrupamento (afinidade da natureza dos itens e do perfil dos fornecedores) e que vence quem ofertar o menor valor pelo lote de cada grupo, podendo resultar em fornecedores distintos. MENOR PREÇO PARA O LOTE DE SERVIÇOS: justifique, com base na Súmula nº 247 do TCU, que os serviços formam um conjunto indivisível, sem ganho de escala ou de competitividade na divisão, sendo técnica e operacionalmente necessário que uma única empresa os execute integralmente',
+  justificativaParcelamento:'Um ou dois parágrafos separados por \\n\\n, coerentes com a "Modalidade de julgamento escolhida" informada nos dados do processo. MENOR PREÇO POR ITEM ou POR SERVIÇO: fundamente a divisão em itens ou serviços independentes no art. 40, § 2º, e no art. 47, inciso II, da Lei nº 14.133/2021, explicando como amplia a competitividade e a natureza dos itens e dos fornecedores. MENOR PREÇO POR GRUPO: cite os grupos pelo nome e número, exatamente como constam nos dados do processo ou, se ainda não existirem, como no campo "grupo" dos itens; explique o critério de agrupamento (afinidade da natureza dos itens e do perfil dos fornecedores) e que vence quem ofertar o menor valor pelo lote de cada grupo, podendo resultar em fornecedores distintos. MENOR PREÇO PARA O LOTE DE SERVIÇOS: justifique, com base na Súmula nº 247 do TCU, que os serviços formam um conjunto indivisível, sem ganho de escala ou de competitividade na divisão, sendo técnica e operacionalmente necessário que uma única empresa os execute integralmente',
   requisitosContratacao:'De três a seis parágrafos separados por \n\n. Descreva: o perfil da pessoa jurídica especializada exigida e os credenciamentos ou autorizações que constem da fonte ou decorram de norma obrigatória; tudo o que a contratada deve fornecer (mão de obra qualificada, supervisão técnica, ferramental, instrumentos de medição, materiais, peças e insumos novos); o escopo mínimo, remetendo ao subitem 1.1.1 do Termo de Referência; as normas técnicas, de segurança do trabalho (NR) e ambientais a observar; os testes finais e o relatório técnico detalhado a ser entregue; e a garantia mínima dos serviços. Não invente marca, modelo ou quantidade',
   escopoDetalhado:'Detalhamento técnico do escopo do serviço em subitens numerados 1.1.1.1., 1.1.1.2., 1.1.1.3. ..., um por parágrafo, separados por \n\n. Cada subitem no formato: 1.1.1.n. TÍTULO EM MAIÚSCULAS: texto descrevendo as atividades, os procedimentos, os parâmetros de teste e os critérios de aceitação. Extraia da fonte e organize por etapa ou sistema. Termine com um subitem de testes e comissionamento final e, quando couber, com a emissão de relatório, laudo ou certificado. Não invente marca, modelo ou quantidade que não estejam na fonte',
   qualificacaoEspecifica:'Exigência de qualificação técnica específica que conste da fonte ou que decorra de norma obrigatória para o serviço (por exemplo: credenciamento na Diretoria de Portos e Costas, registro no CREA, autorização técnica do fabricante), em uma frase terminada em ponto. Se não houver exigência específica, devolva string vazia',
+  grupo:'Nome curto do grupo (lote) a que o item pertence: reúna itens de natureza e de perfil de fornecedor semelhantes, de modo que um único fornecedor possa atender ao lote inteiro. Itens do mesmo grupo devem ter EXATAMENTE o mesmo texto aqui. Exemplo: Periféricos, componentes e acessórios de TI. Use de dois a quatro grupos, salvo se o orçamento indicar outra divisão',
   descricaoDetalhada:'Descrição técnica detalhada do item: características mínimas exigidas (capacidade, dimensões, potência, tensão, interface, material, desempenho, normas ABNT/INMETRO aplicáveis e acessórios que acompanham), em texto corrido. Havendo lista de especificações, use \n entre elas. NÃO cite marca nem modelo aqui',
   modeloReferencia:'Marca e modelo de referência do item APENAS se constarem na fonte, no formato Marca Modelo (código do fabricante, se houver). Se não constar, devolva string vazia. NUNCA invente'
 };
@@ -7942,8 +7951,36 @@ function dispZera(){
   const ab={};
   DISP_SECOES.forEach(s=>ab[s.id]=(s.id==='identificacao'||s.id==='objeto'||s.id==='valor'));
   DISP={dados:d,itens:[{id:uid(),especificacao:'',catser:'',unidade:'',qtd:'',valorUnitario:''}],
-    categoria:'',tipo:'',manuais:[],iaPreenchidos:[],abertas:ab,prazoNum:'',garantiaNum:''};
+    categoria:'',tipo:'',manuais:[],iaPreenchidos:[],abertas:ab,prazoNum:'',garantiaNum:'',grupos:[]};
   DISP_ORCAMENTO=null;
+}
+/* Agrupamento: só vale quando a modalidade é "menor preço pelo lote de cada
+   grupo". Cada item aponta para um grupo (item.grupo = id do grupo); os
+   documentos saem com os itens reunidos por grupo e o valor de cada lote. */
+const dispPorGrupo=()=>DISP.dados.criterioJulgamento==='MENOR PREÇO POR GRUPO';
+const dispNomeGrupo=(g,i)=>'Grupo '+(i+1)+(g.nome?' – '+g.nome:'');
+function dispOrdenaPorGrupo(){
+  const pos=id=>{const k=(DISP.grupos||[]).findIndex(g=>g.id===id);return k<0?1e6:k;};
+  DISP.itens=DISP.itens.map((it,i)=>({it,i})).sort((a,b)=>pos(a.it.grupo)-pos(b.it.grupo)||a.i-b.i).map(x=>x.it);
+}
+const dispItensDoGrupo=id=>DISP.itens.filter(i=>i.grupo===id);
+const dispTotalGrupo=id=>dispItensDoGrupo(id).reduce((a,i)=>a+dispTotalLinha(i),0);
+/* "1 a 3", "1, 2 e 5" */
+function dispListaNumeros(ns){
+  if(ns.length<=1)return ns.join('');
+  const seq=ns.every((n,i)=>i===0||n===ns[i-1]+1);
+  if(seq&&ns.length>2)return ns[0]+' a '+ns[ns.length-1];
+  return ns.slice(0,-1).join(', ')+' e '+ns[ns.length-1];
+}
+/* o que impede de gerar com grupos: item sem grupo ou nenhum grupo */
+function dispProblemaGrupos(){
+  if(!dispPorGrupo())return '';
+  if(!(DISP.grupos||[]).length)return 'A modalidade é por grupo: crie ao menos um grupo em "Itens, valor e prazos".';
+  const sem=DISP.itens.map((it,i)=>({it,n:i+1})).filter(x=>!x.it.grupo||!DISP.grupos.some(g=>g.id===x.it.grupo));
+  if(sem.length)return 'Item(ns) sem grupo: '+sem.map(x=>x.n).join(', ')+'. Escolha o grupo de cada item.';
+  const vazios=DISP.grupos.map((g,i)=>({g,i})).filter(x=>!dispItensDoGrupo(x.g.id).length);
+  if(vazios.length)return 'Grupo sem item: '+vazios.map(x=>x.i+1).join(', ')+'. Remova o grupo ou ponha itens nele.';
+  return '';
 }
 const dispTotal=()=>DISP.itens.reduce((a,i)=>
   a+(parseFloat(String(i.qtd).replace(',','.'))||0)*dispNum(i.valorUnitario),0);
@@ -8460,14 +8497,27 @@ function catAplica(codigo,descricao){
   toast('código '+codigo+' aplicado');
 }
 
+function dispGruposHtml(){
+  const gs=DISP.grupos||[];
+  return '<div class="dpgrupos"><div class="dpgrupostit"><b>Grupos</b><span class="hint" style="margin:0">'+
+    'A modalidade é <b>menor preço pelo lote de cada grupo</b>: dê um nome a cada grupo e escolha, na tabela, o grupo de cada item.</span></div>'+
+    gs.map((g,i)=>'<div class="dpgrupo"><span class="mono">Grupo '+(i+1)+'</span>'+
+      '<input type="text" data-dpgnome="'+esc(g.id)+'" value="'+esc(g.nome||'')+'" placeholder="ex.: Periféricos, componentes e acessórios de TI">'+
+      '<span class="dpgval mono">'+dispItensDoGrupo(g.id).length+' item(ns) · '+brl(dispTotalGrupo(g.id))+'</span>'+
+      '<button class="mini del" data-dpgdel="'+esc(g.id)+'" title="remover o grupo">&times;</button></div>').join('')+
+    '<button class="mini" id="dpAddGrupo">+ Incluir grupo</button></div>';
+}
 function dispItensHtml(){
-  return '<div class="scroller" style="margin-top:14px"><table class="dpitens"><thead><tr>'+
-    '<th style="width:34px">#</th><th>Especificação</th><th style="width:110px">CATMAT/CATSER</th>'+
+  const ag=dispPorGrupo();
+  return (ag?dispGruposHtml():'')+'<div class="scroller" style="margin-top:14px"><table class="dpitens"><thead><tr>'+
+    '<th style="width:34px">#</th>'+(ag?'<th style="width:150px">Grupo</th>':'')+'<th>Especificação</th><th style="width:110px">CATMAT/CATSER</th>'+
     '<th style="width:80px">Unid.</th><th style="width:70px">Qtd</th>'+
     '<th style="width:120px">Valor unit.</th><th class="num" style="width:110px">Total</th><th style="width:34px"></th>'+
     '</tr></thead><tbody>'+
     DISP.itens.map((it,i)=>'<tr class="dpitlinha">'+
       '<td class="mono">'+(i+1)+'</td>'+
+      (ag?'<td><select data-dpitgrupo="'+it.id+'"><option value="">— grupo —</option>'+
+        (DISP.grupos||[]).map((g,k)=>'<option value="'+esc(g.id)+'"'+(it.grupo===g.id?' selected':'')+'>'+esc(dispNomeGrupo(g,k).slice(0,40))+'</option>').join('')+'</select></td>':'')+
       '<td><input type="text" data-dpit="'+it.id+'|especificacao" value="'+esc(it.especificacao||'')+'" placeholder="descrição do item"></td>'+
       '<td><div class="catcel"><input type="text" data-dpit="'+it.id+'|catser" value="'+esc(it.catser||'')+'" placeholder="opcional">'+
         '<button class="mini catlupa" data-catbusca="'+it.id+'" title="buscar no catálogo do Compras">buscar</button></div></td>'+
@@ -8478,7 +8528,7 @@ function dispItensHtml(){
       '<td class="acao"><button class="mini del" data-dpitdel="'+it.id+'" title="remover">&times;</button></td>'+
     '</tr>'+
     (DISP.tipo==='servico'?'':
-      '<tr class="dpitdet"><td></td><td colspan="7"><div class="dpitdetgrade">'+
+      '<tr class="dpitdet"><td></td><td colspan="'+(ag?8:7)+'"><div class="dpitdetgrade">'+
         '<div><label>Descrição detalhada (TR e Aviso 1.1.1)</label>'+
         '<textarea rows="3" data-dpit="'+it.id+'|descricaoDetalhada" placeholder="características mínimas exigidas, sem marca">'+esc(it.descricaoDetalhada||'')+'</textarea></div>'+
         '<div><label>Modelo de referência</label>'+
@@ -8535,7 +8585,7 @@ function dispRenderEscolhas(){
       (DISP.dados.criterioJulgamento===x.v)+'"><b>'+esc(x.rot)+'</b><span>'+esc(x.dica)+'</span></button>').join('');
     $$('#dpCriterio button').forEach(b=>b.onclick=()=>{
       DISP.dados.criterioJulgamento=DISP.dados.criterioJulgamento===b.dataset.dpcrit?'':b.dataset.dpcrit;
-      dispRenderEscolhas(); dispAtualizaBarra(); dispSalvaRascunho();
+      dispRenderEscolhas(); dispRenderCampos(); dispSalvaRascunho();
     });
   }
   $$('#dpCategoria button').forEach(b=>b.onclick=()=>{
@@ -8601,7 +8651,10 @@ function dispContexto(){
     ['Cidade',d.cidade],['Área requisitante',d.areaRequisitante],
     ['Responsável pela contratação',d.responsavelNome],['Ordenador de despesas',d.ordenadorNome],
     ['Local de execução',d.localExecucao],
-    ['Modalidade de julgamento escolhida (não altere)',d.criterioJulgamento]].filter(p=>String(p[1]||'').trim());
+    ['Modalidade de julgamento escolhida (não altere)',d.criterioJulgamento],
+    ['Grupos definidos (use exatamente estes nomes ao falar de grupos)',
+      dispPorGrupo()&&(DISP.grupos||[]).length?DISP.grupos.map((g,i)=>dispNomeGrupo(g,i)+' (itens '+
+        dispListaNumeros(DISP.itens.map((it,k)=>it.grupo===g.id?k+1:0).filter(Boolean))+')').join('; '):'']].filter(p=>String(p[1]||'').trim());
   if(!pares.length)return '';
   return 'Dados já preenchidos neste processo — use-os na redação:\n'+
     pares.map(p=>'- '+p[0]+': '+p[1]).join('\n');
@@ -8676,9 +8729,15 @@ function dispAplicaItens(o){
   let n=0;
   const brutos=Array.isArray(o.itens)?o.itens.filter(i=>i&&String(i.especificacao||'').trim()):[];
   if(brutos.length){
+    const nomesG=[];
+    if(dispPorGrupo()){
+      brutos.forEach(i=>{const g=String(i.grupo||'').trim(); if(g&&nomesG.indexOf(g)<0)nomesG.push(g);});
+      DISP.grupos=nomesG.map(nome=>({id:uid(),nome}));
+    }
     DISP.itens=brutos.map(i=>{
       const v=dispNum(i.valorUnitario);
-      return {id:uid(),especificacao:String(i.especificacao||'').trim(),
+      const gi=dispPorGrupo()?(DISP.grupos.find(g=>g.nome===String(i.grupo||'').trim())||{}).id||'':'';
+      return {id:uid(),grupo:gi,especificacao:String(i.especificacao||'').trim(),
         descricaoDetalhada:String(i.descricaoDetalhada||'').trim(),
         modeloReferencia:String(i.modeloReferencia||'').trim(),
         catser:String(i.catser||'').replace(/\D/g,''),
@@ -8686,6 +8745,7 @@ function dispAplicaItens(o){
         qtd:String(i.qtd==null?'':i.qtd).replace(/[^\d]/g,''),
         valorUnitario:v>0?dispBR(v):''};
     });
+    if(dispPorGrupo())dispOrdenaPorGrupo();
     n++;
   }
   const mes=String(o.mesConclucao||'').trim().replace(/[.\s]+$/,'');
@@ -9007,11 +9067,24 @@ async function dispPreencherIA(){
   bt.disabled=true; bt.textContent='Redigindo…';
   dispStatus('dpIaStatus','Três chamadas em paralelo: textos curtos, textos longos e a tabela de itens. Costuma levar de trinta segundos a um minuto.','info');
   try{
-    const [r1,r2,r3]=await Promise.all([
-      dispChamaIA(dispPrompt(1),dispSchema(dispIA1())),
-      dispChamaIA(dispPrompt(2),dispSchema(dispIA2())),
-      dispChamaIA(dispPrompt(3),dispSchemaItens())]);
-    const n=dispAplicaCampos(Object.assign({},r1,r2))+dispAplicaItens(r3);
+    let r1,r2,r3,n;
+    if(dispPorGrupo()){
+      /* por grupo, os itens vêm primeiro: os textos de parcelamento e de
+         quantidade precisam falar dos mesmos grupos que a tabela */
+      dispStatus('dpIaStatus','Modalidade por grupo: primeiro os itens e os grupos, depois os textos. Costuma levar até dois minutos.','info');
+      r3=await dispChamaIA(dispPrompt(3),dispSchemaItens());
+      n=dispAplicaItens(r3);
+      [r1,r2]=await Promise.all([
+        dispChamaIA(dispPrompt(1),dispSchema(dispIA1())),
+        dispChamaIA(dispPrompt(2),dispSchema(dispIA2()))]);
+      n+=dispAplicaCampos(Object.assign({},r1,r2));
+    }else{
+      [r1,r2,r3]=await Promise.all([
+        dispChamaIA(dispPrompt(1),dispSchema(dispIA1())),
+        dispChamaIA(dispPrompt(2),dispSchema(dispIA2())),
+        dispChamaIA(dispPrompt(3),dispSchemaItens())]);
+      n=dispAplicaCampos(Object.assign({},r1,r2))+dispAplicaItens(r3);
+    }
     DISP.abertas.objeto=true; DISP.abertas.valor=true;
     dispRenderCampos(); dispSalvaRascunho();
     dispStatus('dpIaStatus','Pronto — '+n+' campos preenchidos e marcados com IA. Revise antes de gerar: o texto vai para documento assinado.','ok');
@@ -9149,6 +9222,9 @@ async function dispGerar(){
       valorPorExtenso:total>0?dispValorExtenso(total):''
     });
     dados.regimeExecucao=dispRegime(dados.criterioJulgamento);
+    const probG=dispProblemaGrupos();
+    if(probG){dispStatus('dpGerStatus',probG,'erro');return;}
+    if(dispPorGrupo())dispOrdenaPorGrupo();
     /* o quadro do DFD é marcado com X numa linha só */
     DISP_CATEGORIAS.forEach(c=>dados[c.campo]=' ');
     /* "Serviço continuado COM dedicação exclusiva" saiu do painel (nunca é
@@ -9158,6 +9234,7 @@ async function dispGerar(){
     if(cat)dados[cat.campo]='X';
     dados.itens=DISP.itens.map((it,i)=>({
       numItem:String(i+1),
+      temGrupo:false, numGrupo:'', nomeGrupo:'', inicioGrupo:false,
       especificacao:it.especificacao||'', catser:it.catser||'',
       descricaoDetalhada:it.descricaoDetalhada||'', modeloReferencia:it.modeloReferencia||'',
       unidade:it.unidade||'', qtd:it.qtd||'',
@@ -9166,6 +9243,24 @@ async function dispGerar(){
       valorUnitario:it.valorUnitario?dispBR(dispNum(it.valorUnitario)):'',
       valorTotal:dispTotalLinha(it)>0?dispBR(dispTotalLinha(it)):''
     }));
+    /* Grupos: cada item sabe o seu grupo; o primeiro de cada grupo leva o
+       cabeçalho "GRUPO n – nome"; a lista de grupos traz os itens e o valor do lote */
+    dados.agrupado=false; dados.grupos=[];
+    if(dispPorGrupo()){
+      dados.agrupado=true;
+      DISP.grupos.forEach((g,k)=>{
+        const nums=[];
+        DISP.itens.forEach((it,i)=>{ if(it.grupo===g.id){
+          const x=dados.itens[i]; nums.push(i+1);
+          x.temGrupo=true; x.numGrupo=String(k+1); x.nomeGrupo=g.nome||'';
+          x.inicioGrupo=nums.length===1;
+        }});
+        const v=dispTotalGrupo(g.id);
+        dados.grupos.push({numGrupo:String(k+1),nomeGrupo:g.nome||'Grupo '+(k+1),
+          itensDoGrupo:dispListaNumeros(nums),qtdItensGrupo:String(nums.length),
+          valorGrupo:dispBR(v),valorGrupoExtenso:dispValorExtenso(v)});
+      });
+    }
     /* Estes placeholders são seguidos de pontuação no próprio modelo
        ("{assunto}, nos termos…"), o que gerava ". ," e ".." no documento. */
     ['assunto','objeto','finalidade','grauPrioridade','justificativaViabilidade'].forEach(k=>{
@@ -9238,6 +9333,7 @@ function dispLeRascunho(){
       if(!Array.isArray(DISP.itens)||!DISP.itens.length)
         DISP.itens=[{id:uid(),especificacao:'',catser:'',unidade:'',qtd:'',valorUnitario:''}];
       if(!DISP.abertas)DISP.abertas={};
+      if(!Array.isArray(DISP.grupos))DISP.grupos=[];
     }
   }catch(e){}
 }
@@ -9249,7 +9345,8 @@ async function dispGuardar(){
     assunto:DISP.dados.assunto||'',valor:dispTotal(),
     tipo:DISP.tipo,categoria:DISP.categoria,dados:Object.assign({},DISP.dados),
     itens:DISP.itens.map(i=>Object.assign({},i)),
-    prazoNum:DISP.prazoNum,garantiaNum:DISP.garantiaNum,manuais:DISP.manuais.slice()};
+    prazoNum:DISP.prazoNum,garantiaNum:DISP.garantiaNum,manuais:DISP.manuais.slice(),
+    grupos:(DISP.grupos||[]).map(g=>Object.assign({},g))};
   const ja=OBT.dispensas.findIndex(x=>x.numDispensa===num);
   if(ja>=0)Object.assign(reg,{id:OBT.dispensas[ja].id}),OBT.dispensas[ja]=reg;
   else OBT.dispensas.push(reg);
@@ -9264,6 +9361,7 @@ function dispAbrir(id){
     .map(i=>Object.assign({id:uid()},i));
   DISP.tipo=p.tipo||''; DISP.categoria=p.categoria||'';
   DISP.prazoNum=p.prazoNum||''; DISP.garantiaNum=p.garantiaNum||'';
+  DISP.grupos=(p.grupos||[]).map(g=>Object.assign({},g));
   DISP.manuais=(p.manuais||[]).slice(); DISP.iaPreenchidos=[];
   dispSalvaRascunho(); renderDispensa();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -9344,9 +9442,34 @@ function dispLigaCampos(){
   });
   const add=$('#dpAddItem');
   if(add)add.onclick=()=>{
-    DISP.itens.push({id:uid(),especificacao:'',catser:'',unidade:'',qtd:'',valorUnitario:''});
+    /* o item novo nasce no grupo do último item, que é o mais comum */
+    const ult=DISP.itens[DISP.itens.length-1];
+    DISP.itens.push({id:uid(),especificacao:'',catser:'',unidade:'',qtd:'',valorUnitario:'',
+      grupo:dispPorGrupo()&&ult?ult.grupo||'':''});
     dispRenderCampos(); dispSalvaRascunho();
   };
+  const addG=$('#dpAddGrupo');
+  if(addG)addG.onclick=()=>{
+    DISP.grupos.push({id:uid(),nome:''});
+    dispRenderCampos(); dispSalvaRascunho();
+  };
+  $$('[data-dpgnome]').forEach(el=>el.addEventListener('change',()=>{
+    const g=DISP.grupos.find(x=>x.id===el.dataset.dpgnome); if(!g)return;
+    g.nome=el.value.trim();
+    dispRenderCampos(); dispSalvaRascunho();
+  }));
+  $$('[data-dpgdel]').forEach(b=>b.onclick=()=>{
+    const g=DISP.grupos.find(x=>x.id===b.dataset.dpgdel); if(!g)return;
+    DISP.itens.forEach(it=>{ if(it.grupo===g.id)it.grupo=''; });
+    DISP.grupos=DISP.grupos.filter(x=>x.id!==g.id);
+    dispRenderCampos(); dispSalvaRascunho();
+  });
+  $$('[data-dpitgrupo]').forEach(sel=>sel.addEventListener('change',()=>{
+    const it=DISP.itens.find(x=>String(x.id)===sel.dataset.dpitgrupo); if(!it)return;
+    it.grupo=sel.value;
+    dispOrdenaPorGrupo();
+    dispRenderCampos(); dispSalvaRascunho();
+  }));
 }
 
 function dispCaixaTexto(titulo,sub,valorInicial,rotuloOk,aoConfirmar){
