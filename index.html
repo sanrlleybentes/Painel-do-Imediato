@@ -1358,6 +1358,11 @@ select.g-in{appearance:auto}
 /* ===== Fundo mais escuro (bloco único, fácil de reverter: apague daqui até o fim do bloco) ===== */
 #bgOverlay{background:linear-gradient(180deg,rgba(14,37,32,.62),rgba(20,44,38,.52))}
 .tabs button,#faixaSessao,.subtabs button[aria-selected="false"]{text-shadow:none}
+/* Texto que fica direto sobre o fundo escuro (sem card por baixo) precisa ser claro.
+   Varredura de todas as abas e subabas: só o escopo do radar de Obtenção estava escuro.
+   As regras genéricas pegam avisos soltos que venham a ser postos no nível da aba. */
+#obtRadarEscopo,#obtRadarEscopo b,#obtRadarEscopo .obtmeta,
+section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
 /* ===== fim do fundo mais escuro ===== */
 </style>
 
