@@ -1319,6 +1319,42 @@ select.g-in{appearance:auto}
 @keyframes kpiBoia{0%,100%{transform:translateY(-3px)}50%{transform:translateY(-7px)}}
 @media (prefers-reduced-motion:reduce){.kpi{animation:none}}
 
+
+/* ===== SECOM ===== */
+#tab-secom .secFiltros{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+#tab-secom .secFiltros>div{flex:0 1 auto}
+#tab-secom .secFiltros .secBusca{flex:1 1 220px}
+#tab-secom .secFiltros .secBusca input{width:100%}
+.secLista{border-top:1px solid var(--line)}
+.secMsg{border-bottom:1px solid var(--line)}
+.secMsg>button{all:unset;cursor:pointer;display:grid;grid-template-columns:200px 1fr auto;gap:12px;align-items:center;width:100%;padding:9px 6px;box-sizing:border-box}
+.secMsg>button:hover{background:rgba(243,233,210,.45)}
+.secMsg .dtg{font:12.5px var(--mono,monospace);white-space:nowrap}
+.secMsg .dtg i{font-style:normal;display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:5px;margin-right:6px;font-size:11px;font-weight:600;background:#F8E0DB;color:var(--alert)}
+.secMsg .dtg i.R{background:#E4EEDC;color:var(--bordo)}
+.secMsg .dtg i.P{background:#F6E7C8;color:var(--terra)}
+.secMsg .ass{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.secMsg .seta{color:var(--brass);font-size:11px;transition:transform .2s}
+.secMsg.aberta .seta{transform:rotate(180deg)}
+.secMsg .secCorpo{display:none;padding:4px 6px 16px}
+.secMsg.aberta .secCorpo{display:block}
+.secCab{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:12.5px var(--mono,monospace);background:#F7F4EA;border:1px solid #E9DFC4;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.secCab span{color:var(--muted)}
+.secCab b{font-weight:500;word-break:break-word}
+.secEtq{display:inline-block;font:11px var(--mono,monospace);padding:2px 8px;border-radius:999px;background:#EEF3EE;color:var(--muted);margin:0 6px 8px 0;border:1px solid var(--line)}
+.secEtq.acao{background:#F8E0DB;color:var(--alert);border-color:#EBC3BA}
+.secEtq.ciencia{background:#E4EEDC;color:var(--bordo)}
+.secPre{margin:0;white-space:pre-wrap;word-break:break-word;font:13px/1.55 var(--mono,monospace);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;max-height:520px;overflow:auto}
+.secVazio{padding:18px 6px;color:var(--muted);font-size:13px}
+.secMais{margin-top:10px;text-align:center}
+.secRat{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:rgba(255,255,255,.7)}
+.secRat h3{margin:0 0 8px;font-size:13.5px}
+.secRat .secGrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px}
+.secRat .secGrade .larga{grid-column:1/-1}
+.secRat input,.secRat select{width:100%}
+.secRat textarea{width:100%;min-height:180px;font:12.5px/1.5 var(--mono,monospace)}
+.secAviso{font-size:12.5px;color:var(--terra);margin:0 0 8px}
+@media (max-width:640px){.secMsg>button{grid-template-columns:1fr auto}.secMsg .dtg{grid-column:1/-1}}
 </style>
 
 
@@ -1467,6 +1503,7 @@ select.g-in{appearance:auto}
   <button role="tab" data-tab="efetivo" aria-selected="false">Pessoal</button>
   <button role="tab" data-tab="ferias" aria-selected="false">Férias</button>
   <button role="tab" data-tab="servico" aria-selected="false">Serviço</button>
+  <button role="tab" data-tab="secom" aria-selected="false" class="hidden">SECOM</button>
   <button role="tab" data-tab="munic" aria-selected="false">Municiamento</button>
   <button role="tab" data-tab="agenda" aria-selected="false">Agenda ADM</button>
   <button role="tab" data-tab="obtencao" aria-selected="false">Obtenção</button>
@@ -2378,6 +2415,69 @@ select.g-in{appearance:auto}
       <p class="hint" style="margin:0 0 12px">Soma quantas vezes cada militar apareceu escalado nas semanas já salvas de Detalhe de Serviço, no porto e em viagem, para ajudar a equilibrar a escala.</p>
       <div class="scroller" id="listCtrlServico"></div>
     </div>
+  </div>
+</section>
+
+<!-- ============ SECOM ============ -->
+<!-- Só o ADMIN (ou quem ele liberar no módulo SECOM) e sempre com o autenticador.
+     Acesso rápido nunca vê. As MSG ficam na tabela secom_msgs, que só a função `acesso` lê. -->
+<section id="tab-secom" class="hidden">
+  <div class="subtabs" id="subSecom">
+    <button data-sub="msg" aria-selected="true">MSG</button>
+    <button data-sub="expediente" aria-selected="false">Expediente</button>
+  </div>
+
+  <div class="card reveal hidden" id="secTranca">
+    <h2>SECOM <span class="n">&#128274;</span></h2>
+    <p class="hint" style="margin:0 0 12px">As mensagens da SECOM ficam no banco protegido. Digite o código de 6 dígitos do aplicativo autenticador.</p>
+    <div class="row" style="align-items:flex-end">
+      <div style="flex:0 1 220px"><label>Código do autenticador</label><input type="text" id="secSenha" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
+      <div style="flex:0 1 auto"><button class="btn" id="secEntrar">Abrir</button></div>
+    </div>
+    <p class="hint" style="margin:12px 2px 0">O código muda a cada 30 segundos e vale só para a sua conta. Confirmado, a área fica aberta por 30 minutos.</p>
+  </div>
+
+  <div id="secom-msg" class="hidden">
+    <div class="subtabs" id="subSecMsg">
+      <button data-sub="RX" aria-selected="true">RX</button>
+      <button data-sub="TX" aria-selected="false">TX</button>
+      <button data-sub="prazos" aria-selected="false">Controle de Prazos</button>
+      <button data-sub="geral" aria-selected="false">Controle Geral</button>
+    </div>
+
+    <div class="card reveal" id="secCardLista">
+      <h2><span id="secTit">Mensagens recebidas</span> <span class="n" id="nSecMsg">0</span></h2>
+      <div class="secFiltros">
+        <div><label>Ano</label><select id="secFAno"></select></div>
+        <div><label>Mês</label><select id="secFMes"></select></div>
+        <div><label>Precedência</label><select id="secFPrec"></select></div>
+        <div><label>Sigilo</label><select id="secFSig"></select></div>
+        <div class="secBusca"><label>Buscar</label><input type="text" id="secFBusca" placeholder="DTG, assunto ou OM"></div>
+        <div><label>Ordem</label><select id="secFOrd"><option value="d">Mais recentes primeiro</option><option value="c">Mais antigas primeiro</option></select></div>
+      </div>
+      <div class="secLista" id="secLista"></div>
+      <div class="secMais" id="secMais"></div>
+    </div>
+
+    <div class="card reveal hidden" id="secCardPrazos">
+      <h2>Controle de Prazos</h2>
+      <p class="hint" style="margin:0">Próxima etapa: as MSG que pedem resposta, com o prazo lido do texto e a marcação de respondida.</p>
+    </div>
+
+    <div class="card reveal hidden" id="secCardGeral">
+      <h2>Controle Geral <span class="n" id="nSecRat">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Envie o arquivo da MSG (.txt ou PDF da ficha SIGDEM / e-mail) ou cole o texto. O SIGAB lê o cabeçalho e mostra os campos para você conferir. Só depois de <b>Ratificar e gravar</b> ela vai para o banco.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:1 1 260px"><label>Arquivos da MSG</label><input type="file" id="secArq" accept=".txt,.pdf,text/plain,application/pdf" multiple></div>
+      </div>
+      <div style="margin-top:10px"><label>Ou cole o texto da MSG</label><textarea id="secCola" rows="5" placeholder="ROTINA&#10;R-151030Z/NOV/2026&#10;DE ...&#10;PARA ...&#10;BT&#10;...&#10;BT"></textarea></div>
+      <div style="margin-top:8px"><button class="btn ghost" id="secInterpretar">Interpretar texto colado</button></div>
+      <div id="secRatLista"></div>
+    </div>
+  </div>
+
+  <div id="secom-expediente" class="hidden">
+    <div class="card reveal"><h2>Expediente</h2><p class="hint" style="margin:0">Aguardando a definição do que entra em Expediente.</p></div>
   </div>
 </section>
 
@@ -5052,7 +5152,7 @@ function renderConfig(){
    do autenticador; confirmado, a área fica aberta por 30 minutos. */
 const ACESSO_URL=SB_URL+'/functions/v1/acesso';
 const SESSAO_KEY='sigabSessao', PERFIL_KEY='sigabPerfil', RAPIDO_KEY='sigabRapido';
-const MOD_SIGAB=[['painel','Painel'],['efetivo','Pessoal'],['ferias','Férias'],['servico','Serviço'],
+const MOD_SIGAB=[['painel','Painel'],['efetivo','Pessoal'],['ferias','Férias'],['servico','Serviço'],['secom','SECOM'],
   ['munic','Municiamento'],['agenda','Agenda ADM'],['obtencao','Obtenção'],['config','Configurações']];
 /* Submódulos que dá para liberar sozinhos: cada um grava só as suas chaves (na obtencao,
    só os seus campos). Espelho de SIGAB_SUBS na função `acesso` — é lá que vale de verdade.
@@ -5076,7 +5176,7 @@ const CHAVE_DONOS={crew:['efetivo'],efetivo:['efetivo'],saude:['efetivo'],medica
   cfg:['painel','efetivo','ferias','servico','munic','agenda','obtencao','config']};
 const MOD_QUANTOCA=[['quadro','Quadro'],['historico','Histórico e Exportar'],['pessoal','Pessoal e Banco de dados']];
 /* Cada trava com 2FA só serve a quem EDITA o módulo dono dela: ter o 2FA não basta. */
-const TRAVA_MOD={'#pbTranca':['efetivo','Pessoal','plano'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
+const TRAVA_MOD={'#secTranca':['secom','SECOM'],'#pbTranca':['efetivo','Pessoal','plano'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
 /* Ações avulsas: liberadas além da permissão do módulo. Guardadas junto com o
    acesso rápido (modulo 'acao:<nome>'), lendo o nível assim:
      edita  = todos, inclusive o acesso rápido   (padrão quando não há linha)
@@ -5122,6 +5222,7 @@ async function acessoChama(acao,corpo,comConta){
 }
 
 function podeVer(tab){
+  if(tab==='secom')return podeVerSecom();
   if(MODO==='conta')return true;
   if(MODO==='rapido'){
     if(tab==='config')return false;
@@ -5129,6 +5230,10 @@ function podeVer(tab){
     return !!i&&i.nivel!=='nenhum';
   }
   return false;
+}
+/* SECOM: só o ADMIN e quem ele liberar no módulo. Nunca o acesso rápido. O 2FA vem na trava. */
+function podeVerSecom(){
+  return MODO==='conta'&&!!PERFIL&&PERFIL.status==='aprovado'&&(!!PERFIL.admin||permSigab('secom'));
 }
 function nivelAcao(acao){
   const i=RAPIDO.find(x=>x.sistema==='sigab'&&x.modulo==='acao:'+acao);
@@ -5195,7 +5300,7 @@ function aplicaAcesso(){
   let visiveis=0;
   $$('.tabs button').forEach(b=>{const v=podeVer(b.dataset.tab); b.classList.toggle('hidden',!v); if(v)visiveis++;});
   const sem=$('#semAcesso'); if(sem)sem.classList.toggle('hidden',visiveis>0);
-  if(!visiveis){['painel','efetivo','ferias','servico','munic','agenda','obtencao','config'].forEach(t=>$('#tab-'+t).classList.add('hidden'));}
+  if(!visiveis){['painel','efetivo','ferias','servico','secom','munic','agenda','obtencao','config'].forEach(t=>$('#tab-'+t).classList.add('hidden'));}
   else if(!podeVer(TAB)){const b=$$('.tabs button').find(x=>podeVer(x.dataset.tab)); if(b)b.click();}
   faixaSessao();
 }
@@ -5508,7 +5613,7 @@ function acRender(){
         b('permissoes',p.id,'Salvar permissões')+b('reset2fa',p.id,'Refazer 2FA','ghost')+b('bloquear',p.id,'Bloquear','ghost')+b('cargo',p.id,'Passar ADMIN','ghost')+b('excluir',p.id,'Excluir','ghost'))).join(''):'<p class="hint" style="margin:0">Ninguém aprovado ainda.</p>')+'</div>'+
     (blq.length?'<div class="acBloco"><h3>Bloqueados</h3>'+blq.map(p=>item(p,b('desbloquear',p.id,'Desbloquear')+b('excluir',p.id,'Excluir','ghost'))).join('')+'</div>':'')+
     '<div class="acBloco"><h3>Acesso rápido (sem senha)</h3><div class="acRap">'+
-      MOD_SIGAB.filter(([m])=>m!=='config').map(([m,r])=>'<label>SIGAB · '+esc(r)+'<select data-rap-s="sigab" data-rap-m="'+m+'"><option value="nenhum">não vê</option><option value="ver"'+(rapNivel('sigab',m)==='ver'?' selected':'')+'>vê (só leitura)</option></select></label>').join('')+
+      MOD_SIGAB.filter(([m])=>m!=='config'&&m!=='secom').map(([m,r])=>'<label>SIGAB · '+esc(r)+'<select data-rap-s="sigab" data-rap-m="'+m+'"><option value="nenhum">não vê</option><option value="ver"'+(rapNivel('sigab',m)==='ver'?' selected':'')+'>vê (só leitura)</option></select></label>').join('')+
       '<label>QUANTOCA · Quadro<select data-rap-s="quantoca" data-rap-m="quadro"><option value="nenhum">não mexe</option><option value="edita"'+(rapNivel('quantoca','quadro')==='edita'?' selected':'')+'>edita</option></select></label>'+
     '</div><h3 style="margin-top:14px">Ações liberadas</h3><p class="hint" style="margin:0 0 8px">Valem mesmo para quem só vê o módulo. O Plano de Busca continua sempre atrás do autenticador.</p><div class="acRap">'+
       ACOES_AVULSAS.map(([a,r])=>{const n=(AC.acesso_rapido||[]).find(x=>x.sistema==='sigab'&&x.modulo==='acao:'+a);const v=n?n.nivel:'edita';
@@ -5612,7 +5717,7 @@ $$('.tabs button').forEach(b=>b.onclick=()=>{
   /* em tela estreita a aba escolhida costuma ficar fora do campo de visão */
   if(b.scrollIntoView)b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   $$('.tabs button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['painel','efetivo','ferias','servico','munic','agenda','obtencao','config'].forEach(t=>$('#tab-'+t).classList.toggle('hidden',t!==TAB));
+  ['painel','efetivo','ferias','servico','secom','munic','agenda','obtencao','config'].forEach(t=>$('#tab-'+t).classList.toggle('hidden',t!==TAB));
   renderAtual();
   faixaSessao();
 });
@@ -10774,6 +10879,7 @@ function renderAtual(){
   if(TAB==='efetivo')renderEfetivo();
   if(TAB==='ferias')renderFerias();
   if(TAB==='servico')renderServico();
+  if(TAB==='secom')renderSecom();
   if(TAB==='munic')renderMunic();
   if(TAB==='config')renderConfig();
   if(TAB==='agenda')renderAgenda();
@@ -17484,6 +17590,378 @@ if($('#marePorto')){
   };
   $('#mareGeoBtn').onclick=mareUsarLocalizacao;
 }
+
+/* ===================== SECOM — mensagens (MSG) =====================
+   Regra de ouro (pacote do Agente de MSG): o CABEÇALHO manda. DE AVHOTO = TX; o resto é RX,
+   e o papel do navio sai de PARA (ação), INFO (ciência) ou de um indicativo coletivo.
+   A lista vem sem o texto; o texto de cada MSG só é buscado quando ela é aberta.
+   Tudo passa pela função `acesso` (ADMIN + autenticador). Ao vencer o 2FA, os dados saem da memória. */
+const SEC_MESES=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const SEC_NAVIO='AVHOTO';
+const SEC_COLETIVOS={
+  AAAGGG:'Todas as Agências de Capitanias',AGAGAG:'Todas as Agências de Capitanias subordinadas',
+  CCCPPP:'Todas as Capitanias',CONMAR:'Comandante de Operações Navais',
+  CDACDA:'Todas as Capitanias, Delegacias e Agências',DLDLDL:'Todas as Delegacias de Agências subordinadas',
+  ERERER:'Todas as Estações Rádio principais de Área',ESQESQ:'Todas as OM da Esquadra',
+  ESQGUE:'Todas as OM da Esquadra no complexo Mocanguê',ESQMRJ:'Todas as OM da Esquadra no AMRJ',
+  ESQRIO:'Todas as OM da Esquadra no Rio de Janeiro e Niterói',ESQSPA:'Todas as OM da Esquadra em São Pedro da Aldeia',
+  GERNAV:'Diretor-Geral de Navegação',JJHHHH:'Todos os Comandos de Força no Mar',
+  JJJJWW:'Todos os Comandos de Força, Navios e OM de terra subordinadas diretamente ao Origem',
+  JJJJXX:'Todos os Comandos de Força subordinados ao Origem neste Grupamento Operativo',
+  JJJJZZ:'Todos os Comandos de Força e Navios subordinados ao Origem neste Grupamento Operativo',
+  JJWWWW:'Todos os Comandos de Força e Navios subordinados ao Origem',
+  JJXXXX:'Todos os Comandos de Força no Mar subordinados ao Origem',
+  JJYYYY:'Todos os Comandos de Força subordinados ao Origem',
+  JJZZZZ:'Todos os Comandos de Força e Navios no Mar subordinados ao Origem',
+  OMJURI:'Todas as OM na área de jurisdição do Origem',OMOMOM:'Todas as OM da MB',
+  OMSUBO:'Todas as OM subordinadas ao Origem',OMCCTR:'OM do CCSA-3 (Segurança Orgânica do 1ºDN)',
+  OROROR:'Todas as Autoridades Diretamente Subordinadas ao Origem',
+  TNESTA:'Todas as OM sediadas ou estacionadas nesta cidade',
+  TODANV:'Todas as OM capazes de conduzir/apoiar operações aéreas',
+  TODOCP:'Todas as OM Centralizadoras de Pagamento de Pessoal',TODNAV:'Todas as OM subordinadas diretamente à DGN',
+  TODOPE:'Todas as OM subordinadas diretamente ao ComOpNav',TODGAT:'Todas as OM com recurso Gateway-Datron',
+  TOCNIC:'Todas as OM no Complexo Naval da Ilha das Cobras',
+  ZKZKZK:'Todos os Navios subordinados ao Origem neste Grupamento Operativo',
+  ZZZBBB:'Todos os Navios subordinados ao Origem',ZZZQQQ:'Todos os Navios no Mar'};
+/* visto nas MSG, fora da lista oficial: não inventar significado */
+const SEC_COLET_NC={TODCIR:'provavelmente todos os circuitos/estações (avisos RECIM) — não confirmado'};
+const SEC_PREC_LETRA={ROTINA:'R',PREFERENCIAL:'P',IMEDIATO:'O',URGENTISSIMO:'Z',FLASH:'Z'};
+const SEC_CLASSIF=/^(sem restri|documento preparat|ostensivo|reservado|confidencial|secreto|informa[cç][aã]o pessoal|informa[cç][aã]o de p&d|dados pessoais|acesso restrito)/i;
+const SEC_DTG=/([A-Z])?-?\s*(\d{6})\s*Z?\s*\/\s*([A-Za-z]{3})\s*\/\s*(\d{4})/;
+const SEC_PAPEL={origem:['','origem'],acao:['acao','para ação'],ciencia:['ciencia','para ciência'],coletivo:['','por coletivo'],
+  coletivo_nao_confirmado:['','coletivo não confirmado'],nao_enderecado:['','AVHOTO não endereçado']};
+
+let SEC={msgs:null,corpos:{},carregando:false,erro:'',lado:'RX',sub:'msg',subMsg:'RX',lim:60,rat:[]};
+
+function secLimpa(x){return String(x||'').replace(/\s+/g,' ').trim();}
+function secToks(x){return String(x||'').toUpperCase().split(/[,;\s]+/).filter(Boolean);}
+function secPrecDe(m){
+  const p=String(m.precedencia||'').toUpperCase().split(/\s+/)[0];
+  if(p)return p.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return {R:'ROTINA',P:'PREFERENCIAL'}[m.letra]||'';
+}
+/* o banco tem a mesma classificação escrita de vários jeitos: agrupa para o filtro */
+function secSigiloDe(m){
+  const v=String(m.sigilo||'').trim(); if(!v)return 'Não informado';
+  const k=v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(k.includes('preparat')&&k.includes('restrit'))return 'Documento preparatório – acesso restrito';
+  if(k.includes('preparat'))return 'Documento preparatório';
+  if(k.startsWith('sem restri'))return 'Sem restrição';
+  if(k.startsWith('ostensivo'))return 'Ostensivo';
+  if(k.includes('pessoal'))return 'Informação pessoal';
+  if(k.includes('p&d'))return 'Informação de P&D';
+  return v;
+}
+function secOrdem(m){return (+m.ano||0)*1e8+(+m.mes||0)*1e6+(parseInt(String(m.dtg||'').slice(0,6),10)||0);}
+
+/* ---- leitura do cabeçalho (porte do ler_msg.py do pacote do Agente de MSG) ---- */
+function secParseCorpo(t){
+  const linhas=t.split('\n');
+  const r={precedencia:null,dtg_bruto:null,de:'',para:'',info:''};
+  const campos={DE:[],PARA:[],INFO:[]};
+  let cur=null,fimCab=false,iBt=null;
+  for(let i=0;i<linhas.length;i++){
+    const x=linhas[i].trim();
+    if(x==='BT'){iBt=i;break;}
+    if(!x)continue;
+    if(r.precedencia==null&&/^(ROTINA|PREFERENCIAL|IMEDIATO|URGENT|FLASH)/i.test(x)){r.precedencia=x.toUpperCase();continue;}
+    if(r.dtg_bruto==null&&SEC_DTG.test(x)&&x.length<30){r.dtg_bruto=x;continue;}
+    const mk=x.match(/^(DE|PARA|INFO)\b\s*(.*)$/i);
+    if(mk&&!fimCab){cur=mk[1].toUpperCase();campos[cur].push(mk[2]);continue;}
+    if(x.toUpperCase().startsWith('GRNC')){fimCab=true;cur=null;continue;}
+    if(cur&&!fimCab)campos[cur].push(x);
+  }
+  r.de=secLimpa(campos.DE.join(' '));r.para=secLimpa(campos.PARA.join(' '));r.info=secLimpa(campos.INFO.join(' '));
+  let corpo='';
+  if(iBt!=null){
+    const resto=linhas.slice(iBt+1).join('\n');
+    const f=/(?:^|[ \t])BT[ \t]*$/m.exec(resto);   /* BT final: em linha própria ou no fim da última linha */
+    corpo=f?resto.slice(0,f.index):resto;
+  }
+  r.corpo=corpo.trim();
+  let classif=null,assunto=null;
+  for(const l of r.corpo.split('\n')){
+    const x=l.trim(); if(!x)continue;
+    if(SEC_CLASSIF.test(x)&&classif==null&&assunto==null){classif=x;continue;}
+    assunto=x.replace(/\.+$/,'').trim();break;
+  }
+  r.classificacao=classif;r.assunto=assunto;
+  return r;
+}
+function secParseFicha(t){
+  const campo=(rx)=>{const m=t.match(rx);return m?secLimpa(m[1]):null;};
+  const r={precedencia:null,de:'',para:'',info:''};
+  r.dtg_bruto=campo(/Data-Hora\s*\n?\s*(\S+)/s);
+  const m=t.match(/De:\s*(.*?)\s*Para:\s*(.*?)\s*Info:\s*(.*?)\s*Assunto:\s*(.*?)\n\s*Texto:(.*?)(?:\nObserva[cç][oõ]es:|$)/s);
+  if(m){r.de=secLimpa(m[1]);r.para=secLimpa(m[2]);r.info=secLimpa(m[3]);r.assunto=secLimpa(m[4]);r.corpo=m[5].trim();}
+  const mp=t.match(/Precedência\s*\n?\s*Ação\s+Info\s*\n?\s*(\S+)\s+(\S+)/);
+  if(mp)r.precedencia=mp[1].toUpperCase();
+  r.classificacao=campo(/Sigilo\s*\n\s*(\S+)/s);
+  if(!r.assunto||r.assunto==='-'){
+    r.assunto=(r.corpo||'').split('\n').map(l=>l.trim()).find(l=>l&&!SEC_CLASSIF.test(l))||null;
+  }
+  const ficha={};
+  [['canal',/Canal\s*\n\s*(\S+)/s],['observacoes',/Observa[cç][oõ]es:[ \t]*(.*?)\n\s*Tr[aâ]mite/s],
+   ['tramite',/Tr[aâ]mite:[ \t]*(.*?)\n/s],['para_conhecimento',/Conhecimento:[ \t]*(.*?)\n/s],
+   ['ciente',/Ciente:[ \t]*(.*?)\n/s],['data_entrada',/Data de Entrada\s*\n\s*(\S+)/s],
+   ['exige_providencia',/Exige Provid[eê]ncia\?\s*\n\s*(\S+)/s],['prazo',/Prazo\s*\n\s*(\S+)/s],
+   ['acao_setor',/\nA[cç][aã]o\s*\n\s*(\S+)/s],['situacao_emissao',/Situa[cç][aã]o da Emiss[aã]o\s*\n\s*(.*?)\n/s],
+   ['numero_controle',/No Controle\s*\n?\s*(AVHOTO-?\s*\n?\s*[A-Z]{2}-\d{4}\/\d{2}-\d+)/s],
+   ['anexos',/Anexos:\s*(.*?)\n(?:Firefox|$)/s]].forEach(([n,rx])=>{
+    const v=campo(rx); if(v)ficha[n]=n==='numero_controle'?v.replace(/\s+/g,''):v;
+  });
+  r.ficha=ficha;
+  return r;
+}
+/* t = texto já extraído; base = 'txt' | 'pdf'. Devolve os campos prontos para ratificar. */
+function secInterpreta(t,base,arquivo){
+  t=String(t||'').replace(/\r/g,'');
+  const out={arquivo:arquivo||'',avisos:[],lado:'RX',papel:'',dtg:'',letra:'',precedencia:'',de:'',para:'',info:'',
+    assunto:'',sigilo:'',corpo:'',ficha:null,formato:''};
+  if(base==='pdf'&&t.replace(/\s/g,'').length<50){
+    out.formato='pdf_imagem';
+    out.avisos.push('PDF só imagem: o texto não pôde ser lido. Preencha o cabeçalho à mão olhando o documento.');
+    const m=String(arquivo||'').match(/^([A-Z])-?(\d{6})Z?_([A-Z]{3})_(\d{4})\s+(.*)\.pdf$/i);
+    if(m){out.letra=m[1].toUpperCase();out.dtg=m[2]+'Z/'+m[3].toUpperCase()+'/'+m[4];out.assunto=m[5].trim();
+      out.precedencia={P:'PREFERENCIAL',R:'ROTINA'}[out.letra]||'';
+      out.avisos.push('Data-hora e assunto tirados do nome do arquivo: confira.');}
+    out.corpo='(PDF só imagem: o texto não pôde ser extraído.)';
+    return out;
+  }
+  let r;
+  if(base==='pdf'&&/Para:\s/.test(t)&&t.includes('Texto:')&&t.includes('Data-Hora')){
+    r=secParseFicha(t);out.formato='pdf_ficha_sigdem';
+  }else{
+    let mm=/^[ \t]*(ROTINA|PREFERENCIAL|IMEDIATO|URGENT\w*|FLASH)[ \t]*\n[ \t]*[A-Z]?-?\d{6}Z?\s*\//m.exec(t);
+    if(!mm)mm=/^[ \t]*[A-Z]?-?\d{6}Z?\s*\/\s*[A-Z]{3}\s*\/\s*\d{4}[ \t]*\n[ \t]*DE\b/m.exec(t);
+    if(!mm){
+      out.formato=base+'_sem_cabecalho';
+      out.avisos.push('Cabeçalho de MSG não encontrado. Preencha os campos à mão ou confira o arquivo.');
+      out.corpo=t.trim();
+      return out;
+    }
+    r=secParseCorpo(t.slice(mm.index));
+    out.formato=base==='txt'?'txt':'pdf_email_zimbra';
+  }
+  out.de=r.de||'';out.para=r.para||'';out.info=r.info||'';out.assunto=r.assunto||'';
+  out.sigilo=r.classificacao||'';out.corpo=r.corpo||'';out.precedencia=r.precedencia||'';
+  if(r.ficha&&Object.keys(r.ficha).length)out.ficha=r.ficha;
+  const d=SEC_DTG.exec(r.dtg_bruto||'');
+  if(d){
+    out.letra=d[1]||SEC_PREC_LETRA[String(r.precedencia||'').split(/\s+/)[0]]||'';
+    out.dtg=d[2]+'Z/'+d[3].toUpperCase()+'/'+d[4];
+  }else out.avisos.push('Data-hora do cabeçalho não legível: preencha à mão.');
+  const de=secToks(r.de),para=secToks(r.para),info=secToks(r.info);
+  const colet=para.concat(info).filter(c=>SEC_COLETIVOS[c]);
+  if(de.includes(SEC_NAVIO)){out.lado='TX';out.papel='origem';}
+  else if(para.includes(SEC_NAVIO))out.papel='acao';
+  else if(info.includes(SEC_NAVIO))out.papel='ciencia';
+  else if(colet.length){out.papel='coletivo';out.avisos.push('Chegou por coletivo: '+colet.map(c=>c+' = '+SEC_COLETIVOS[c]).join('; ')+'.');}
+  else if(para.concat(info).some(c=>SEC_COLET_NC[c])){out.papel='coletivo_nao_confirmado';out.avisos.push('Coletivo fora da lista oficial (TODCIR): significado não confirmado.');}
+  else{out.papel='nao_enderecado';out.avisos.push('AVHOTO não aparece em DE/PARA/INFO nem por coletivo conhecido.');}
+  return out;
+}
+async function secTextoDoArquivo(f){
+  const buf=await f.arrayBuffer();
+  if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
+    /* texto na ordem do arquivo (não por altura na página): é como o ler_msg.py lê,
+       e é o que mantém a ficha SIGDEM com o rótulo em cima do valor */
+    if(!(await dmGarantirWorker()))throw new Error('leitor de PDF indisponível');
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let t='';
+    for(let p=1;p<=pdf.numPages;p++){
+      const c=await (await pdf.getPage(p)).getTextContent();
+      t+=c.items.map(it=>(it.str||'')+(it.hasEOL?'\n':'')).join('')+'\n';
+    }
+    return {t:t,base:'pdf'};
+  }
+  let t;
+  try{t=new TextDecoder('utf-8',{fatal:true}).decode(buf);}
+  catch(e){t=new TextDecoder('windows-1252').decode(buf);}
+  return {t:t,base:'txt'};
+}
+
+/* ---- tela ---- */
+function secTrancado(){return !tfaValido();}
+async function secCarrega(){
+  if(SEC.carregando)return;
+  SEC.carregando=true;SEC.erro='';
+  $('#secLista').innerHTML='<div class="secVazio">Carregando as mensagens…</div>';
+  try{
+    const r=await acessoChama('secom_listar',{});
+    SEC.msgs=r.msgs||[];
+  }catch(e){
+    if(/autenticador/i.test(e.message)){TFA_ATE=0;}
+    SEC.erro=e.message;
+  }finally{SEC.carregando=false;}
+  renderSecom();
+}
+function renderSecom(){
+  const pode=podeVerSecom();
+  const tranc=pode&&secTrancado();
+  if(!pode||tranc){SEC.msgs=null;SEC.corpos={};}           /* sem 2FA, nada fica na memória */
+  $('#secTranca').classList.toggle('hidden',!(pode&&tranc));
+  $('#secom-msg').classList.toggle('hidden',!pode||tranc||SEC.sub!=='msg');
+  $('#secom-expediente').classList.toggle('hidden',!pode||tranc||SEC.sub!=='expediente');
+  if(!pode)return;
+  if(tranc){tfaPreparaTrava('#secTranca');return;}
+  if(SEC.sub!=='msg')return;
+  const lista=SEC.subMsg==='RX'||SEC.subMsg==='TX';
+  $('#secCardLista').classList.toggle('hidden',!lista);
+  $('#secCardPrazos').classList.toggle('hidden',SEC.subMsg!=='prazos');
+  $('#secCardGeral').classList.toggle('hidden',SEC.subMsg!=='geral');
+  if(SEC.msgs==null&&!SEC.erro){secCarrega();return;}
+  if(lista)secRenderLista();
+  if(SEC.subMsg==='geral')secRenderRat();
+}
+function secOpcoes(){
+  const ms=SEC.msgs||[];
+  const keep=(sel,html)=>{const el=$(sel),v=el.value;el.innerHTML=html;if([...el.options].some(o=>o.value===v))el.value=v;};
+  const anos=[...new Set(ms.map(m=>m.ano))].sort((a,b)=>b-a);
+  keep('#secFAno','<option value="">Todos</option>'+anos.map(a=>'<option>'+a+'</option>').join(''));
+  keep('#secFMes','<option value="">Todos</option>'+SEC_MESES.map((m,i)=>'<option value="'+(i+1)+'">'+m+'</option>').join(''));
+  const precs=['ROTINA','PREFERENCIAL','URGENTE'];
+  ms.forEach(m=>{const p=secPrecDe(m);if(p&&!precs.includes(p))precs.push(p);});
+  keep('#secFPrec','<option value="">Todas</option>'+precs.map(p=>'<option value="'+esc(p)+'">'+esc(p.charAt(0)+p.slice(1).toLowerCase())+'</option>').join(''));
+  const sigs=[...new Set(ms.map(secSigiloDe))].sort((a,b)=>a.localeCompare(b,'pt'));
+  keep('#secFSig','<option value="">Todos</option>'+sigs.map(v=>'<option>'+esc(v)+'</option>').join(''));
+}
+function secRenderLista(){
+  $('#secTit').textContent=SEC.subMsg==='RX'?'Mensagens recebidas':'Mensagens transmitidas';
+  if(SEC.erro){$('#secLista').innerHTML='<div class="secVazio">'+esc(SEC.erro)+' <a href="#" id="secDeNovo">Tentar de novo</a></div>';$('#secMais').innerHTML='';
+    $('#secDeNovo').onclick=e=>{e.preventDefault();SEC.erro='';renderSecom();};return;}
+  if(SEC.msgs==null)return;
+  secOpcoes();
+  const fa=$('#secFAno').value,fm=$('#secFMes').value,fp=$('#secFPrec').value,fs=$('#secFSig').value,
+    fb=$('#secFBusca').value.trim().toUpperCase(),desc=$('#secFOrd').value!=='c';
+  const l=SEC.msgs.filter(m=>m.lado===SEC.subMsg&&(!fa||String(m.ano)===fa)&&(!fm||String(m.mes)===fm)&&
+    (!fp||secPrecDe(m)===fp)&&(!fs||secSigiloDe(m)===fs)&&
+    (!fb||((m.letra||'')+m.dtg+' '+(m.assunto||'')+' '+(m.de||'')+' '+(m.para||'')+' '+(m.info||'')).toUpperCase().includes(fb)));
+  l.sort((a,b)=>desc?secOrdem(b)-secOrdem(a):secOrdem(a)-secOrdem(b));
+  $('#nSecMsg').textContent=l.length;
+  $('#secLista').innerHTML=l.length?l.slice(0,SEC.lim).map(m=>{
+    const le=(m.letra||secPrecDe(m).charAt(0)||'?').toUpperCase();
+    return '<div class="secMsg" data-id="'+m.id+'"><button type="button"><span class="dtg"><i class="'+esc(le)+'">'+esc(le)+'</i>'+esc(m.dtg)+'</span>'+
+      '<span class="ass">'+esc(m.assunto||'(sem assunto)')+'</span><span class="seta">&#9660;</span></button><div class="secCorpo"></div></div>';
+  }).join(''):'<div class="secVazio">Nenhuma MSG com esses filtros.</div>';
+  $('#secMais').innerHTML=l.length>SEC.lim?'<button class="mini" id="secBMais">Mostrar mais ('+(l.length-SEC.lim)+')</button>':'';
+  if($('#secBMais'))$('#secBMais').onclick=()=>{SEC.lim+=60;secRenderLista();};
+  $$('#secLista .secMsg>button').forEach(b=>b.onclick=()=>secAbre(b.parentNode));
+}
+function secDetalheHtml(m){
+  const f=m.ficha||{}, p=m.lado==='TX'?null:SEC_PAPEL[m.papel];
+  return (p&&p[1]?'<span class="secEtq '+p[0]+'">'+p[1]+'</span>':'')+
+    (m.sigilo?'<span class="secEtq">'+esc(m.sigilo)+'</span>':'')+
+    (f.numero_controle?'<span class="secEtq">'+esc(f.numero_controle)+'</span>':'')+
+    '<div class="secCab"><span>Precedência</span><b>'+esc(m.precedencia||secPrecDe(m)||'—')+'</b>'+
+    '<span>Data-hora</span><b>'+esc((m.letra||'')+m.dtg)+'</b><span>De</span><b>'+esc(m.de||'—')+'</b>'+
+    '<span>Para</span><b>'+esc(m.para||'—')+'</b>'+(m.info?'<span>Info</span><b>'+esc(m.info)+'</b>':'')+
+    (f.prazo&&f.prazo!=='-'?'<span>Prazo (ficha)</span><b>'+esc(f.prazo)+'</b>':'')+
+    (m.arquivo?'<span>Arquivo</span><b>'+esc(m.arquivo)+'</b>':'')+'</div>'+
+    '<pre class="secPre">'+esc(m.corpo||'')+'</pre>';
+}
+async function secAbre(d){
+  const id=+d.dataset.id;
+  if(d.classList.contains('aberta')){d.classList.remove('aberta');return;}
+  d.classList.add('aberta');
+  const box=d.querySelector('.secCorpo');
+  if(SEC.corpos[id]){box.innerHTML=secDetalheHtml(SEC.corpos[id]);return;}
+  box.innerHTML='<div class="secVazio">Abrindo…</div>';
+  try{
+    const r=await acessoChama('secom_ler',{id:id});
+    SEC.corpos[id]=r.msg; box.innerHTML=secDetalheHtml(r.msg);
+  }catch(e){
+    if(/autenticador/i.test(e.message)){TFA_ATE=0;renderSecom();return;}
+    box.innerHTML='<div class="secVazio">'+esc(e.message)+'</div>';
+  }
+}
+
+/* ---- Controle Geral: ler, ratificar, gravar ---- */
+const SEC_CAMPOS=[['lado','Lado'],['dtg','Data-hora (ddhhmmZ/MMM/AAAA)'],['letra','Letra'],['precedencia','Precedência'],
+  ['sigilo','Sigilo'],['papel','Papel do AVHOTO'],['de','De'],['para','Para'],['info','Info'],['assunto','Assunto']];
+function secRatCampo(i,k,rot,v){
+  const a='data-rat="'+i+'" data-k="'+k+'"';
+  if(k==='lado')return '<div><label>'+rot+'</label><select '+a+'>'+['RX','TX'].map(x=>'<option'+(x===v?' selected':'')+'>'+x+'</option>').join('')+'</select></div>';
+  if(k==='papel')return '<div><label>'+rot+'</label><select '+a+'>'+Object.keys(SEC_PAPEL).map(x=>'<option value="'+x+'"'+(x===v?' selected':'')+'>'+SEC_PAPEL[x][1]+'</option>').join('')+'</select></div>';
+  if(k==='precedencia'){const ops=['ROTINA','PREFERENCIAL','URGENTE','IMEDIATO','FLASH'];if(v&&!ops.includes(v))ops.push(v);
+    return '<div><label>'+rot+'</label><select '+a+'><option value="">—</option>'+ops.map(x=>'<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></div>';}
+  const larga=['de','para','info','assunto'].includes(k);
+  return '<div'+(larga?' class="larga"':'')+'><label>'+rot+'</label><input type="text" '+a+' value="'+esc(v||'')+'"'+(k==='letra'?' maxlength="1"':'')+'></div>';
+}
+function secDuplicataLocal(m){
+  return (SEC.msgs||[]).find(x=>x.lado===m.lado&&x.dtg===m.dtg&&(x.de||'')===(m.de||''));
+}
+function secRenderRat(){
+  $('#nSecRat').textContent=SEC.rat.length;
+  $('#secRatLista').innerHTML=SEC.rat.map((m,i)=>{
+    const dup=secDuplicataLocal(m);
+    const av=m.avisos.concat(dup?['Já existe no banco uma MSG '+dup.lado+' com este DTG e esta origem ('+(dup.assunto||'sem assunto')+'). Confira antes de gravar.']:[]);
+    return '<div class="secRat"><h3>'+esc(m.arquivo||'Texto colado')+' <span class="hint" style="margin:0">· '+esc(m.formato)+'</span></h3>'+
+      av.map(a=>'<p class="secAviso">'+esc(a)+'</p>').join('')+
+      '<div class="secGrade">'+SEC_CAMPOS.map(([k,r])=>secRatCampo(i,k,r,m[k])).join('')+
+      '<div class="larga"><label>Texto da MSG</label><textarea data-rat="'+i+'" data-k="corpo">'+esc(m.corpo||'')+'</textarea></div></div>'+
+      '<div class="row" style="margin-top:10px;gap:8px"><button class="btn" data-ratok="'+i+'">Ratificar e gravar</button>'+
+      '<button class="btn ghost" data-ratfora="'+i+'">Descartar</button></div></div>';
+  }).join('');
+  $$('#secRatLista [data-rat]').forEach(el=>el.addEventListener('input',()=>{
+    const m=SEC.rat[+el.dataset.rat]; if(!m)return;
+    m[el.dataset.k]=el.dataset.k==='dtg'||el.dataset.k==='letra'?el.value.toUpperCase().replace(/\s+/g,''):el.value;
+  }));
+  $$('#secRatLista [data-ratfora]').forEach(b=>b.onclick=()=>{SEC.rat.splice(+b.dataset.ratfora,1);secRenderRat();});
+  $$('#secRatLista [data-ratok]').forEach(b=>b.onclick=()=>secRatifica(+b.dataset.ratok,b));
+}
+async function secRatifica(i,b){
+  const m=SEC.rat[i]; if(!m)return;
+  m.dtg=String(m.dtg||'').toUpperCase().replace(/\s+/g,'');
+  const md=m.dtg.match(/^(\d{2})(\d{4})Z\/([A-Z]{3})\/(\d{4})$/);
+  if(!md||!SEC_MESES.includes(md[3])){toast('Data-hora inválida. Use ddhhmmZ/MMM/AAAA (ex.: 151030Z/NOV/2026).',true);return;}
+  if(m.lado==='TX')m.papel='origem';
+  b.disabled=true;
+  try{
+    const corpo={lado:m.lado,dtg:m.dtg,letra:m.letra,precedencia:m.precedencia,de:secLimpa(m.de),para:secLimpa(m.para),
+      info:secLimpa(m.info),assunto:secLimpa(m.assunto),sigilo:secLimpa(m.sigilo),papel:m.papel,corpo:m.corpo||'',
+      ficha:m.ficha||null,formato:m.formato,arquivo:m.arquivo};
+    const r=await acessoChama('secom_incluir',{msg:corpo,aparelho_id:aparelhoId()});
+    if(r.duplicata){toast('Essa MSG já está no banco. Nada foi gravado.',true);b.disabled=false;return;}
+    SEC.rat.splice(i,1);
+    if(SEC.msgs)SEC.msgs.push({id:r.id,lado:corpo.lado,ano:+md[4],mes:SEC_MESES.indexOf(md[3])+1,dtg:corpo.dtg,
+      letra:(corpo.letra||'').toUpperCase()||null,precedencia:corpo.precedencia||null,assunto:corpo.assunto||null,
+      sigilo:corpo.sigilo||null,papel:corpo.papel,de:corpo.de||null,para:corpo.para||null,info:corpo.info||null});
+    toast('MSG '+corpo.lado+' '+corpo.dtg+' gravada no banco.');
+    secRenderRat();
+  }catch(e){
+    b.disabled=false;
+    if(/autenticador/i.test(e.message)){TFA_ATE=0;toast(e.message,true);renderSecom();return;}
+    toast(e.message,true);
+  }
+}
+async function secRecebeArquivos(files){
+  for(const f of files){
+    try{
+      const x=await secTextoDoArquivo(f);
+      SEC.rat.push(secInterpreta(x.t,x.base,f.name));
+    }catch(e){toast(f.name+': '+e.message,true);}
+  }
+  secRenderRat();
+}
+$$('#subSecom button').forEach(b=>b.onclick=()=>{
+  SEC.sub=b.dataset.sub;
+  $$('#subSecom button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  renderSecom();
+});
+$$('#subSecMsg button').forEach(b=>b.onclick=()=>{
+  SEC.subMsg=b.dataset.sub; SEC.lim=60;
+  $$('#subSecMsg button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  renderSecom();
+});
+['#secFAno','#secFMes','#secFPrec','#secFSig','#secFOrd'].forEach(x=>$(x).onchange=()=>{SEC.lim=60;secRenderLista();});
+$('#secFBusca').addEventListener('input',()=>{SEC.lim=60;secRenderLista();});
+$('#secArq').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)secRecebeArquivos(fs);};
+$('#secInterpretar').onclick=()=>{
+  const t=$('#secCola').value; if(!t.trim()){toast('Cole o texto da MSG.',true);return;}
+  SEC.rat.push(secInterpreta(t,'txt',''));$('#secCola').value='';secRenderRat();
+};
+ligaTrava('#secSenha','#secEntrar',()=>{SEC.erro='';renderSecom();});
 ligaTrava('#pbSenha','#pbEntrar',()=>{PB_ABERTO=podeVerPlano();renderPlano();});
 if($('#pbFechar'))$('#pbFechar').onclick=()=>{PB_ABERTO=false;TFA_ATE=0;renderPlano();};
 if($('#pbBusca'))$('#pbBusca').addEventListener('input',renderListaPB);
