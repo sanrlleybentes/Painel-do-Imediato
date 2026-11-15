@@ -1355,6 +1355,10 @@ select.g-in{appearance:auto}
 .secRat textarea{width:100%;min-height:180px;font:12.5px/1.5 var(--mono,monospace)}
 .secAviso{font-size:12.5px;color:var(--terra);margin:0 0 8px}
 @media (max-width:640px){.secMsg>button{grid-template-columns:1fr auto}.secMsg .dtg{grid-column:1/-1}}
+/* ===== Fundo mais escuro (bloco único, fácil de reverter: apague daqui até o fim do bloco) ===== */
+#bgOverlay{background:linear-gradient(180deg,rgba(14,37,32,.62),rgba(20,44,38,.52))}
+.tabs button,#faixaSessao,.subtabs button[aria-selected="false"]{text-shadow:none}
+/* ===== fim do fundo mais escuro ===== */
 </style>
 
 
