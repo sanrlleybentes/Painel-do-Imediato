@@ -8209,11 +8209,12 @@ function dispCampoHtml(c){
     ctrl='<select data-dp="'+c.k+'"><option value="">Selecione…</option>'+
       c.opcoes.concat(v&&c.opcoes.indexOf(v)<0?[v]:[]).map(o=>'<option'+(v===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
   }else if(c.tipo==='historico'){
-    /* sugere o que o navio já usou nas dispensas guardadas (as mais usadas primeiro); ainda dá para escrever outro */
+    /* lista dos valores que o navio já usou nas dispensas guardadas (mais usados primeiro), no mesmo
+       desenho da lista de oficiais; o campo de texto abaixo segue livre para escrever outro */
     const usados=dispValoresUsados(c.k);
-    ctrl='<input type="text" data-dp="'+c.k+'" list="dpl_'+c.k+'" autocomplete="off" value="'+esc(v)+'" placeholder="'+esc(c.dica||'')+'">'+
-      '<datalist id="dpl_'+c.k+'">'+usados.map(u=>'<option value="'+esc(u)+'"></option>').join('')+'</datalist>'+
-      (usados.length?'<div class="obtmeta">'+usados.length+(usados.length===1?' valor já usado':' valores já usados')+' — clique no campo para escolher</div>':'');
+    ctrl=(usados.length?'<select data-dphist="'+c.k+'" class="dpOficial"><option value="">Escrever outro valor</option>'+
+      usados.map(u=>'<option value="'+esc(u)+'"'+(u===v?' selected':'')+'>'+esc(u)+'</option>').join('')+'</select>':'')+
+      '<input type="text" data-dp="'+c.k+'" value="'+esc(v)+'" placeholder="'+esc(c.dica||'')+'"'+(usados.length?' style="margin-top:6px"':'')+'>';
   }else if(c.tipo==='oficial'){
     /* oficial do navio: escolhe na lista (preenche nome, posto e NIP) ou escreve o nome de quem não é do navio */
     const of=dispOficiaisNavio(), nomeDe=m=>String(m.completo||m.nome||'').toUpperCase();
@@ -9540,6 +9541,11 @@ function dispLigaCampos(){
     omNormal:()=>['omMaiusculo'],
     assunto:()=>['descricaoSucinta']
   };
+  $$('[data-dphist]').forEach(el=>el.addEventListener('change',()=>{
+    if(!el.value)return;                             /* "escrever outro": o campo de texto segue livre */
+    dispMuda(el.dataset.dphist,el.value,true);
+    dispRenderCampos();
+  }));
   $$('[data-dpof]').forEach(el=>el.addEventListener('change',()=>{
     const m=el.value?milPorId(el.value):null;
     if(!m)return;                                   /* "escrever o nome": o campo de texto segue livre */
