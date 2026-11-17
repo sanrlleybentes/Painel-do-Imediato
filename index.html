@@ -1363,6 +1363,10 @@ select.g-in{appearance:auto}
    As regras genéricas pegam avisos soltos que venham a ser postos no nível da aba. */
 #obtRadarEscopo,#obtRadarEscopo b,#obtRadarEscopo .obtmeta,
 section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+/* olhinho do saldo da comissão */
+.kpi .kpiOlho{position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.kpi .kpiOlho:hover,.kpi .kpiOlho:focus-visible{background:rgba(85,112,64,.14);color:var(--bordo)}
 /* ===== fim do fundo mais escuro ===== */
 </style>
 
@@ -7852,17 +7856,17 @@ const DISP_SECOES=[
     {k:'uasg',rot:'UASG',dica:'784515',col:1},
     {k:'siglaOM',rot:'Sigla da OM',dica:'AvHoFlu Rio Tocantins',col:1},
     {k:'cidade',rot:'Cidade',dica:'Belém, PA',col:2},
-    {k:'areaRequisitante',rot:'Área Requisitante',dica:'Divisão de Máquinas — Aviso Hidroceanográfico…',col:3}]},
+    {k:'areaRequisitante',rot:'Área Requisitante',col:3,tipo:'select',opcoes:['Divisão de Máquinas','Divisão de Hidroceanografia']}]},
   {id:'ordenador',tit:'Ordenador de Despesas',sub:'Autoridade que aprova e assina',
    campos:[
-    {k:'ordenadorNome',rot:'Nome',dica:'NOME COMPLETO',col:2},
-    {k:'ordenadorPosto',rot:'Posto',dica:'Primeiro-Tenente',col:1},
+    {k:'ordenadorNome',rot:'Nome',dica:'NOME COMPLETO',col:2,tipo:'oficial'},
+    {k:'ordenadorPosto',rot:'Posto',col:1,tipo:'select',opcoes:['Segundo-Tenente','Primeiro-Tenente','Capitão-Tenente']},
     {k:'ordenadorCargo',rot:'Cargo',col:2,tipo:'select',
      opcoes:['Ordenador de Despesas','Ordenador de Despesas Substituto']}]},
   {id:'responsavel',tit:'Responsável pela Contratação',sub:'Quem instaura e conduz o processo',
    campos:[
-    {k:'responsavelNome',rot:'Nome',dica:'NOME COMPLETO',col:2},
-    {k:'responsavelPosto',rot:'Posto',dica:'Primeiro-Tenente',col:1},
+    {k:'responsavelNome',rot:'Nome',dica:'NOME COMPLETO',col:2,tipo:'oficial'},
+    {k:'responsavelPosto',rot:'Posto',col:1,tipo:'select',opcoes:['Segundo-Tenente','Primeiro-Tenente','Capitão-Tenente']},
     {k:'responsavelCargo',rot:'Cargo',dica:'Responsável pela contratação direta',col:2},
     {k:'responsavelTelefone',rot:'Telefone',dica:'(91) XXXX-XXXX',col:1},
     {k:'responsavelNip',rot:'NIP / SIAPE',dica:'12345678',col:1},
@@ -7896,13 +7900,13 @@ const DISP_SECOES=[
     {k:'prazoExecucao',rot:'Prazo de Execução',dica:'30',col:1,tipo:'dias',sufixo:'dias corridos'},
     {k:'garantiaTecnica',rot:'Garantia Técnica',dica:'90',col:1,tipo:'dias',sufixo:'dias'}]},
   {id:'local',tit:'Local de Execução',
-   campos:[{k:'localExecucao',rot:'Local',dica:'Base Naval de Val-de-cães, Belém-PA',col:4}]},
+   campos:[{k:'localExecucao',rot:'Local',dica:'Base Naval de Val-de-cães, Belém-PA',col:4,tipo:'historico'}]},
   {id:'dotacao',tit:'Dotação Orçamentária',sub:'Classificação contábil para o empenho',
    campos:[
-    {k:'fonteRecursos',rot:'Fonte de Recursos',dica:'3129000000',col:1},
-    {k:'programaTrabalho',rot:'Programa de Trabalho',dica:'05.331.0032.212B.0001',col:2},
-    {k:'elementoDespesa',rot:'Elemento de Despesa',dica:'339039',col:1},
-    {k:'planoInterno',rot:'Plano Interno',dica:'B.441.MR.Z.0.2.DD',col:2}]},
+    {k:'fonteRecursos',rot:'Fonte de Recursos',dica:'3129000000',col:1,tipo:'historico'},
+    {k:'programaTrabalho',rot:'Programa de Trabalho',dica:'05.331.0032.212B.0001',col:2,tipo:'historico'},
+    {k:'elementoDespesa',rot:'Elemento de Despesa',dica:'339039',col:1,tipo:'historico'},
+    {k:'planoInterno',rot:'Plano Interno',dica:'B.441.MR.Z.0.2.DD',col:2,tipo:'historico'}]},
   {id:'par',tit:'PAR — Programa de Aplicação de Recursos',
    campos:[
     {k:'codigoPAR',rot:'Código PAR',dica:'0023/2025',col:1},
@@ -8184,6 +8188,18 @@ const dispCampoVale=c=>!c.so||c.so===DISP.tipo;
 const dispChavesVisiveis=()=>DISP_SECOES.reduce((a,s)=>a.concat((s.campos||[]).filter(dispCampoVale).map(c=>c.k)),[]);
 function dispPreenchidos(){ return dispChavesVisiveis().filter(k=>String(DISP.dados[k]||'').trim()).length; }
 
+/* valores já usados num campo, nas dispensas guardadas: mais frequentes primeiro */
+function dispValoresUsados(k){
+  const n={};
+  ((OBT&&OBT.dispensas)||[]).forEach(p=>{
+    const x=String((p.dados&&p.dados[k])||'').trim(); if(x)n[x]=(n[x]||0)+1;
+  });
+  return Object.keys(n).sort((a,b)=>n[b]-n[a]||a.localeCompare(b,'pt'));
+}
+/* oficiais que estão no navio ou destacados (os que podem ser ordenador ou responsável) */
+function dispOficiaisNavio(){
+  return grupo('tripulacao').concat(grupo('destacado')).filter(x=>grupoPosto(x.posto)==='oficial');
+}
 function dispCampoHtml(c){
   const v=DISP.dados[c.k]||'';
   const daIA=DISP.iaPreenchidos.indexOf(c.k)>=0;
@@ -8191,7 +8207,20 @@ function dispCampoHtml(c){
   let ctrl;
   if(c.tipo==='select'){
     ctrl='<select data-dp="'+c.k+'"><option value="">Selecione…</option>'+
-      c.opcoes.map(o=>'<option'+(v===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+      c.opcoes.concat(v&&c.opcoes.indexOf(v)<0?[v]:[]).map(o=>'<option'+(v===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+  }else if(c.tipo==='historico'){
+    /* sugere o que o navio já usou nas dispensas guardadas (as mais usadas primeiro); ainda dá para escrever outro */
+    const usados=dispValoresUsados(c.k);
+    ctrl='<input type="text" data-dp="'+c.k+'" list="dpl_'+c.k+'" autocomplete="off" value="'+esc(v)+'" placeholder="'+esc(c.dica||'')+'">'+
+      '<datalist id="dpl_'+c.k+'">'+usados.map(u=>'<option value="'+esc(u)+'"></option>').join('')+'</datalist>'+
+      (usados.length?'<div class="obtmeta">'+usados.length+(usados.length===1?' valor já usado':' valores já usados')+' — clique no campo para escolher</div>':'');
+  }else if(c.tipo==='oficial'){
+    /* oficial do navio: escolhe na lista (preenche nome, posto e NIP) ou escreve o nome de quem não é do navio */
+    const of=dispOficiaisNavio(), nomeDe=m=>String(m.completo||m.nome||'').toUpperCase();
+    const sel=of.find(m=>nomeDe(m)===String(v).toUpperCase());
+    ctrl='<select data-dpof="'+c.k+'" class="dpOficial"><option value="">Escrever o nome (não é do navio)</option>'+
+      of.map(m=>'<option value="'+esc(m.id)+'"'+(sel&&sel.id===m.id?' selected':'')+'>'+esc(((m.posto||'')+' '+nomeDe(m)).trim())+'</option>').join('')+'</select>'+
+      '<input type="text" data-dp="'+c.k+'" value="'+esc(v)+'" placeholder="'+esc(c.dica||'')+'" style="margin-top:6px">';
   }else if(c.tipo==='dias'){
     /* guarda o número e mostra "30 (trinta) dias corridos" no documento */
     const bruto=c.k==='prazoExecucao'?DISP.prazoNum:DISP.garantiaNum;
@@ -9511,6 +9540,15 @@ function dispLigaCampos(){
     omNormal:()=>['omMaiusculo'],
     assunto:()=>['descricaoSucinta']
   };
+  $$('[data-dpof]').forEach(el=>el.addEventListener('change',()=>{
+    const m=el.value?milPorId(el.value):null;
+    if(!m)return;                                   /* "escrever o nome": o campo de texto segue livre */
+    const pre=el.dataset.dpof.replace(/Nome$/,'');   /* ordenador | responsavel */
+    dispMuda(pre+'Nome',String(m.completo||m.nome||'').toUpperCase(),true);
+    dispMuda(pre+'Posto',extenso(m.posto),true);
+    if(pre==='responsavel')dispMuda('responsavelNip',String(m.nip||'').replace(/\D/g,''),true);   /* telefone e e-mail: à mão */
+    dispRenderCampos();
+  }));
   $$('[data-dp]').forEach(el=>{
     const k=el.dataset.dp;
     const ev=el.tagName==='SELECT'?'change':'input';
@@ -12416,6 +12454,18 @@ function gastosDaComissao(){
   const lst=GAS.lancamentos.filter(g=>{const d=String(g.data);return d>=v.ini&&d<=fim;});
   return {cfg:v,total:lst.reduce((s,g)=>s+(+g.valor||0),0),qtd:lst.length};
 }
+let SALDO_OCULTO=false; try{SALDO_OCULTO=localStorage.getItem('sigabSaldoOculto')==='1';}catch(e){}
+const OLHO_ABERTO='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const OLHO_RISCADO='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5.5 19 1.5 12 1.5 12a19 19 0 0 1 4.6-5.4M9.9 5.2A9.6 9.6 0 0 1 12 5c6.5 0 10.5 7 10.5 7a19 19 0 0 1-2.2 3.2M1 1l22 22"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function aplicaOlhoSaldo(){
+  const el=[...document.querySelectorAll('#kpis .kpi')].find(k=>k.dataset.valor!==undefined&&k.querySelector('.kpiOlho'));
+  if(!el)return;
+  const b=el.querySelector('b'),ob=el.querySelector('.kpiOlho');
+  b.textContent=SALDO_OCULTO?'R$ ••••••':el.dataset.valor;
+  ob.innerHTML=SALDO_OCULTO?OLHO_RISCADO:OLHO_ABERTO;
+  ob.title=SALDO_OCULTO?'Mostrar o saldo':'Esconder o saldo';
+  ob.setAttribute('aria-label',ob.title);ob.setAttribute('aria-pressed',SALDO_OCULTO?'true':'false');
+}
 function renderPainel(){
   if(SUB_PAINEL==='isvencer'){renderIsVencer();return;}
   if(SUB_PAINEL==='vento'){renderVento();return;}
@@ -12440,6 +12490,16 @@ function renderPainel(){
     if(typeof novo[i][1]==='number')animaNum(b,novo[i][1]);
     else b.textContent=novo[i][1];
     b.style.fontSize=String(novo[i][1]).length>9?'17px':'24px';
+    if(novo[i][0]==='Saldo da comissão'){
+      /* olhinho: esconde/mostra o valor; a escolha fica neste aparelho */
+      el.dataset.valor=String(novo[i][1]);
+      if(!el.querySelector('.kpiOlho')){
+        const ob=document.createElement('button');ob.type='button';ob.className='kpiOlho';
+        ob.onclick=e=>{e.stopPropagation();SALDO_OCULTO=!SALDO_OCULTO;try{localStorage.setItem('sigabSaldoOculto',SALDO_OCULTO?'1':'0');}catch(x){}aplicaOlhoSaldo();};
+        el.appendChild(ob);
+      }
+      aplicaOlhoSaldo();
+    }
     if(novo[i][0]==='Saldo da comissão'&&com){
       const saldo=(com.recebido||0)-com.total;
       b.style.color=saldo<0?'var(--alert)':(saldo<(com.recebido||0)*0.15?'var(--terra)':'var(--bordo)');
