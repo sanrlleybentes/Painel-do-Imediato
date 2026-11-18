@@ -1381,9 +1381,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .tabs button{color:#F4E6CC;text-shadow:0 1px 2px rgba(0,0,0,.85),0 0 6px rgba(0,0,0,.45)}
 .tabs button:hover{background:rgba(255,236,200,.10);color:#fff}
 .tabs button[aria-selected="true"]{color:#fff;border-bottom-color:var(--brass);background:rgba(0,0,0,.22)}
-/* faixa da sessão: ouro bronze, continuando a transição da madeira */
-.faixaSessao{background:linear-gradient(180deg,#A87C38 0,#8E6428 55%,#6F4D1E 100%);border-bottom:1px solid rgba(40,24,8,.6);
-  color:#F6E9CF;box-shadow:0 3px 10px rgba(0,0,0,.35);text-shadow:0 1px 1px rgba(0,0,0,.45)}
+/* a faixa fica entre o cabeçalho e as abas: continua o verde-petróleo; o bronze fica no pé da madeira */
+.faixaSessao{background:linear-gradient(180deg,rgba(15,42,40,.97),rgba(15,42,40,.97));border-bottom:0;
+  color:#CFE0D8;text-shadow:none}
 .faixaSessao b{color:#FFF6E4}.faixaSessao .soLer,.faixaSessao a{color:#FFE2A6}
 /* ===== fim do visual madeira, bronze e foto ===== */
 
@@ -1530,6 +1530,8 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   </div>
 </div>
 
+<div class="faixaSessao hidden" id="faixaSessao"></div>
+
 <div class="tabs" role="tablist">
   <button role="tab" data-tab="painel" aria-selected="true">Painel</button>
   <button role="tab" data-tab="efetivo" aria-selected="false">Pessoal</button>
@@ -1542,7 +1544,6 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   <button role="tab" data-tab="config" aria-selected="false">Configurações</button>
 </div>
 
-<div class="faixaSessao hidden" id="faixaSessao"></div>
 
 <main>
 <div class="card reveal hidden" id="semAcesso"><h2>Acesso rápido</h2><p class="hint" style="margin:0">O Imediato ainda não liberou nenhum módulo para o acesso rápido. <a href="#" id="semAcessoEntrar">Entrar com conta</a></p></div>
@@ -4146,7 +4147,7 @@ async function recargaInteligente(){
 function toast(msg,err){const h=$('#toastHost');h.innerHTML='<div class="toast'+(err?' err':'')+'">'+esc(msg)+'</div>';
   setTimeout(()=>h.innerHTML='',3400);}
 function tick(){const d=new Date();$('#clkTime').textContent=pad(d.getHours())+':'+pad(d.getMinutes());
-  $('#clkDate').textContent=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});}
+  {const t=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'short'});$('#clkDate').textContent=t.charAt(0).toUpperCase()+t.slice(1);}}
 setInterval(tick,10000);tick();
 
 /* fundo (#bgLayer) é fixed puro, sem parallax: o deslocamento em scroll
