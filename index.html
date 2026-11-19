@@ -1387,6 +1387,38 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .faixaSessao b{color:#FFF6E4}.faixaSessao .soLer,.faixaSessao a{color:#FFE2A6}
 /* ===== fim do visual madeira, bronze e foto ===== */
 
+
+/* ===== Submódulos em mapa mental (só PC: tela larga com mouse; celular e tablet ficam como antes) ===== */
+.layMapa{display:block}
+#mapaMental{display:none}
+@media (min-width:1100px) and (pointer:fine){
+  .layMapa{display:flex;gap:22px;align-items:flex-start;max-width:1500px;margin:0 auto;padding:0 18px}
+  .layMapa>main{flex:1 1 auto;min-width:0;margin:0}
+  #mapaMental{display:block;flex:0 0 250px;position:sticky;top:14px;margin-top:22px;padding:4px 0 10px;background:none;border:0;
+    max-height:calc(100dvh - 28px);overflow:auto;scrollbar-width:none}
+  #mapaMental .raiz{display:inline-block;font:700 14px var(--display);letter-spacing:.18em;text-transform:uppercase;color:#1c140a;
+    background:linear-gradient(180deg,#E3C27A,#C79A45);padding:8px 16px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #mapaMental ul{list-style:none;margin:0;padding:0 0 0 18px;position:relative}
+  #mapaMental>ul{margin-left:18px;padding-left:0}
+  #mapaMental li{position:relative;padding:7px 0 0 22px}
+  #mapaMental li::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:2px solid rgba(214,174,98,.75)}
+  #mapaMental li:last-child::before{bottom:auto;height:24px}
+  #mapaMental li::after{content:"";position:absolute;left:0;top:0;width:18px;height:24px;border-bottom:2px solid rgba(214,174,98,.75);
+    border-left:2px solid rgba(214,174,98,.75);border-bottom-left-radius:12px}
+  #mapaMental li::before,#mapaMental li::after{filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+  #mapaMental .no{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font:600 12px var(--display);letter-spacing:.1em;
+    text-transform:uppercase;color:#F4E6CC;padding:6px 12px;border-radius:10px;border:1px solid rgba(214,174,98,.45);
+    background:rgba(18,16,12,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    box-shadow:0 3px 10px rgba(0,0,0,.35);text-shadow:0 1px 2px rgba(0,0,0,.6);transition:background .15s,color .15s,transform .15s}
+  #mapaMental .no:hover{background:rgba(255,236,200,.14);color:#fff;transform:translateX(2px)}
+  #mapaMental .no.on{background:linear-gradient(180deg,#F7EBD0,#E8D3A6);color:#2a1d0c;border-color:#E3C27A;box-shadow:0 2px 8px rgba(0,0,0,.3);text-shadow:none}
+  #mapaMental ul ul .no{font-size:11px;letter-spacing:.08em;padding:5px 10px;text-transform:none;font-family:var(--body);font-weight:500}
+  #mapaMental ul ul .no.on{background:rgba(247,235,208,.9)}
+  #mapaMental .caminho{display:none}
+  /* as fileiras de pílulas saem: o mapa assume */
+  main .subtabs{display:none!important}
+}
+/* ===== fim do mapa mental ===== */
 </style>
 
 
@@ -9478,7 +9510,8 @@ async function dispGerar(){
           nullGetter:()=>''});
         doc.render(num==='13'?dadosTR:(num==='04'?dadosETP:dados));
         dispQuebrasEmParagrafos(doc.getZip());
-        zipSaida.file(String(m.filename||(num+'.docx')).replace(/\.docx?$/i,'')+'_gerado.docx',
+        /* o arquivo gerado leva exatamente o nome do modelo (sem sufixo) */
+        zipSaida.file(String(m.filename||(num+'.docx')).replace(/\.docx?$/i,'')+'.docx',
           doc.getZip().generate({type:'arraybuffer'}));
       }catch(err){ erros.push(DISP_DOCS[num]+': '+(err.message||err)); }
     });
@@ -21075,4 +21108,47 @@ ajustaEfe();
 obtLiga();
 dispZera(); dispLeRascunho(); dispLiga();
 load(true);
+
+/* Mapa mental dos submódulos (só PC). Lê as fileiras de pílulas existentes e desenha a árvore;
+   clicar num nó clica na pílula verdadeira, então nada do funcionamento antigo muda. */
+(function(){
+  const PC=()=>!!(window.matchMedia&&matchMedia('(min-width:1100px) and (pointer:fine)').matches);
+  const main=document.querySelector('main'); if(!main||!main.parentNode)return;
+  const lay=document.createElement('div'); lay.className='layMapa';
+  main.parentNode.insertBefore(lay,main);
+  const mapa=document.createElement('aside'); mapa.id='mapaMental';
+  lay.appendChild(mapa); lay.appendChild(main);
+  const vis=el=>{for(let a=el;a&&a!==document.body;a=a.parentElement){if(a.classList.contains('hidden'))return false;}return true;};
+  const nomeAba=()=>{const b=document.querySelector('.tabs button[aria-selected="true"]');return b?b.textContent.trim():'';};
+  const proxima=(sec,box)=>[...sec.querySelectorAll('.subtabs')].filter(x=>x!==box&&vis(x.parentElement)&&!x.contains(box)&&
+    (box.compareDocumentPosition(x)&Node.DOCUMENT_POSITION_FOLLOWING))[0];
+  function nivel(sec,box){
+    if(!box)return '';
+    const bts=[...box.querySelectorAll(':scope>button')];
+    return '<ul>'+bts.map((b,i)=>{
+      const on=b.getAttribute('aria-selected')==='true';
+      const filhos=on?nivel(sec,proxima(sec,box)):'';
+      return '<li><span class="no'+(on?' on':'')+'">'+b.textContent.trim()+'</span>'+filhos+'</li>';
+    }).join('')+'</ul>';
+  }
+  let pend=0;
+  function desenha(){
+    pend=0;
+    if(!PC()){mapa.innerHTML='';return;}
+    const sec=[...main.querySelectorAll(':scope>section')].find(x=>!x.classList.contains('hidden'));
+    if(!sec){mapa.innerHTML='';return;}
+    const primeira=[...sec.querySelectorAll('.subtabs')].find(x=>vis(x.parentElement));
+    mapa.innerHTML='<span class="raiz">'+nomeAba()+'</span>'+(primeira?nivel(sec,primeira):'');
+    const fileiras=[];
+    (function junta(box){if(!box)return;fileiras.push(box);
+      if(!box.querySelector(':scope>button[aria-selected="true"]'))return;junta(proxima(sec,box));})(primeira);
+    [...mapa.querySelectorAll('ul')].forEach((ul,k)=>{const box=fileiras[k];if(!box)return;
+      [...ul.querySelectorAll(':scope>li>.no')].forEach((n,i)=>n.onclick=()=>{box.querySelectorAll(':scope>button')[i].click();agenda();});});
+  }
+  function agenda(){if(!pend)pend=setTimeout(desenha,60);}
+  new MutationObserver(agenda).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class','aria-selected']});
+  document.addEventListener('click',agenda,true);
+  window.addEventListener('resize',agenda);
+  setTimeout(desenha,500);
+})();
 </script>
