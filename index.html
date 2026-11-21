@@ -1447,6 +1447,21 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   .tabs{padding-right:230px}
 }
 /* ===== fim da zona verde, módulos em texto e corda ===== */
+/* ===== Agenda: busca de MSG respondida (janela) ===== */
+.agmodal{position:fixed;left:0;top:0;right:0;bottom:0;z-index:60;background:rgba(10,12,10,.55)}
+.agmodal.hidden{display:none}
+.agmbox{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(760px,94%);background:rgba(252,247,236,.99);
+  border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.agmbox h3{margin:0 0 6px;font:700 15px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.agmlista{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
+.agmitem{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 12px;cursor:pointer;color:var(--ink);font:13px var(--body)}
+.agmitem:hover{background:#F4EBD3}
+.agmitem b{font:600 12px var(--mono);margin-right:8px}
+.agmitem span{color:var(--muted);font-size:11px;margin-left:6px}
+.agmvazio{padding:16px;color:var(--muted);font-size:13px}
+.agevw{display:flex;gap:4px;align-items:center}
+.agevw .mini{padding:4px 7px;white-space:nowrap}
+.agev.ligada{border-color:var(--bordo);background:#F1F5E9}
 </style>
 
 
@@ -2932,11 +2947,25 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 <section id="tab-agenda" class="hidden">
   <div class="subtabs" id="subAgenda">
     <button data-sub="radar" aria-selected="true">Radar</button>
-    <button data-sub="mes" aria-selected="false">Mês</button>
-    <button data-sub="ano" aria-selected="false">Ano</button>
     <button data-sub="acervo" aria-selected="false">Acervo</button>
+    <button data-sub="backup" aria-selected="false">Backup</button>
     <button data-sub="conf" aria-selected="false">Conferência PAD / NNN</button>
     <button data-sub="check" aria-selected="false">Checklists</button>
+    <button data-sub="geral" aria-selected="false">Controle Geral</button>
+  </div>
+
+  <div class="agmodal hidden" id="agMsgModal">
+    <div class="agmbox">
+      <h3>Qual MSG respondeu esta faina?</h3>
+      <p class="hint" id="agMsgFaina" style="margin:0 0 10px"></p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:3 1 260px"><label>Buscar por assunto, data-hora, origem ou destino</label>
+          <input type="text" id="agMsgBusca" placeholder="ex.: 261448Z, relatório, CHN-4"></div>
+        <div style="flex:0 1 auto"><label style="display:flex;gap:6px;align-items:center;margin:0 0 10px"><input type="checkbox" id="agMsgSoTx" checked> só transmitidas (TX)</label></div>
+      </div>
+      <div class="agmlista" id="agMsgLista"></div>
+      <div class="row" style="margin-top:12px"><button class="mini" id="agMsgFecha">Fechar</button></div>
+    </div>
   </div>
 
   <div class="agbarra hidden" id="agBarra">
@@ -2947,55 +2976,8 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
     <button class="mini" id="agSelLimpa">Limpar seleção</button>
   </div>
 
-  <div id="ag-radar">
-    <div class="kpis" id="agKpis"></div>
-    <div class="card reveal"><h2>Atrasadas <span class="n" id="nAgAtras">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Prazo vencido e sem registro de cumprimento. Marque a caixa e anote em <b>Respondido por</b> o DTG, ofício ou e-mail que comprova o envio.</p>
-      <div class="scroller" id="agAtras"></div></div>
-    <div class="card reveal"><h2>Próximos 45 dias <span class="n" id="nAgProx">0</span></h2>
-      <div class="scroller" id="agProx"></div></div>
-    <div class="card reveal"><h2>Sem data fixa neste mês <span class="n" id="nAgSemData">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">O prazo depende de convocação, do PMPE ou de evento externo. Ficam aqui para não sumirem do radar.</p>
-      <div class="scroller" id="agSemData"></div></div>
-    <div class="card reveal"><h2>Eventuais — disparadas por evento <span class="n" id="nAgEvt">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Não têm data no calendário: correm a partir do suspender, do regresso, do tiro ou da movimentação.</p>
-      <div class="scroller" id="agEventuais"></div></div>
-  </div>
-
-  <div id="ag-mes" class="hidden">
-    <div class="card reveal">
-      <h2 id="agMesTit">—</h2>
-      <div class="row" style="align-items:flex-end;margin-bottom:12px">
-        <div style="flex:0 1 120px"><label>Ano</label><input type="number" id="agAnoSel" min="2020" max="2099"></div>
-      </div>
-      <div class="agmeses" id="agMesSel"></div>
-      <div class="kpis" id="agMesResumo" style="margin:14px 0"></div>
-      <div class="scroller" id="agMesLista"></div>
-    </div>
-  </div>
-
-  <div id="ag-ano" class="hidden">
-    <div class="card reveal"><h2 id="agAnoTit">Ano</h2>
-      <p class="hint" style="margin:0 0 12px">O anel mostra o percentual cumprido do mês. Vermelho quando há faina vencida sem registro. Clique no mês para abrir a lista.</p>
-      <div class="kpis" id="agAnoResumo" style="margin-bottom:16px"></div>
-      <div class="agano" id="agAnoGrade"></div></div>
-  </div>
-
-  <div id="ag-acervo" class="hidden">
-    <div class="card reveal">
-      <h2>Acervo de fainas <span class="n" id="nAgAcervo">0</span></h2>
-      <p class="hint" style="margin:0 0 12px">Toda demanda fixa do navio em um lugar só. Suspender guarda o histórico e tira do calendário; excluir apaga de vez.</p>
-      <div class="row" style="align-items:flex-end">
-        <div style="flex:2 1 220px"><label>Buscar</label><input type="text" id="agBusca" placeholder="faina, publicação, destino…"></div>
-        <div style="flex:1 1 140px"><label>Frequência</label><select id="agFiltroFreq"><option value="">Todas</option></select></div>
-        <div style="flex:1 1 140px"><label>Origem</label><select id="agFiltroFonte"><option value="">Todas</option></select></div>
-        <div style="flex:1 1 160px"><label>Responsável</label><select id="agFiltroResp"><option value="">Todos os responsáveis</option></select></div>
-        <div style="flex:1 1 160px"><label>Destino</label><select id="agFiltroDest"><option value="">Todos os destinos</option></select></div>
-        <div style="flex:0 1 auto"><button class="btn" id="agNova">Nova faina</button></div>
-      </div>
-      <div class="scroller" id="agAcervoLista" style="margin-top:14px"></div>
-    </div>
-    <div class="card reveal hidden" id="agForm">
+  <!-- formulário de edição: único, abre a partir do Radar, do Mês ou do Acervo -->
+  <div class="card reveal hidden" id="agForm">
       <h2 id="agFormTit">Nova faina</h2>
       <div class="row">
         <div style="flex:3 1 320px"><label>Descrição da faina</label><input type="text" id="agfTit"></div>
@@ -3025,6 +3007,76 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <button class="btn" id="agfGravar">Gravar</button>
         <button class="mini" id="agfCancelar">Cancelar</button>
       </div>
+    </div>
+
+  <div id="ag-radar">
+    <div class="kpis" id="agKpis"></div>
+    <div class="card reveal"><h2>Atrasadas <span class="n" id="nAgAtras">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Prazo vencido e sem registro de cumprimento. Marque a caixa e anote em <b>Respondido por</b> o DTG, ofício ou e-mail que comprova o envio.</p>
+      <div class="scroller" id="agAtras"></div></div>
+    <div class="card reveal"><h2>Próximos 45 dias <span class="n" id="nAgProx">0</span></h2>
+      <div class="scroller" id="agProx"></div></div>
+    <div class="card reveal"><h2>Sem data fixa neste mês <span class="n" id="nAgSemData">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">O prazo depende de convocação, do PMPE ou de evento externo. Ficam aqui para não sumirem do radar.</p>
+      <div class="scroller" id="agSemData"></div></div>
+    <div class="card reveal"><h2>Eventuais — disparadas por evento <span class="n" id="nAgEvt">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Não têm data no calendário: correm a partir do suspender, do regresso, do tiro ou da movimentação.</p>
+      <div class="scroller" id="agEventuais"></div></div>
+  </div>
+
+  <div id="ag-geral" class="hidden">
+  <div class="subtabs" id="subAgGeral">
+    <button data-sub="mes" aria-selected="true">Mês</button>
+    <button data-sub="ano" aria-selected="false">Ano</button>
+  </div>
+
+  <div id="ag-mes" class="hidden">
+    <div class="card reveal">
+      <h2 id="agMesTit">—</h2>
+      <div class="row" style="align-items:flex-end;margin-bottom:12px">
+        <div style="flex:0 1 120px"><label>Ano</label><input type="number" id="agAnoSel" min="2020" max="2099"></div>
+      </div>
+      <div class="agmeses" id="agMesSel"></div>
+      <div class="kpis" id="agMesResumo" style="margin:14px 0"></div>
+      <div class="scroller" id="agMesLista"></div>
+    </div>
+  </div>
+
+  <div id="ag-ano" class="hidden">
+    <div class="card reveal"><h2 id="agAnoTit">Ano</h2>
+      <p class="hint" style="margin:0 0 12px">O anel mostra o percentual cumprido do mês. Vermelho quando há faina vencida sem registro. Clique no mês para abrir a lista.</p>
+      <div class="kpis" id="agAnoResumo" style="margin-bottom:16px"></div>
+      <div class="agano" id="agAnoGrade"></div></div>
+  </div>
+  </div>
+
+  <div id="ag-acervo" class="hidden">
+    <div class="card reveal">
+      <h2>Acervo de fainas <span class="n" id="nAgAcervo">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">Toda demanda fixa do navio em um lugar só. Suspender guarda o histórico e tira do calendário; excluir apaga de vez.</p>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:2 1 220px"><label>Buscar</label><input type="text" id="agBusca" placeholder="faina, publicação, destino…"></div>
+        <div style="flex:1 1 140px"><label>Frequência</label><select id="agFiltroFreq"><option value="">Todas</option></select></div>
+        <div style="flex:1 1 140px"><label>Origem</label><select id="agFiltroFonte"><option value="">Todas</option></select></div>
+        <div style="flex:1 1 160px"><label>Responsável</label><select id="agFiltroResp"><option value="">Todos os responsáveis</option></select></div>
+        <div style="flex:1 1 160px"><label>Destino</label><select id="agFiltroDest"><option value="">Todos os destinos</option></select></div>
+        <div style="flex:0 1 auto"><button class="btn" id="agNova">Nova faina</button></div>
+      </div>
+      <div class="scroller" id="agAcervoLista" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <div id="ag-backup" class="hidden">
+    <div class="card reveal">
+      <h2>Backup da Agenda ADM</h2>
+      <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão das planilhas do Calendário de Expedientes: uma aba por periodicidade
+        (mensal, bimestral, trimestral, semestral, anual e eventual), mais as abas dos checklists e do histórico de cumprimento. Abre no LibreOffice Calc e no Excel.</p>
+      <div class="kpis" id="agBkpResumo" style="margin-bottom:14px"></div>
+      <div class="row" style="align-items:center">
+        <button class="btn" id="agBkpXlsx">Baixar planilha (.xlsx)</button>
+        <button class="btn" id="agBkpOds" style="margin-left:8px">Baixar planilha (.ods)</button>
+      </div>
+      <p class="hint" style="margin:12px 0 0">A coluna <b>Pronto</b> mostra o cumprimento do mês corrente; a linha fica em verde quando a faina está cumprida. Fainas suspensas vão com a marca “(SUSPENSA)” nas observações, para não se perderem.</p>
     </div>
   </div>
 
@@ -4707,7 +4759,7 @@ const AG_CHECKLISTS=[
    Prazos que caem em dia fixo viram data de verdade; o resto fica como
    texto e aparece na lista do mês sem data, para não fingir precisão. */
 
-let AGD=null, AG_SUB='radar', AG_EDIT=null;
+let AGD=null, AG_SUB='radar', AG_EDIT=null, AG_GER='mes';
 let OBT=null;
 let AG_ANO=new Date().getFullYear(), AG_MESSEL=new Date().getMonth()+1;
 const AG_M3=['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
@@ -4805,15 +4857,209 @@ function agMarcar(id,a,m,ok){
 function agEvidencia(id,a,m,v){
   AGD.cumpr=AGD.cumpr||{};
   const k=agCh(id,a,m);
-  AGD.cumpr[k]=Object.assign({ok:false,em:hoje()},AGD.cumpr[k]||{},{evid:v});
+  const ant=AGD.cumpr[k]||{};
+  AGD.cumpr[k]=Object.assign({ok:false,em:hoje()},ant,{evid:v});
+  if(ant.msg&&ant.evid!==v)delete AGD.cumpr[k].msg;      /* escreveu à mão: deixa de ser vínculo com o SECOM */
   agSalva();
+}
+
+/* ---------- vínculo com o banco de MSG do SECOM ---------- */
+let AG_MSG_ALVO=null;
+const AG_MES_N={JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+function agMsgIso(m){
+  const d=String(m.dtg||'').slice(0,2), mm=m.mes||AG_MES_N[String(m.dtg||'').split('/')[1]];
+  return (m.ano&&mm&&/^\d\d$/.test(d))?m.ano+'-'+String(mm).padStart(2,'0')+'-'+d:hoje();
+}
+async function agMsgAbre(ref){
+  const p=ref.split('|'); AG_MSG_ALVO={id:p[0],a:Number(p[1]),m:Number(p[2])};
+  const it=agItens().find(v=>v.id===p[0]);
+  $('#agMsgFaina').textContent=it?it.tit:'';
+  $('#agMsgBusca').value='';
+  $('#agMsgModal').classList.remove('hidden');
+  if(!tfaValido()){
+    $('#agMsgLista').innerHTML='<div class="agmvazio">O banco de MSG é protegido. Abra o módulo <b>SECOM</b>, confirme o código do autenticador e volte aqui.</div>';return;}
+  if(SEC.msgs==null){
+    $('#agMsgLista').innerHTML='<div class="agmvazio">Carregando as mensagens…</div>';
+    try{const r=await acessoChama('secom_listar',{});SEC.msgs=r.msgs||[];}
+    catch(e){if(/autenticador/i.test(e.message))TFA_ATE=0;
+      $('#agMsgLista').innerHTML='<div class="agmvazio">'+esc(e.message)+'</div>';return;}
+  }
+  agMsgLista();
+  $('#agMsgBusca').focus();
+}
+function agMsgLista(){
+  if(!SEC.msgs){return;}
+  const q=$('#agMsgBusca').value.trim().toUpperCase(), soTx=$('#agMsgSoTx').checked;
+  const l=SEC.msgs.filter(m=>(!soTx||m.lado==='TX')&&
+    (!q||((m.letra||'')+m.dtg+' '+(m.assunto||'')+' '+(m.de||'')+' '+(m.para||'')+' '+(m.info||'')).toUpperCase().includes(q)))
+    .sort((a,b)=>secOrdem(b)-secOrdem(a));
+  $('#agMsgLista').innerHTML=l.length?l.slice(0,40).map(m=>
+    '<button type="button" class="agmitem" data-agmsgpick="'+esc(m.id)+'"><b>'+esc((m.letra||'')+m.dtg)+'</b>'+esc(m.assunto||'(sem assunto)')+
+    '<span>'+esc(m.lado)+(m.para?' · '+esc(String(m.para).slice(0,50)):'')+'</span></button>').join('')+
+    (l.length>40?'<div class="agmvazio">Mostrando 40 de '+l.length+'. Refine a busca.</div>':''):
+    '<div class="agmvazio">Nenhuma MSG com esse texto.'+(soTx?' Desmarque "só transmitidas" para ver as recebidas.':'')+'</div>';
+}
+function agMsgEscolhe(id){
+  const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m||!AG_MSG_ALVO)return;
+  const k=agCh(AG_MSG_ALVO.id,AG_MSG_ALVO.a,AG_MSG_ALVO.m);
+  const txt=((m.letra||'')+m.dtg+' — '+(m.assunto||'')).slice(0,160);
+  AGD.cumpr=AGD.cumpr||{};
+  const ant=AGD.cumpr[k]||{};
+  AGD.cumpr[k]={ok:true,em:agMsgIso(m),evid:txt,obs:ant.obs||'',msg:{id:m.id,lado:m.lado,dtg:m.dtg,assunto:m.assunto||''}};
+  $('#agMsgModal').classList.add('hidden');AG_MSG_ALVO=null;
+  agSalva();renderAgenda();toast('Faina cumprida: respondida pela MSG '+(m.letra||'')+m.dtg+'.');
+}
+
+/* ---------- Backup: planilha com a cara do Calendário de Expedientes ---------- */
+/* Modelo de planilha (um só, escrito uma vez) que dois serializadores leem: .xlsx e .ods.
+   Linhas: tit (faixa cinza mesclada), cab (cabeçalho), cel (dado), ok (dado cumprido, verde), vazio. */
+const AG_BKP_COLS=['REF','Preconizado','Descrição da faina','Referência','Destino','Meio','Responsável','Observações','Pronto'];
+const AG_BKP_LARG=[14,18,44,28,14,16,18,52,26];
+const AG_BKP_PLUR={MENSAL:'MENSAIS',BIMESTRAL:'BIMESTRAIS',TRIMESTRAL:'TRIMESTRAIS',SEMESTRAL:'SEMESTRAIS',ANUAL:'ANUAIS',EVENTUAL:'EVENTUAIS'};
+function agBkpTopo(titulo,n){
+  const r=(t)=>({k:'tit',c:[t],n:n});
+  return [r('MARINHA DO BRASIL'),r('AVISO HIDROCEANOGRÁFICO FLUVIAL "RIO TOCANTINS"'),{k:'vazio',c:[]},r(titulo),{k:'vazio',c:[]}];
+}
+function agBkpModelo(){
+  const h=hoje(), a=Number(h.slice(0,4)), m=Number(h.slice(5,7));
+  const folhas=[];
+  AG_FREQS.forEach(f=>{
+    const lista=agItens().filter(x=>x.freq===f);
+    const linhas=agBkpTopo('CALENDÁRIO DE EXPEDIENTES '+AG_BKP_PLUR[f],AG_BKP_COLS.length);
+    linhas.push({k:'cab',c:AG_BKP_COLS});
+    lista.forEach(x=>{
+      const cp=(AGD.cumpr||{})[agCh(x.id,a,m)]||{};
+      const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
+      const pronto=cp.ok?('FECHADO EM '+ddmmmCurto(cp.em||h).toUpperCase()+(cp.evid?' · '+cp.evid:'')):(cp.evid||'');
+      linhas.push({k:cp.ok?'ok':'cel',c:[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',
+        (x.ativo===false?'(SUSPENSA) ':'')+(x.obs||''),pronto]});
+    });
+    folhas.push({nome:f,larg:AG_BKP_LARG,linhas:linhas});
+  });
+  /* checklists */
+  const cl=agBkpTopo('CHECKLISTS DE EMBARQUE, DESEMBARQUE E COMISSÃO',4);
+  cl.push({k:'cab',c:['Módulo','Bloco','Item','Pronto']});
+  AG_CHECKLISTS.forEach(g=>g.blocos.forEach(b=>b.itens.forEach((t,i)=>{
+    const on=(AGD.ck||{})[g.id+'|'+b.nome+'|'+i];
+    cl.push({k:on?'ok':'cel',c:[g.nome,b.nome,t,on?'X':'']});
+  })));
+  folhas.push({nome:'CHECKLISTS',larg:[28,30,80,10],linhas:cl});
+  /* histórico de cumprimento */
+  const hc=agBkpTopo('HISTÓRICO DE CUMPRIMENTO',6);
+  hc.push({k:'cab',c:['Faina','Competência','Cumprida','Em','Respondido por','MSG do SECOM']});
+  Object.keys(AGD.cumpr||{}).sort().forEach(k=>{
+    const cp=AGD.cumpr[k], id=k.split('|')[0], x=agItens().find(v=>v.id===id);
+    hc.push({k:cp.ok?'ok':'cel',c:[x?x.tit:id,k.split('|')[1]||'',cp.ok?'SIM':'NÃO',cp.em?brDate(cp.em):'',cp.evid||'',
+      cp.msg?((cp.msg.dtg||'')+' — '+(cp.msg.assunto||'')):'']});
+  });
+  folhas.push({nome:'CUMPRIMENTO',larg:[60,14,10,12,50,50],linhas:hc});
+  return folhas;
+}
+function renderAgBackup(){
+  const it=agItens(), n=f=>it.filter(x=>x.freq===f).length;
+  const cumpr=Object.keys(AGD.cumpr||{}).length;
+  const kp=[['Fainas no acervo',it.length],['Mensais',n('MENSAL')],['Registros de cumprimento',cumpr],['Checklists',AG_CHECKLISTS.length]];
+  $('#agBkpResumo').innerHTML=kp.map(k=>'<div class="kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('');
+}
+function agXml(t){return String(t==null?'':t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function agColXl(i){let s='';i++;while(i>0){const r=(i-1)%26;s=String.fromCharCode(65+r)+s;i=Math.floor((i-1)/26);}return s;}
+function agNomeAba(n){return String(n).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31);}
+
+function agXlsxZip(JSZ,folhas){
+  const z=new JSZ();
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+    folhas.map((f,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+  z.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+
+    folhas.map((f,i)=>'<sheet name="'+agXml(agNomeAba(f.nome))+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets></workbook>');
+  z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    folhas.map((f,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+
+    '<Relationship Id="rId'+(folhas.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  /* estilos: 0 padrão · 1 faixa cinza · 2 cabeçalho · 3 dado · 4 dado cumprido (verde) */
+  const al='<alignment horizontal="center" vertical="center" wrapText="1"/>';
+  z.file('xl/styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<fonts count="2"><font><sz val="12"/><name val="Times New Roman"/></font><font><b/><sz val="12"/><name val="Times New Roman"/></font></fonts>'+
+    '<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFA6A6A6"/><bgColor indexed="64"/></patternFill></fill>'+
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill>'+
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF00A933"/><bgColor indexed="64"/></patternFill></fill></fills>'+
+    '<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+
+    '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border>'+
+    '<border><left style="medium"><color auto="1"/></left><right style="medium"><color auto="1"/></right><top style="medium"><color auto="1"/></top><bottom style="medium"><color auto="1"/></bottom><diagonal/></border></borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+    '<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'+al+'</xf>'+
+    '<xf numFmtId="0" fontId="1" fillId="3" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">'+al+'</xf>'+
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">'+al+'</xf>'+
+    '<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1">'+al+'</xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
+  const ST={tit:1,cab:2,cel:3,ok:4};
+  folhas.forEach((f,i)=>{
+    const nc=f.larg.length, merges=[];
+    const linhas=f.linhas.map((l,r)=>{
+      if(l.k==='vazio')return '<row r="'+(r+1)+'"/>';
+      if(l.k==='tit')merges.push('A'+(r+1)+':'+agColXl(nc-1)+(r+1));
+      const cels=(l.k==='tit'?Array.from({length:nc},(_,j)=>j?'':l.c[0]):l.c);
+      return '<row r="'+(r+1)+'">'+cels.map((v,j)=>'<c r="'+agColXl(j)+(r+1)+'" s="'+ST[l.k]+'" t="inlineStr"><is><t xml:space="preserve">'+agXml(v)+'</t></is></c>').join('')+'</row>';
+    }).join('');
+    z.file('xl/worksheets/sheet'+(i+1)+'.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+      '<sheetViews><sheetView workbookViewId="0"><pane ySplit="6" topLeftCell="A7" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
+      '<sheetFormatPr defaultRowHeight="15"/><cols>'+f.larg.map((w,j)=>'<col min="'+(j+1)+'" max="'+(j+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>'+
+      '<sheetData>'+linhas+'</sheetData>'+
+      (merges.length?'<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>':'')+'</worksheet>');
+  });
+  return z;
+}
+function agOdsZip(JSZ,folhas){
+  const z=new JSZ();
+  z.file('mimetype','application/vnd.oasis.opendocument.spreadsheet',{compression:'STORE'});
+  z.file('META-INF/manifest.xml','<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/></manifest:manifest>');
+  const fonte='<style:text-properties style:font-name="Times New Roman" fo:font-size="12pt"';
+  const base='<style:table-cell-properties fo:wrap-option="wrap" style:vertical-align="middle"';
+  const par='<style:paragraph-properties fo:text-align="center"/>';
+  let est='<style:font-face style:name="Times New Roman" svg:font-family="&apos;Times New Roman&apos;"/>';
+  let aut='<style:style style:name="tit" style:family="table-cell">'+base+' fo:background-color="#a6a6a6"/>'+par+fonte+' fo:font-weight="bold"/></style:style>'+
+    '<style:style style:name="cab" style:family="table-cell">'+base+' fo:background-color="#d9d9d9" fo:border="2.5pt solid #000000"/>'+par+fonte+' fo:font-weight="bold"/></style:style>'+
+    '<style:style style:name="cel" style:family="table-cell">'+base+' fo:border="0.75pt solid #000000"/>'+par+fonte+'/></style:style>'+
+    '<style:style style:name="ok" style:family="table-cell">'+base+' fo:background-color="#00a933" fo:border="0.75pt solid #000000"/>'+par+fonte+'/></style:style>';
+  folhas.forEach((f,i)=>f.larg.forEach((w,j)=>{
+    aut+='<style:style style:name="c'+i+'_'+j+'" style:family="table-column"><style:table-column-properties style:column-width="'+(w*0.19).toFixed(2)+'cm"/></style:style>';
+  }));
+  const corpo=folhas.map((f,i)=>{
+    const nc=f.larg.length;
+    return '<table:table table:name="'+agXml(agNomeAba(f.nome))+'">'+
+      f.larg.map((w,j)=>'<table:table-column table:style-name="c'+i+'_'+j+'"/>').join('')+
+      f.linhas.map(l=>{
+        if(l.k==='vazio')return '<table:table-row><table:table-cell table:number-columns-repeated="'+nc+'"/></table:table-row>';
+        const cel=(v,e,span)=>'<table:table-cell table:style-name="'+e+'" office:value-type="string"'+(span?' table:number-columns-spanned="'+span+'"':'')+'><text:p>'+agXml(v)+'</text:p></table:table-cell>';
+        if(l.k==='tit')return '<table:table-row>'+cel(l.c[0],'tit',nc)+'<table:covered-table-cell table:number-columns-repeated="'+(nc-1)+'"/></table:table-row>';
+        return '<table:table-row>'+l.c.map(v=>cel(v,l.k)).join('')+'</table:table-row>';
+      }).join('')+'</table:table>';
+  }).join('');
+  z.file('content.xml','<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2">'+
+    '<office:font-face-decls>'+est+'</office:font-face-decls><office:automatic-styles>'+aut+'</office:automatic-styles>'+
+    '<office:body><office:spreadsheet>'+corpo+'</office:spreadsheet></office:body></office:document-content>');
+  return z;
+}
+async function agBackupBaixa(tipo){
+  const btn=$(tipo==='xlsx'?'#agBkpXlsx':'#agBkpOds'), rot=btn.textContent;
+  btn.disabled=true;btn.textContent='Gerando…';
+  try{
+    await carregaScriptAlt(['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'],()=>!!window.JSZip);
+    const folhas=agBkpModelo();
+    const z=tipo==='xlsx'?agXlsxZip(window.JSZip,folhas):agOdsZip(window.JSZip,folhas);
+    const blob=await z.generateAsync({type:'blob',mimeType:tipo==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/vnd.oasis.opendocument.spreadsheet',compression:'DEFLATE'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='Agenda_ADM_Backup_'+hoje()+'.'+tipo;a.click();
+    toast('Backup gerado: '+folhas.length+' abas.');
+  }catch(err){toast('Não consegui gerar o backup: '+(err&&err.message?err.message:'erro'),true);}
+  finally{btn.disabled=false;btn.textContent=rot;}
 }
 
 /* ---------- linha padrão de uma ocorrência ---------- */
 function agLinha(o,mostrarMes){
   const st=agStatus(o), it=o.it, k=agCh(it.id,o.ano,o.mes);
   const dt=o.iso?brDate(o.iso):(it.prazoTxt||'sem data');
-  const ev=((AGD.cumpr||{})[k]||{}).evid||'';
+  const cp=((AGD.cumpr||{})[k]||{}), ev=cp.evid||'', lig=!!cp.msg;
   return '<tr class="agl agl-'+st+'">'+
     '<td class="agselc"><input type="checkbox" class="agsel" data-k="'+k+'"'+(AG_SEL.has(k)?' checked':'')+' title="Selecionar"></td>'+
     '<td style="width:34px"><input type="checkbox" class="agck" data-id="'+it.id+'" data-a="'+o.ano+'" data-m="'+o.mes+'"'+(st==='feito'?' checked':'')+'></td>'+
@@ -4824,8 +5070,9 @@ function agLinha(o,mostrarMes){
       '<div class="agmeta"><span class="agfq" style="color:'+(AG_CORFREQ[it.freq]||'var(--muted)')+'">'+it.freq+'</span>'+
       (it.pub?' · '+esc(it.pub):'')+(it.obs?'<span class="aginfo" title="'+esc(it.obs)+'">i</span>':'')+'</div></td>'+
     '<td>'+esc(it.dest||'—')+'</td><td>'+esc(it.meio||'—')+'</td><td>'+esc(it.resp||'—')+'</td>'+
-    '<td><input type="text" class="agev" placeholder="DTG / ofício / e-mail" title="Respondido por" value="'+esc(ev)+'" data-id="'+it.id+'" data-a="'+o.ano+'" data-m="'+o.mes+'"></td>'+
-    '<td><span class="pill '+AG_PILL[st]+'">'+AG_ROTSTAT[st]+'</span></td></tr>';
+    '<td><div class="agevw"><input type="text" class="agev'+(lig?' ligada':'')+'" placeholder="DTG / ofício / e-mail" title="'+(lig?'MSG vinculada do SECOM':'Respondido por')+'" value="'+esc(ev)+'" data-id="'+it.id+'" data-a="'+o.ano+'" data-m="'+o.mes+'">'+
+      '<button class="mini" type="button" data-agmsg="'+it.id+'|'+o.ano+'|'+o.mes+'" title="Buscar no banco de MSG do SECOM">MSG</button></div></td>'+
+    '<td><span class="pill '+AG_PILL[st]+'">'+AG_ROTSTAT[st]+'</span><div style="margin-top:6px"><button class="mini" type="button" data-agedit="'+it.id+'">Editar</button></div></td></tr>';
 }
 function agTabela(lista,mostrarMes){
   if(!lista.length)return '<p class="hint">Nada aqui.</p>';
@@ -5129,15 +5376,25 @@ function renderAgenda(){
   if(AG_SUB==='acervo')renderAgAcervo();
   if(AG_SUB==='conf')renderAgConf();
   if(AG_SUB==='check')renderAgCheck();
+  if(AG_SUB==='backup')renderAgBackup();
 }
 
 /* ---------- ligações ---------- */
-$$('#subAgenda button').forEach(b=>b.onclick=()=>{
-  AG_SUB=b.dataset.sub;
-  $$('#subAgenda button').forEach(o=>o.setAttribute('aria-selected',o===b));
-  ['radar','mes','ano','acervo','conf','check'].forEach(s=>$('#ag-'+s).classList.toggle('hidden',s!==AG_SUB));
+/* Mês e Ano ficam dentro de "Controle Geral": AG_SUB continua valendo 'mes' ou 'ano',
+   e a pílula de cima que acende é a "geral". */
+function agMostra(sub){
+  const ger=(sub==='mes'||sub==='ano');
+  AG_SUB=sub; if(ger)AG_GER=sub;
+  $$('#subAgenda button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub===(ger?'geral':sub)));
+  $$('#subAgGeral button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub===AG_GER));
+  ['radar','acervo','backup','conf','check'].forEach(x=>$('#ag-'+x).classList.toggle('hidden',x!==sub));
+  $('#ag-geral').classList.toggle('hidden',!ger);
+  $('#ag-mes').classList.toggle('hidden',sub!=='mes');
+  $('#ag-ano').classList.toggle('hidden',sub!=='ano');
   renderAgenda();
-});
+}
+$$('#subAgenda button').forEach(b=>b.onclick=()=>agMostra(b.dataset.sub==='geral'?AG_GER:b.dataset.sub));
+$$('#subAgGeral button').forEach(b=>b.onclick=()=>agMostra(b.dataset.sub));
 document.addEventListener('change',e=>{
   const ck=e.target.closest('.agck');
   if(ck){agMarcar(ck.dataset.id,Number(ck.dataset.a),Number(ck.dataset.m),ck.checked);return;}
@@ -5165,6 +5422,10 @@ document.addEventListener('change',e=>{
   $('#agfGravar').onclick=agGravarForm;
   $('#agfCancelar').onclick=()=>{$('#agForm').classList.add('hidden');AG_EDIT=null;};
   $('#agBusca').oninput=renderAgAcervo;
+  $('#agMsgBusca').oninput=agMsgLista;
+  $('#agBkpXlsx').onclick=()=>agBackupBaixa('xlsx');
+  $('#agBkpOds').onclick=()=>agBackupBaixa('ods');
+  $('#agMsgSoTx').onchange=agMsgLista;
   ['agFiltroFreq','agFiltroFonte','agFiltroResp','agFiltroDest'].forEach(id=>$('#'+id).onchange=renderAgAcervo);
   $('#agAnoSel').onchange=()=>{AG_ANO=Number($('#agAnoSel').value)||AG_ANO;renderAgenda();};
   $('#agSelOk').onclick=()=>agAplicaLote(true);
@@ -5178,13 +5439,15 @@ document.addEventListener('change',e=>{
 })();
 
 document.addEventListener('click',e=>{
+  const bm=e.target.closest('[data-agmsg]');
+  if(bm){agMsgAbre(bm.dataset.agmsg);return;}
+  const pk=e.target.closest('[data-agmsgpick]');
+  if(pk){agMsgEscolhe(pk.dataset.agmsgpick);return;}
+  if(e.target.id==='agMsgFecha'||e.target.id==='agMsgModal'){$('#agMsgModal').classList.add('hidden');AG_MSG_ALVO=null;return;}
   const mb=e.target.closest('.agmb');
   if(mb){AG_MESSEL=Number(mb.dataset.m);renderAgMes();return;}
   const am=e.target.closest('.agmes');
-  if(am){AG_MESSEL=Number(am.dataset.m);AG_SUB='mes';
-    $$('#subAgenda button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='mes'));
-    ['radar','mes','ano','acervo','conf','check'].forEach(s=>$('#ag-'+s).classList.toggle('hidden',s!=='mes'));
-    renderAgMes();return;}
+  if(am){AG_MESSEL=Number(am.dataset.m);agMostra('mes');return;}
   const ed=e.target.closest('[data-agedit]');
   if(ed){agAbrirForm(ed.dataset.agedit);return;}
   const tg=e.target.closest('[data-agtoggle]');
@@ -5198,10 +5461,7 @@ document.addEventListener('click',e=>{
     const p=rf.dataset.agref.split('|');
     const it=agDeRef(p[0],Number(p[1]));
     if(it){AGD.itens.push(it);agSalva();toast('Incluída no acervo. Confira meses e responsável.');
-      AG_SUB='acervo';
-      $$('#subAgenda button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub==='acervo'));
-      ['radar','mes','ano','acervo','conf','check'].forEach(x=>$('#ag-'+x).classList.toggle('hidden',x!=='acervo'));
-      renderAgAcervo();agAbrirForm(it.id);}
+      agMostra('acervo');agAbrirForm(it.id);}
     return;}
   const cm=e.target.closest('[data-ckmod]');
   if(cm){AG_CK_MOD=cm.dataset.ckmod;AG_CK_BLOCO=0;renderAgCheck();return;}
