@@ -2182,9 +2182,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <div><label>Tipo</label><select id="fTipo">
           <option value="ferias">Férias</option><option value="lts">LTS</option>
           <option value="licenca">Licença especial</option><option value="dispensa">Dispensa</option>
-          <option value="transito">Trânsito</option>
+          <option value="transito">Trânsito</option><option value="paternidade">Paternidade</option>
         </select></div>
-        <div style="flex:0 1 150px"><label>Férias relativas à</label><select id="fAnoRef"></select></div>
+        <div style="flex:0 1 150px" id="fAnoRefBox"><label>Férias relativas à</label><select id="fAnoRef"></select></div>
       </div>
       <div class="row" style="margin-top:12px">
         <div><label>Início</label><input type="hidden" id="fIni"><input type="text" id="fIniBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>
@@ -3893,7 +3893,7 @@ const TIPO_TRIP=[{v:'embarque',l:'Embarque'},{v:'desembarque',l:'Desembarque'},
   {v:'curso_ida',l:'Saída para Curso'},{v:'curso_volta',l:'Regresso de Curso'}];
 const TIPO_DEST=[{v:'destaque_entrada',l:'Entrada destaque'},{v:'destaque_saida',l:'Saída destaque'},
   {v:'efetivacao',l:'Efetivação'}];
-const TIPO_FER={ferias:'Férias',lts:'LTS',licenca:'Licença especial',dispensa:'Dispensa',transito:'Trânsito'};
+const TIPO_FER={ferias:'Férias',lts:'LTS',licenca:'Licença especial',dispensa:'Dispensa',transito:'Trânsito',paternidade:'Paternidade'};
 const TIPO_PAP={ferias:'Férias',licenca:'Licença',transito:'Trânsito'};   /* tipos da papeleta */
 const CAT_PAG={soldo:'Soldo',vantagem:'Vantagem',desconto:'Desconto',diaria:'Diária',
   ajuda:'Ajuda de custo',indenizacao:'Indenização',rancho:'Etiqueta de rancho'};
@@ -13697,7 +13697,7 @@ function abrirEditMovimento(id){
 const CG_LEGENDA=[['cgFerias','Férias'],['cgLts','LTS'],['cgLic','Licença especial'],['cgDisp','Dispensa'],
   ['cgTrans','Trânsito'],['cgDest','Saída em destaque'],['cgCurso','Curso destacado'],
   ['cgCursoBordo','Curso (segue na escala)'],['cgSai','Sai do navio (fim do destaque)']];
-const CG_CLS_FER={ferias:'cgFerias',lts:'cgLts',licenca:'cgLic',dispensa:'cgDisp',transito:'cgTrans'};
+const CG_CLS_FER={ferias:'cgFerias',lts:'cgLts',licenca:'cgLic',dispensa:'cgDisp',transito:'cgTrans',paternidade:'cgLic'};
 let CG_ULTIMO_ANO_SCROLL='';
 /* fim do destaque DESTE destacado conosco, se houver prazo (última entrada registrada) */
 function cgFimDestaqueNoNavio(x){
@@ -15049,12 +15049,13 @@ function checaFerias(){
       'Nenhum outro afastamento neste intervalo')+'</span>';
 }
 $('#fIni').onchange=checaFerias;$('#fFim').onchange=checaFerias;
+$('#fTipo').onchange=()=>{$('#fAnoRefBox').style.display=$('#fTipo').value==='paternidade'?'none':'';};
 $('#fAdd').onclick=async()=>{
   const mil=$('#fMil').value, ini=$('#fIni').value, fim=$('#fFim').value;
   if(!mil){toast('Escolha o militar.',true);return;}
   if(!ini||!fim||fim<ini){toast('Informe início e término válidos.',true);return;}
   FER.periodos.push({id:uid(),mil,tipo:$('#fTipo').value,ini,fim,
-    anoRef:$('#fAnoRef').value||String(new Date().getFullYear()-1),
+    anoRef:$('#fTipo').value==='paternidade'?'':($('#fAnoRef').value||String(new Date().getFullYear()-1)),   /* paternidade não é férias: sem ano de referência */
     status:'programada',obs:$('#fObs').value.trim(),ts:Date.now()});
   const ok=await salvar('ferias',FER,'ferias_incluir');
   setDataDia('fIni','');setDataDia('fFim','');$('#fObs').value='';$('#fAviso').innerHTML='';
