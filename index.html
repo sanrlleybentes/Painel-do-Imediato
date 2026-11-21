@@ -2181,7 +2181,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <div style="flex:1 1 240px"><label>Militar</label><select id="fMil"></select></div>
         <div><label>Tipo</label><select id="fTipo">
           <option value="ferias">Férias</option><option value="lts">LTS</option>
-          <option value="licenca">Licença especial</option><option value="dispensa">Dispensa</option>
+          <option value="dispensa">Dispensa</option>
           <option value="transito">Trânsito</option><option value="paternidade">Paternidade</option>
         </select></div>
         <div style="flex:0 1 150px" id="fAnoRefBox"><label>Férias relativas à</label><select id="fAnoRef"></select></div>
@@ -3893,7 +3893,7 @@ const TIPO_TRIP=[{v:'embarque',l:'Embarque'},{v:'desembarque',l:'Desembarque'},
   {v:'curso_ida',l:'Saída para Curso'},{v:'curso_volta',l:'Regresso de Curso'}];
 const TIPO_DEST=[{v:'destaque_entrada',l:'Entrada destaque'},{v:'destaque_saida',l:'Saída destaque'},
   {v:'efetivacao',l:'Efetivação'}];
-const TIPO_FER={ferias:'Férias',lts:'LTS',licenca:'Licença especial',dispensa:'Dispensa',transito:'Trânsito',paternidade:'Paternidade'};
+const TIPO_FER={ferias:'Férias',lts:'LTS',dispensa:'Dispensa',transito:'Trânsito',paternidade:'Paternidade'};
 const TIPO_PAP={ferias:'Férias',licenca:'Licença',transito:'Trânsito'};   /* tipos da papeleta */
 const CAT_PAG={soldo:'Soldo',vantagem:'Vantagem',desconto:'Desconto',diaria:'Diária',
   ajuda:'Ajuda de custo',indenizacao:'Indenização',rancho:'Etiqueta de rancho'};
@@ -13694,10 +13694,10 @@ function abrirEditMovimento(id){
    Movimentos registrados. Linha por militar da tripulação e por destacado ENQUANTO está no navio
    (acaba o destaque conosco, sai da tabela), na ordem de antiguidade da lista; barra = indisponível,
    linha vazia = disponível. ─── */
-const CG_LEGENDA=[['cgFerias','Férias'],['cgLts','LTS'],['cgLic','Licença especial'],['cgDisp','Dispensa'],
+const CG_LEGENDA=[['cgFerias','Férias'],['cgLts','LTS'],['cgLic','Paternidade'],['cgDisp','Dispensa'],
   ['cgTrans','Trânsito'],['cgDest','Saída em destaque'],['cgCurso','Curso destacado'],
   ['cgCursoBordo','Curso (segue na escala)'],['cgSai','Sai do navio (fim do destaque)']];
-const CG_CLS_FER={ferias:'cgFerias',lts:'cgLts',licenca:'cgLic',dispensa:'cgDisp',transito:'cgTrans',paternidade:'cgLic'};
+const CG_CLS_FER={ferias:'cgFerias',lts:'cgLts',dispensa:'cgDisp',transito:'cgTrans',paternidade:'cgLic'};
 let CG_ULTIMO_ANO_SCROLL='';
 /* fim do destaque DESTE destacado conosco, se houver prazo (última entrada registrada) */
 function cgFimDestaqueNoNavio(x){
@@ -15487,9 +15487,11 @@ function semanaEmBranco(modo,ref){
  * Devolve o período de férias que cobre aquela data para o militar, ou null.
  * Usado para impedir escalar alguém de férias e para tirá-lo das escalas em curso.
  */
+/* férias, LTS, dispensa e paternidade tiram o militar da escala; trânsito não */
+const TIPOS_FORA_ESCALA=['ferias','lts','dispensa','paternidade'];
 function feriasConflito(milId,dataISO){
   if(!milId||!dataISO||!FER||!FER.periodos)return null;
-  return FER.periodos.find(p=>p.mil===milId&&p.tipo==='ferias'&&p.status!=='cancelada'&&p.ini<=dataISO&&p.fim>=dataISO)||null;
+  return FER.periodos.find(p=>p.mil===milId&&TIPOS_FORA_ESCALA.indexOf(p.tipo)>=0&&p.status!=='cancelada'&&p.ini<=dataISO&&p.fim>=dataISO)||null;
 }
 /* ═══════════ curso com destacamento ═══════════
    Quem está destacado em outra OM não guarnece serviço aqui. O que afasta é o
@@ -15505,8 +15507,11 @@ function cursoConflito(milId,dataISO){
 /* o impedimento que vale para a escala, seja férias ou curso destacado */
 function impedimento(milId,dataISO){
   const f=feriasConflito(milId,dataISO);
-  if(f)return {tipo:'ferias',rot:'férias',ini:f.ini,fim:f.fim,
-    texto:'está de férias de '+brDate(f.ini)+' a '+brDate(f.fim)};
+  if(f){
+    const rot=f.tipo==='ferias'?'férias':f.tipo==='lts'?'LTS':f.tipo==='dispensa'?'dispensa':'paternidade';
+    return {tipo:f.tipo,rot:rot,ini:f.ini,fim:f.fim,
+      texto:'está de '+rot+' de '+brDate(f.ini)+' a '+brDate(f.fim)};
+  }
   const c=cursoConflito(milId,dataISO);
   if(c)return {tipo:'curso',rot:'curso',ini:c.data,fim:c.fim||'',
     texto:'está destacado'+(c.om?' na '+c.om:'')+' fazendo '+(c.curso||'curso')+
