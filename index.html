@@ -1459,6 +1459,11 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .agmitem b{font:600 12px var(--mono);margin-right:8px}
 .agmitem span{color:var(--muted);font-size:11px;margin-left:6px}
 .agmvazio{padding:16px;color:var(--muted);font-size:13px}
+.agmrat{padding:14px 16px}
+.agmrat-t{margin:0 0 10px;font:700 13px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--terra)}
+.agmrat-g{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:13px}
+.agmrat-g span{color:var(--muted)}
+.agmrat-g b{font-weight:600;color:var(--ink);word-break:break-word}
 .agevw{display:flex;gap:4px;align-items:center}
 .agevw .mini{padding:4px 7px;white-space:nowrap}
 .agev.ligada{border-color:var(--bordo);background:#F1F5E9}
@@ -4919,7 +4924,21 @@ function agMsgLista(){
     (l.length>40?'<div class="agmvazio">Mostrando 40 de '+l.length+'. Refine a busca.</div>':''):
     '<div class="agmvazio">Nenhuma MSG com esse texto.'+(soTx?' Desmarque "só transmitidas" para ver as recebidas.':'')+'</div>';
 }
+/* Escolher a MSG não grava: mostra o que vai ficar registrado e pede a ratificação. */
 function agMsgEscolhe(id){
+  const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m||!AG_MSG_ALVO)return;
+  const it=agItens().find(v=>v.id===AG_MSG_ALVO.id);
+  const k=agCh(AG_MSG_ALVO.id,AG_MSG_ALVO.a,AG_MSG_ALVO.m), ant=(AGD.cumpr||{})[k]||{};
+  const lin=(r,v)=>'<span>'+r+'</span><b>'+esc(v||'—')+'</b>';
+  $('#agMsgLista').innerHTML='<div class="agmrat"><p class="agmrat-t">Confira antes de gravar</p>'+
+    '<div class="agmrat-g">'+lin('Faina',it?it.tit:'')+lin('Competência',AG_M3[AG_MSG_ALVO.m]+'/'+AG_MSG_ALVO.a)+
+    lin('MSG',(m.letra||'')+m.dtg+' ('+m.lado+')')+lin('De',m.de)+lin('Para',m.para)+(m.info?lin('Info',m.info):'')+lin('Assunto',m.assunto)+
+    lin('Vai gravar','cumprida em '+brDate(agMsgIso(m))+', respondida por esta MSG')+
+    (ant.evid?lin('Substitui',ant.evid):'')+'</div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn" type="button" data-agmsgok="'+esc(m.id)+'">Ratificar e gravar</button>'+
+    '<button class="mini" type="button" id="agMsgVolta" style="margin-left:8px">Voltar à lista</button></div></div>';
+}
+function agMsgGrava(id){
   const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m||!AG_MSG_ALVO)return;
   const k=agCh(AG_MSG_ALVO.id,AG_MSG_ALVO.a,AG_MSG_ALVO.m);
   const txt=((m.letra||'')+m.dtg+' — '+(m.assunto||'')).slice(0,160);
@@ -4974,7 +4993,7 @@ function agBkpModelo(){
   const h=hoje(), a=Number(h.slice(0,4)), m=Number(h.slice(5,7));
   const folhas=[], cab=spec.cab.t;
   AG_FREQS.forEach(f=>{
-    const dados=agItens().filter(x=>x.freq===f).map(x=>{
+    const dados=agItens().filter(x=>x.freq===f).sort(agCmpPrazo).map(x=>{
       const cp=(AGD.cumpr||{})[agCh(x.id,a,m)]||{};
       const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
       const doMes=f==='MENSAL'||(f!=='EVENTUAL'&&(x.meses||[]).indexOf(m)>=0);
@@ -5417,6 +5436,17 @@ function renderAgAno(){
 }
 
 /* ---------- acervo ---------- */
+/* Ordem do acervo: por periodicidade (mensal → anual → eventual) e, dentro dela, pelo prazo:
+   primeiro o mês em que a faina começa a valer, depois o dia em que vence, do início ao fim do mês.
+   Sem data fixa (evento, livre) vai para o fim do grupo. */
+function agOrdemPrazo(x){
+  const ms=(x.meses||[]).slice().sort((a,b)=>a-b);
+  const mes=x.freq==='MENSAL'?(Number(hoje().slice(5,7))):(ms[0]||0);
+  let dia=99;
+  if(mes){const v=agVenc(x,Number(hoje().slice(0,4)),mes);if(v)dia=Number(v.slice(8,10));}
+  const f=AG_FREQS.indexOf(x.freq);
+  return [f<0?99:f,x.freq==='MENSAL'?0:(ms[0]||99),dia];
+}
 function agFiltrada(){
   const q=chave($('#agBusca').value||''), f=$('#agFiltroFreq').value, fo=$('#agFiltroFonte').value,
         r=$('#agFiltroResp').value, d=$('#agFiltroDest').value;
@@ -5427,7 +5457,12 @@ function agFiltrada(){
     if(d&&(x.dest||'')!==d)return false;
     if(q&&chave(x.tit+' '+x.pub+' '+x.obs+' '+x.dest+' '+x.resp).indexOf(q)<0)return false;
     return true;
-  });
+  }).sort(agCmpPrazo);
+}
+function agCmpPrazo(a,b){
+  const x=agOrdemPrazo(a), y=agOrdemPrazo(b);
+  for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]-y[i];
+  return String(a.tit).localeCompare(String(b.tit),'pt-BR');
 }
 function agOpcoes(campo){
   const s=new Set();agItens().forEach(x=>{if(x[campo])s.add(x[campo]);});
@@ -5695,6 +5730,9 @@ document.addEventListener('click',e=>{
   if(bm){agMsgAbre(bm.dataset.agmsg);return;}
   const pk=e.target.closest('[data-agmsgpick]');
   if(pk){agMsgEscolhe(pk.dataset.agmsgpick);return;}
+  const rt=e.target.closest('[data-agmsgok]');
+  if(rt){agMsgGrava(rt.dataset.agmsgok);return;}
+  if(e.target.id==='agMsgVolta'){agMsgLista();return;}
   if(e.target.id==='agMsgFecha'||e.target.id==='agMsgModal'){$('#agMsgModal').classList.add('hidden');AG_MSG_ALVO=null;return;}
   const mb=e.target.closest('.agmb');
   if(mb){AG_MESSEL=Number(mb.dataset.m);renderAgMes();return;}
