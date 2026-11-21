@@ -3081,13 +3081,13 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="card reveal">
         <h2>Backup da Agenda ADM</h2>
         <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão do Calendário de Expedientes: uma aba por periodicidade
-          (mensal, bimestral, trimestral, semestral, anual e eventual), mais as abas dos checklists e do histórico de cumprimento. Abre no LibreOffice Calc e no Excel.</p>
+          (mensal, bimestral, trimestral, semestral, anual e eventual). Abre no LibreOffice Calc e no Excel.</p>
         <div class="kpis" id="agBkpResumo" style="margin-bottom:14px"></div>
         <div class="row" style="align-items:center">
           <button class="btn" id="agBkpXlsx">Baixar planilha (.xlsx)</button>
           <button class="btn" id="agBkpOds" style="margin-left:8px">Baixar planilha (.ods)</button>
         </div>
-        <p class="hint" style="margin:12px 0 0">Na coluna <b>Resposta</b> só a cor é preenchida, conforme a legenda no fim de cada aba: verde quando a faina do mês está cumprida, amarelo quando é do mês e ainda não foi respondida, vermelho quando a faina está suspensa (não se aplica mais). O texto da resposta (MSG ou expediente) você preenche à mão.</p>
+        <p class="hint" style="margin:12px 0 0">A coluna <b>Resposta</b> traz o que respondeu a faina no mês corrente: a MSG vinculada ou o que foi escrito em <i>Respondido por</i>. A cor segue a legenda no fim de cada aba: verde quando a faina do mês está cumprida, amarelo quando é do mês e ainda não foi respondida, vermelho quando a faina está suspensa (não se aplica mais).</p>
       </div>
     </div>
 
@@ -4814,13 +4814,17 @@ function agVenc(it,a,m){
 const agCh=(id,a,m)=>id+'|'+a+'-'+pad(m);
 function agFeito(id,a,m){const r=(AGD.cumpr||{})[agCh(id,a,m)];return (r&&r.ok)?r:null;}
 function agItens(){return (AGD&&AGD.itens)||[];}
+/* "desde" (AAAA-MM-DD): a faina só conta a partir dessa data. É gravado quando a faina nasce ou muda de
+   periodicidade, meses ou prazo — sem ele, a mudança recriava como atrasados todos os meses desde o ano anterior. */
 function agOcorrencias(a,mes){
   const out=[];
   agItens().forEach(it=>{
     if(it.ativo===false||it.freq==='EVENTUAL')return;
     (it.meses||[]).forEach(m=>{
       if(mes&&m!==mes)return;
-      out.push({it:it,ano:a,mes:m,iso:agVenc(it,a,m),feito:agFeito(it.id,a,m)});
+      const iso=agVenc(it,a,m);
+      if(it.desde&&(iso?iso<it.desde:(a+'-'+pad(m))<it.desde.slice(0,7)))return;
+      out.push({it:it,ano:a,mes:m,iso:iso,feito:agFeito(it.id,a,m)});
     });
   });
   return out;
@@ -4998,22 +5002,15 @@ function agBkpModelo(){
       const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
       const doMes=f==='MENSAL'||(f!=='EVENTUAL'&&(x.meses||[]).indexOf(m)>=0);
       const cor=cp.ok?'ok':(x.ativo===false?'na':(doMes?'pend':''));
-      return {c:[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''],cor:cor};
+      /* Resposta: o que respondeu a faina no mês (MSG vinculada ou o texto do "Respondido por") */
+      const resposta=cp.evid||(cp.ok?'Cumprida em '+brDate(cp.em||h):'');
+      const c=[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''];
+      while(c.length<=spec.resp)c.push('');
+      c[spec.resp]=resposta;
+      return {c:c,cor:cor};
     });
     folhas.push(agBkpFolha(spec,{nome:f,titulo:'CALENDÁRIO DE EXPEDIENTES '+AG_BKP_PLUR[f],cab:cab,larg:spec.larg,dados:dados,legenda:true,resp:spec.resp}));
   });
-  const cl=[];
-  AG_CHECKLISTS.forEach(g=>g.blocos.forEach(b=>b.itens.forEach((t,i)=>{
-    const on=(AGD.ck||{})[g.id+'|'+b.nome+'|'+i];
-    cl.push({c:[g.nome,b.nome,t,on?'X':''],cor:on?'ok':''});
-  })));
-  folhas.push(agBkpFolha(spec,{nome:'CHECKLISTS',titulo:'CHECKLISTS DE EMBARQUE, DESEMBARQUE E COMISSÃO',cab:['Módulo','Bloco','Item','Pronto'],larg:[28,30,80,12],dados:cl,legenda:false,resp:3}));
-  const hc=[];
-  Object.keys(AGD.cumpr||{}).sort().forEach(k=>{
-    const cp=AGD.cumpr[k], id=k.split('|')[0], x=agItens().find(v=>v.id===id);
-    hc.push({c:[x?x.tit:id,k.split('|')[1]||'',cp.ok?'SIM':'NÃO',cp.em?brDate(cp.em):'',cp.evid||'',cp.msg?((cp.msg.dtg||'')+' — '+(cp.msg.assunto||'')):''],cor:cp.ok?'ok':''});
-  });
-  folhas.push(agBkpFolha(spec,{nome:'CUMPRIMENTO',titulo:'HISTÓRICO DE CUMPRIMENTO',cab:['Faina','Competência','Cumprida','Em','Respondido por','MSG do SECOM'],larg:[60,14,10,12,50,50],dados:hc,legenda:false,resp:2}));
   return folhas;
 }
 function agXml(t){return String(t==null?'':t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -5523,8 +5520,13 @@ function agGravarForm(){
     prazo:prazo,prazoTxt:$('#agfPrazoTxt').value.trim(),pub:$('#agfPub').value.trim(),
     fonte:$('#agfFonte').value,dest:$('#agfDest').value.trim(),meio:$('#agfMeio').value.trim(),
     resp:$('#agfResp').value.trim(),obs:$('#agfObs').value.trim()};
-  if(AG_EDIT){Object.assign(agItens().find(v=>v.id===AG_EDIT),dados);}
-  else{AGD.itens.push(Object.assign({id:'ag'+uid(),ativo:true},dados));}
+  if(AG_EDIT){
+    const x=agItens().find(v=>v.id===AG_EDIT);
+    const agenda=f=>JSON.stringify([f.freq,f.meses||[],f.prazo||{}]);
+    if(agenda(x)!==agenda(dados))dados.desde=hoje();   /* mudou o calendário: não ressuscita meses antigos */
+    Object.assign(x,dados);
+  }
+  else{AGD.itens.push(Object.assign({id:'ag'+uid(),ativo:true,desde:hoje()},dados));}
   agSalva();$('#agForm').classList.add('hidden');AG_EDIT=null;renderAgenda();
   toast('Faina gravada.');
 }
@@ -5576,7 +5578,7 @@ function renderAgConf(){
 function agDeRef(qual,i){
   const r=(qual==='PAD'?AG_REF_PAD.filter(x=>x.ap!==false):AG_REF_NNN.filter(x=>x.ap!==false))[i];
   if(!r)return null;
-  const it={id:'ag'+uid(),tit:r.t,ativo:true,obs:'',
+  const it={id:'ag'+uid(),tit:r.t,ativo:true,obs:'',desde:hoje(),
     fonte:qual,pub:qual==='PAD'?'PAD CHN-4 nº 001-26, Anexo C, '+r.f+' item '+r.n:'NORDINAVNORTE nº 10-17, Anexo A',
     dest:'CHN-4',meio:'MSG',resp:'Imediato',prazoTxt:r.p||''};
   if(qual==='NNN'){
