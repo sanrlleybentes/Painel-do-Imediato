@@ -3067,16 +3067,36 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   </div>
 
   <div id="ag-backup" class="hidden">
-    <div class="card reveal">
-      <h2>Backup da Agenda ADM</h2>
-      <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão das planilhas do Calendário de Expedientes: uma aba por periodicidade
-        (mensal, bimestral, trimestral, semestral, anual e eventual), mais as abas dos checklists e do histórico de cumprimento. Abre no LibreOffice Calc e no Excel.</p>
-      <div class="kpis" id="agBkpResumo" style="margin-bottom:14px"></div>
-      <div class="row" style="align-items:center">
-        <button class="btn" id="agBkpXlsx">Baixar planilha (.xlsx)</button>
-        <button class="btn" id="agBkpOds" style="margin-left:8px">Baixar planilha (.ods)</button>
+    <div class="subtabs" id="subAgBkp">
+      <button data-sub="exportar" aria-selected="true">Exportar</button>
+      <button data-sub="modelo" aria-selected="false">Modelo da planilha</button>
+    </div>
+
+    <div id="agBkp-exportar">
+      <div class="card reveal">
+        <h2>Backup da Agenda ADM</h2>
+        <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão do Calendário de Expedientes: uma aba por periodicidade
+          (mensal, bimestral, trimestral, semestral, anual e eventual), mais as abas dos checklists e do histórico de cumprimento. Abre no LibreOffice Calc e no Excel.</p>
+        <div class="kpis" id="agBkpResumo" style="margin-bottom:14px"></div>
+        <div class="row" style="align-items:center">
+          <button class="btn" id="agBkpXlsx">Baixar planilha (.xlsx)</button>
+          <button class="btn" id="agBkpOds" style="margin-left:8px">Baixar planilha (.ods)</button>
+        </div>
+        <p class="hint" style="margin:12px 0 0">Na coluna <b>Resposta</b> só a cor é preenchida, conforme a legenda no fim de cada aba: verde quando a faina do mês está cumprida, amarelo quando é do mês e ainda não foi respondida, vermelho quando a faina está suspensa (não se aplica mais). O texto da resposta (MSG ou expediente) você preenche à mão.</p>
       </div>
-      <p class="hint" style="margin:12px 0 0">A coluna <b>Pronto</b> mostra o cumprimento do mês corrente; a linha fica em verde quando a faina está cumprida. Fainas suspensas vão com a marca “(SUSPENSA)” nas observações, para não se perderem.</p>
+    </div>
+
+    <div id="agBkp-modelo" class="hidden">
+      <div class="card reveal">
+        <h2>Modelo da planilha</h2>
+        <p class="hint" style="margin:0 0 12px">O Backup sai no formato do modelo abaixo. Para mudar: baixe um Backup, ajuste a <b>primeira aba</b> no Calc ou no Excel (títulos, cores, larguras, cabeçalho, legenda), salve em <b>.ods</b> ou <b>.xlsx</b> e envie aqui. O SIGAB copia o jeito dessa aba para todas as outras. Depois de enviado, vale para os dois formatos.</p>
+        <div id="agModeloInfo" style="margin-bottom:14px"></div>
+        <div class="row" style="align-items:center">
+          <label class="btn" style="cursor:pointer;margin:0">Enviar novo modelo (.ods ou .xlsx)<input type="file" id="agModeloArq" accept=".ods,.xlsx" style="display:none"></label>
+          <button class="mini" id="agModeloPadrao" style="margin-left:8px">Voltar ao modelo padrão</button>
+        </div>
+        <p class="hint" style="margin:12px 0 0">O modelo precisa ter, na primeira aba, uma linha de cabeçalho (com 4 ou mais colunas preenchidas), ao menos uma linha de exemplo logo abaixo e, se quiser, a legenda depois das linhas, com os textos <i>Respondido</i>, <i>Não respondido</i> e <i>Não se aplica mais</i> e uma célula colorida ao lado de cada um. A coluna cujo cabeçalho for <i>Resposta</i> (ou <i>Pronto</i>) é a que recebe as cores.</p>
+      </div>
     </div>
   </div>
 
@@ -4910,63 +4930,133 @@ function agMsgEscolhe(id){
   agSalva();renderAgenda();toast('Faina cumprida: respondida pela MSG '+(m.letra||'')+m.dtg+'.');
 }
 
-/* ---------- Backup: planilha com a cara do Calendário de Expedientes ---------- */
-/* Modelo de planilha (um só, escrito uma vez) que dois serializadores leem: .xlsx e .ods.
-   Linhas: tit (faixa cinza mesclada), cab (cabeçalho), cel (dado), ok (dado cumprido, verde), vazio. */
-const AG_BKP_COLS=['REF','Preconizado','Descrição da faina','Referência','Destino','Meio','Responsável','Observações','Pronto'];
-const AG_BKP_LARG=[14,18,44,28,14,16,18,52,26];
+/* ---------- Backup: planilha no padrão do Calendário de Expedientes ---------- */
+/* Um modelo (spec) descreve a primeira aba: títulos, cabeçalho, estilo da linha de dado, coluna de resposta,
+   cores da legenda e o rodapé. Dois serializadores (.xlsx e .ods) escrevem o mesmo modelo, e dois leitores
+   (.xlsx e .ods) tiram o modelo de uma planilha enviada pelo usuário. Guardado em AGD.modelo. */
 const AG_BKP_PLUR={MENSAL:'MENSAIS',BIMESTRAL:'BIMESTRAIS',TRIMESTRAL:'TRIMESTRAIS',SEMESTRAL:'SEMESTRAIS',ANUAL:'ANUAIS',EVENTUAL:'EVENTUAIS'};
-function agBkpTopo(titulo,n){
-  const r=(t)=>({k:'tit',c:[t],n:n});
-  return [r('MARINHA DO BRASIL'),r('AVISO HIDROCEANOGRÁFICO FLUVIAL "RIO TOCANTINS"'),{k:'vazio',c:[]},r(titulo),{k:'vazio',c:[]}];
+const AG_EST0={f:'Arial',s:10,b:0,i:0,c:'',bg:'',bd:'',h:'',v:'',w:0};
+function agEst(o){return Object.assign({},AG_EST0,{f:'Times New Roman',s:12,h:'center',v:'center',w:1},o||{});}
+function agEstLeg(o){return Object.assign({},AG_EST0,{bd:'hair',v:'bottom'},o||{});}
+function agModeloPadrao(){
+  const cor={ok:'#00A933',pend:'#FFFF00',na:'#FF0000'};
+  return {nome:'padrão do Imediato',larg:[16.5,17.4,42.7,27.1,13.6,15.5,17.4,50.4,25.2],
+    topo:[{t:'MARINHA DO BRASIL',e:agEst({b:1}),m:1},{t:''},
+      {t:'AVISO HIDROCEANOGRÁFICO FLUVIAL "RIO TOCANTINS"',e:agEst({b:1}),m:1},{t:''},
+      {t:'CALENDÁRIO DE EXPEDIENTES',e:agEst({b:1}),m:1,tit:1},{t:''}],
+    cab:{t:['REF','Preconizado','Descrição da faina','Referência','Destino','Meio','Responsável','Observações','Resposta'],
+      e:agEst({b:1,bg:'#B2B2B2',bd:'hair'})},
+    linha:[agEst({bd:'hair'})],resp:8,cores:cor,
+    rodape:[{},{},{},
+      {c:[{col:0,t:'Legenda',span:2,e:agEstLeg({b:1,bg:'#CCCCCC',h:'center',v:'center'})}]},
+      {c:[{col:0,t:'Respondido',e:agEstLeg()},{col:1,t:'',e:agEstLeg({bg:cor.ok})}]},
+      {c:[{col:0,t:'Não respondido',e:agEstLeg()},{col:1,t:'',e:agEstLeg({bg:cor.pend})}]},
+      {c:[{col:0,t:'Não se aplica mais',e:agEstLeg()},{col:1,t:'',e:agEstLeg({bg:cor.na})}]}]};
+}
+/* uma folha do arquivo: linhas de células {t,e,span,col?}; o resto (título, cabeçalho, legenda) vem do modelo */
+function agBkpFolha(spec,o){
+  const nc=o.larg.length, R=[];
+  const ajusta=c=>{const v=c.slice(0,nc);while(v.length<nc)v.push('');return v;};
+  spec.topo.forEach(r=>{
+    if(!r.tit&&!String(r.t||'').trim()&&!r.e){R.push({c:[]});return;}
+    R.push({c:[{t:r.tit?o.titulo:(r.t||''),e:r.e||AG_EST0,span:r.m?nc:1}]});
+  });
+  R.push({c:ajusta(o.cab).map(t=>({t:t,e:spec.cab.e}))});
+  o.dados.forEach(d=>R.push({c:ajusta(d.c).map((t,i)=>{
+    const e=spec.linha[Math.min(i,spec.linha.length-1)]||AG_EST0;
+    return {t:t,e:i===o.resp?Object.assign({},e,{bg:d.cor?spec.cores[d.cor]:''}):e};
+  })}));
+  if(o.legenda)spec.rodape.forEach(r=>R.push({c:(r.c||[]).map(x=>({col:x.col,t:x.t,e:x.e,span:x.span||1}))}));
+  return {nome:o.nome,larg:o.larg,linhas:R};
 }
 function agBkpModelo(){
+  const spec=AGD.modelo||agModeloPadrao();
   const h=hoje(), a=Number(h.slice(0,4)), m=Number(h.slice(5,7));
-  const folhas=[];
+  const folhas=[], cab=spec.cab.t;
   AG_FREQS.forEach(f=>{
-    const lista=agItens().filter(x=>x.freq===f);
-    const linhas=agBkpTopo('CALENDÁRIO DE EXPEDIENTES '+AG_BKP_PLUR[f],AG_BKP_COLS.length);
-    linhas.push({k:'cab',c:AG_BKP_COLS});
-    lista.forEach(x=>{
+    const dados=agItens().filter(x=>x.freq===f).map(x=>{
       const cp=(AGD.cumpr||{})[agCh(x.id,a,m)]||{};
       const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
-      const pronto=cp.ok?('FECHADO EM '+ddmmmCurto(cp.em||h).toUpperCase()+(cp.evid?' · '+cp.evid:'')):(cp.evid||'');
-      linhas.push({k:cp.ok?'ok':'cel',c:[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',
-        (x.ativo===false?'(SUSPENSA) ':'')+(x.obs||''),pronto]});
+      const doMes=f==='MENSAL'||(f!=='EVENTUAL'&&(x.meses||[]).indexOf(m)>=0);
+      const cor=cp.ok?'ok':(x.ativo===false?'na':(doMes?'pend':''));
+      return {c:[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''],cor:cor};
     });
-    folhas.push({nome:f,larg:AG_BKP_LARG,linhas:linhas});
+    folhas.push(agBkpFolha(spec,{nome:f,titulo:'CALENDÁRIO DE EXPEDIENTES '+AG_BKP_PLUR[f],cab:cab,larg:spec.larg,dados:dados,legenda:true,resp:spec.resp}));
   });
-  /* checklists */
-  const cl=agBkpTopo('CHECKLISTS DE EMBARQUE, DESEMBARQUE E COMISSÃO',4);
-  cl.push({k:'cab',c:['Módulo','Bloco','Item','Pronto']});
+  const cl=[];
   AG_CHECKLISTS.forEach(g=>g.blocos.forEach(b=>b.itens.forEach((t,i)=>{
     const on=(AGD.ck||{})[g.id+'|'+b.nome+'|'+i];
-    cl.push({k:on?'ok':'cel',c:[g.nome,b.nome,t,on?'X':'']});
+    cl.push({c:[g.nome,b.nome,t,on?'X':''],cor:on?'ok':''});
   })));
-  folhas.push({nome:'CHECKLISTS',larg:[28,30,80,10],linhas:cl});
-  /* histórico de cumprimento */
-  const hc=agBkpTopo('HISTÓRICO DE CUMPRIMENTO',6);
-  hc.push({k:'cab',c:['Faina','Competência','Cumprida','Em','Respondido por','MSG do SECOM']});
+  folhas.push(agBkpFolha(spec,{nome:'CHECKLISTS',titulo:'CHECKLISTS DE EMBARQUE, DESEMBARQUE E COMISSÃO',cab:['Módulo','Bloco','Item','Pronto'],larg:[28,30,80,12],dados:cl,legenda:false,resp:3}));
+  const hc=[];
   Object.keys(AGD.cumpr||{}).sort().forEach(k=>{
     const cp=AGD.cumpr[k], id=k.split('|')[0], x=agItens().find(v=>v.id===id);
-    hc.push({k:cp.ok?'ok':'cel',c:[x?x.tit:id,k.split('|')[1]||'',cp.ok?'SIM':'NÃO',cp.em?brDate(cp.em):'',cp.evid||'',
-      cp.msg?((cp.msg.dtg||'')+' — '+(cp.msg.assunto||'')):'']});
+    hc.push({c:[x?x.tit:id,k.split('|')[1]||'',cp.ok?'SIM':'NÃO',cp.em?brDate(cp.em):'',cp.evid||'',cp.msg?((cp.msg.dtg||'')+' — '+(cp.msg.assunto||'')):''],cor:cp.ok?'ok':''});
   });
-  folhas.push({nome:'CUMPRIMENTO',larg:[60,14,10,12,50,50],linhas:hc});
+  folhas.push(agBkpFolha(spec,{nome:'CUMPRIMENTO',titulo:'HISTÓRICO DE CUMPRIMENTO',cab:['Faina','Competência','Cumprida','Em','Respondido por','MSG do SECOM'],larg:[60,14,10,12,50,50],dados:hc,legenda:false,resp:2}));
   return folhas;
-}
-function renderAgBackup(){
-  const it=agItens(), n=f=>it.filter(x=>x.freq===f).length;
-  const cumpr=Object.keys(AGD.cumpr||{}).length;
-  const kp=[['Fainas no acervo',it.length],['Mensais',n('MENSAL')],['Registros de cumprimento',cumpr],['Checklists',AG_CHECKLISTS.length]];
-  $('#agBkpResumo').innerHTML=kp.map(k=>'<div class="kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('');
 }
 function agXml(t){return String(t==null?'':t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function agColXl(i){let s='';i++;while(i>0){const r=(i-1)%26;s=String.fromCharCode(65+r)+s;i=Math.floor((i-1)/26);}return s;}
 function agNomeAba(n){return String(n).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31);}
+function agRgb(c){return 'FF'+String(c).replace('#','').toUpperCase();}
+/* posições das células de uma linha: sem "col" seguem em sequência */
+function agPos(l){let p=0;return l.c.map(x=>{if(x.col!=null)p=x.col;const r={x:x,col:p};p+=(x.span||1);return r;});}
 
+/* altura da linha (pt) estimada pelo texto que quebra; o .xlsx não calcula sozinho em todos os programas */
+function agAltura(l,larg){
+  let h=0;
+  agPos(l).forEach(p=>{
+    const x=p.x, e=x.e||AG_EST0, t=String(x.t||''); if(!t)return;
+    let w=0;for(let k=0;k<(x.span||1);k++)w+=larg[p.col+k]||10;
+    const cpl=Math.max(1,Math.floor(w*(10/e.s)*1.12));
+    let linhas=0;
+    t.split('\n').forEach(par=>{
+      if(!e.w){linhas++;return;}
+      let atual=0,n=1;
+      par.split(/\s+/).forEach(pal=>{
+        if(!pal)return;
+        if(atual&&atual+1+pal.length>cpl){n++;atual=pal.length;}else atual+=(atual?1:0)+pal.length;
+        while(atual>cpl){n++;atual-=cpl;}
+      });
+      linhas+=n;
+    });
+    h=Math.max(h,linhas*e.s*1.3+4);
+  });
+  return h?Math.round(h*10)/10:0;
+}
 function agXlsxZip(JSZ,folhas){
   const z=new JSZ();
+  /* registro de estilos únicos */
+  const EST=[],MAP={};
+  const eid=e=>{e=e||AG_EST0;const k=JSON.stringify(e);if(!(k in MAP)){MAP[k]=EST.length+1;EST.push(e);}return MAP[k];};
+  const fontes=[],fundos=[],bordas=[];
+  const ix=(arr,k)=>{let i=arr.indexOf(k);if(i<0){arr.push(k);i=arr.length-1;}return i;};
+  const planilhas=folhas.map(f=>{
+    const nc=f.larg.length, merges=[];
+    const linhas=f.linhas.map((l,r)=>{
+      const cels=agPos(l).map(p=>{
+        const x=p.x, ref=agColXl(p.col)+(r+1), s=eid(x.e);
+        if((x.span||1)>1)merges.push(ref+':'+agColXl(p.col+x.span-1)+(r+1));
+        const v=String(x.t||'');
+        let out=v?'<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+agXml(v)+'</t></is></c>':'<c r="'+ref+'" s="'+s+'"/>';
+        for(let k=1;k<(x.span||1);k++)out+='<c r="'+agColXl(p.col+k)+(r+1)+'" s="'+s+'"/>';
+        return out;
+      }).join('');
+      const alt=agAltura(l,f.larg);
+      return cels?'<row r="'+(r+1)+'"'+(alt?' ht="'+alt+'" customHeight="1"':'')+'>'+cels+'</row>':'<row r="'+(r+1)+'"/>';
+    }).join('');
+    return {linhas:linhas,merges:merges,f:f};
+  });
+  /* estilos */
+  const xfs=EST.map(e=>{
+    const fi=ix(fontes,JSON.stringify([e.f,e.s,e.b,e.i,e.c])), fl=e.bg?ix(fundos,e.bg)+2:0, bo=e.bd?ix(bordas,e.bd)+1:0;
+    const al=(e.h||e.v||e.w)?'<alignment'+(e.h?' horizontal="'+e.h+'"':'')+(e.v?' vertical="'+e.v+'"':'')+(e.w?' wrapText="1"':'')+'/>':'';
+    return '<xf numFmtId="0" fontId="'+(fi+1)+'" fillId="'+fl+'" borderId="'+bo+'" xfId="0" applyFont="1"'+(fl?' applyFill="1"':'')+(bo?' applyBorder="1"':'')+(al?' applyAlignment="1">'+al+'</xf>':'/>');
+  });
+  const fonteXml=k=>{const [f,s,b,i,c]=JSON.parse(k);return '<font>'+(b?'<b/>':'')+(i?'<i/>':'')+'<sz val="'+s+'"/>'+(c?'<color rgb="'+agRgb(c)+'"/>':'')+'<name val="'+agXml(f)+'"/></font>';};
+  const bordaXml=t=>{const l=['left','right','top','bottom'].map(n=>'<'+n+' style="'+t+'"><color auto="1"/></'+n+'>').join('');return '<border>'+l+'<diagonal/></border>';};
   z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
     folhas.map((f,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>');
   z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
@@ -4975,37 +5065,19 @@ function agXlsxZip(JSZ,folhas){
   z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
     folhas.map((f,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+
     '<Relationship Id="rId'+(folhas.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
-  /* estilos: 0 padrão · 1 faixa cinza · 2 cabeçalho · 3 dado · 4 dado cumprido (verde) */
-  const al='<alignment horizontal="center" vertical="center" wrapText="1"/>';
   z.file('xl/styles.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
-    '<fonts count="2"><font><sz val="12"/><name val="Times New Roman"/></font><font><b/><sz val="12"/><name val="Times New Roman"/></font></fonts>'+
-    '<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+
-    '<fill><patternFill patternType="solid"><fgColor rgb="FFA6A6A6"/><bgColor indexed="64"/></patternFill></fill>'+
-    '<fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill>'+
-    '<fill><patternFill patternType="solid"><fgColor rgb="FF00A933"/><bgColor indexed="64"/></patternFill></fill></fills>'+
-    '<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>'+
-    '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border>'+
-    '<border><left style="medium"><color auto="1"/></left><right style="medium"><color auto="1"/></right><top style="medium"><color auto="1"/></top><bottom style="medium"><color auto="1"/></bottom><diagonal/></border></borders>'+
+    '<fonts count="'+(fontes.length+1)+'"><font><sz val="10"/><name val="Arial"/></font>'+fontes.map(fonteXml).join('')+'</fonts>'+
+    '<fills count="'+(fundos.length+2)+'"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'+
+      fundos.map(c=>'<fill><patternFill patternType="solid"><fgColor rgb="'+agRgb(c)+'"/><bgColor indexed="64"/></patternFill></fill>').join('')+'</fills>'+
+    '<borders count="'+(bordas.length+1)+'"><border><left/><right/><top/><bottom/><diagonal/></border>'+bordas.map(bordaXml).join('')+'</borders>'+
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
-    '<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
-    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1">'+al+'</xf>'+
-    '<xf numFmtId="0" fontId="1" fillId="3" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">'+al+'</xf>'+
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">'+al+'</xf>'+
-    '<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1">'+al+'</xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
-  const ST={tit:1,cab:2,cel:3,ok:4};
-  folhas.forEach((f,i)=>{
-    const nc=f.larg.length, merges=[];
-    const linhas=f.linhas.map((l,r)=>{
-      if(l.k==='vazio')return '<row r="'+(r+1)+'"/>';
-      if(l.k==='tit')merges.push('A'+(r+1)+':'+agColXl(nc-1)+(r+1));
-      const cels=(l.k==='tit'?Array.from({length:nc},(_,j)=>j?'':l.c[0]):l.c);
-      return '<row r="'+(r+1)+'">'+cels.map((v,j)=>'<c r="'+agColXl(j)+(r+1)+'" s="'+ST[l.k]+'" t="inlineStr"><is><t xml:space="preserve">'+agXml(v)+'</t></is></c>').join('')+'</row>';
-    }).join('');
+    '<cellXfs count="'+(xfs.length+1)+'"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+xfs.join('')+'</cellXfs>'+
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
+  planilhas.forEach((p,i)=>{
     z.file('xl/worksheets/sheet'+(i+1)+'.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
-      '<sheetViews><sheetView workbookViewId="0"><pane ySplit="6" topLeftCell="A7" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
-      '<sheetFormatPr defaultRowHeight="15"/><cols>'+f.larg.map((w,j)=>'<col min="'+(j+1)+'" max="'+(j+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>'+
-      '<sheetData>'+linhas+'</sheetData>'+
-      (merges.length?'<mergeCells count="'+merges.length+'">'+merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>':'')+'</worksheet>');
+      '<sheetFormatPr defaultRowHeight="15"/><cols>'+p.f.larg.map((w,j)=>'<col min="'+(j+1)+'" max="'+(j+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>'+
+      '<sheetData>'+p.linhas+'</sheetData>'+
+      (p.merges.length?'<mergeCells count="'+p.merges.length+'">'+p.merges.map(m=>'<mergeCell ref="'+m+'"/>').join('')+'</mergeCells>':'')+'</worksheet>');
   });
   return z;
 }
@@ -5013,38 +5085,196 @@ function agOdsZip(JSZ,folhas){
   const z=new JSZ();
   z.file('mimetype','application/vnd.oasis.opendocument.spreadsheet',{compression:'STORE'});
   z.file('META-INF/manifest.xml','<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/></manifest:manifest>');
-  const fonte='<style:text-properties style:font-name="Times New Roman" fo:font-size="12pt"';
-  const base='<style:table-cell-properties fo:wrap-option="wrap" style:vertical-align="middle"';
-  const par='<style:paragraph-properties fo:text-align="center"/>';
-  let est='<style:font-face style:name="Times New Roman" svg:font-family="&apos;Times New Roman&apos;"/>';
-  let aut='<style:style style:name="tit" style:family="table-cell">'+base+' fo:background-color="#a6a6a6"/>'+par+fonte+' fo:font-weight="bold"/></style:style>'+
-    '<style:style style:name="cab" style:family="table-cell">'+base+' fo:background-color="#d9d9d9" fo:border="2.5pt solid #000000"/>'+par+fonte+' fo:font-weight="bold"/></style:style>'+
-    '<style:style style:name="cel" style:family="table-cell">'+base+' fo:border="0.75pt solid #000000"/>'+par+fonte+'/></style:style>'+
-    '<style:style style:name="ok" style:family="table-cell">'+base+' fo:background-color="#00a933" fo:border="0.75pt solid #000000"/>'+par+fonte+'/></style:style>';
-  folhas.forEach((f,i)=>f.larg.forEach((w,j)=>{
-    aut+='<style:style style:name="c'+i+'_'+j+'" style:family="table-column"><style:table-column-properties style:column-width="'+(w*0.19).toFixed(2)+'cm"/></style:style>';
-  }));
-  const corpo=folhas.map((f,i)=>{
+  const EST=[],MAP={},fontes=[];
+  const eid=e=>{e=e||AG_EST0;const k=JSON.stringify(e);if(!(k in MAP)){MAP[k]=EST.length;EST.push(e);}return 'e'+MAP[k];};
+  const PT={hair:'0.05pt',thin:'0.75pt',medium:'1.5pt',thick:'2.5pt'};
+  const corpo=folhas.map(f=>{
     const nc=f.larg.length;
-    return '<table:table table:name="'+agXml(agNomeAba(f.nome))+'">'+
-      f.larg.map((w,j)=>'<table:table-column table:style-name="c'+i+'_'+j+'"/>').join('')+
-      f.linhas.map(l=>{
-        if(l.k==='vazio')return '<table:table-row><table:table-cell table:number-columns-repeated="'+nc+'"/></table:table-row>';
-        const cel=(v,e,span)=>'<table:table-cell table:style-name="'+e+'" office:value-type="string"'+(span?' table:number-columns-spanned="'+span+'"':'')+'><text:p>'+agXml(v)+'</text:p></table:table-cell>';
-        if(l.k==='tit')return '<table:table-row>'+cel(l.c[0],'tit',nc)+'<table:covered-table-cell table:number-columns-repeated="'+(nc-1)+'"/></table:table-row>';
-        return '<table:table-row>'+l.c.map(v=>cel(v,l.k)).join('')+'</table:table-row>';
-      }).join('')+'</table:table>';
-  }).join('');
+    const rows=f.linhas.map(l=>{
+      const ps=agPos(l);
+      if(!ps.length)return '<table:table-row><table:table-cell table:number-columns-repeated="'+nc+'"/></table:table-row>';
+      let out='',pos=0;
+      ps.forEach(p=>{
+        if(p.col>pos)out+='<table:table-cell table:number-columns-repeated="'+(p.col-pos)+'"/>';
+        const sp=p.x.span||1, v=String(p.x.t||'');
+        out+='<table:table-cell table:style-name="'+eid(p.x.e)+'"'+(v?' office:value-type="string"':'')+(sp>1?' table:number-columns-spanned="'+sp+'"':'')+'>'+(v?'<text:p>'+agXml(v)+'</text:p>':'')+'</table:table-cell>';
+        if(sp>1)out+='<table:covered-table-cell table:number-columns-repeated="'+(sp-1)+'"/>';
+        pos=p.col+sp;
+      });
+      return '<table:table-row>'+out+'</table:table-row>';
+    }).join('');
+    return {nome:f.nome,larg:f.larg,rows:rows};
+  });
+  let est='',aut='';
+  EST.forEach((e,i)=>{
+    if(fontes.indexOf(e.f)<0)fontes.push(e.f);
+    aut+='<style:style style:name="e'+i+'" style:family="table-cell"><style:table-cell-properties'+(e.bg?' fo:background-color="'+e.bg+'"':'')+(e.bd?' fo:border="'+PT[e.bd]+' solid #000000"':'')+(e.w?' fo:wrap-option="wrap"':'')+
+      (e.v?' style:vertical-align="'+({center:'middle',top:'top',bottom:'bottom'}[e.v])+'"':'')+'/>'+
+      (e.h?'<style:paragraph-properties fo:text-align="'+({center:'center',left:'start',right:'end'}[e.h])+'"/>':'')+
+      '<style:text-properties style:font-name="'+agXml(e.f)+'" fo:font-size="'+e.s+'pt"'+(e.b?' fo:font-weight="bold"':'')+(e.i?' fo:font-style="italic"':'')+(e.c?' fo:color="'+e.c+'"':'')+'/></style:style>';
+  });
+  fontes.forEach(f=>{est+='<style:font-face style:name="'+agXml(f)+'" svg:font-family="&apos;'+agXml(f)+'&apos;"/>';});
+  corpo.forEach((f,i)=>f.larg.forEach((w,j)=>{aut+='<style:style style:name="c'+i+'_'+j+'" style:family="table-column"><style:table-column-properties style:column-width="'+(w*0.196).toFixed(3)+'cm"/></style:style>';}));
+  const tabelas=corpo.map((f,i)=>'<table:table table:name="'+agXml(agNomeAba(f.nome))+'">'+f.larg.map((w,j)=>'<table:table-column table:style-name="c'+i+'_'+j+'"/>').join('')+f.rows+'</table:table>').join('');
   z.file('content.xml','<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2">'+
     '<office:font-face-decls>'+est+'</office:font-face-decls><office:automatic-styles>'+aut+'</office:automatic-styles>'+
-    '<office:body><office:spreadsheet>'+corpo+'</office:spreadsheet></office:body></office:document-content>');
+    '<office:body><office:spreadsheet>'+tabelas+'</office:spreadsheet></office:body></office:document-content>');
   return z;
+}
+
+/* ---- leitura de um modelo enviado (.ods ou .xlsx): vira o mesmo "spec" ---- */
+function agHex(v){v=String(v||'').trim();if(!v||/transparent/i.test(v))return '';return /^#?[0-9a-f]{6}$/i.test(v)?('#'+v.replace('#','').toUpperCase()):'';}
+function agBordaPt(v){return v<=0.3?'hair':v<=1.1?'thin':v<=2.3?'medium':'thick';}
+function agMedida(v){const n=parseFloat(v)||0;return /cm/.test(v)?n*28.35:/mm/.test(v)?n*2.835:/in/.test(v)?n*72:n;}
+async function agLeOds(JSZ,buf){
+  const zip=await JSZ.loadAsync(buf), arq=zip.file('content.xml');
+  if(!arq)throw new Error('o arquivo não parece um .ods (sem content.xml)');
+  const doc=new DOMParser().parseFromString(await arq.async('string'),'application/xml');
+  const N={o:'urn:oasis:names:tc:opendocument:xmlns:office:1.0',t:'urn:oasis:names:tc:opendocument:xmlns:table:1.0',s:'urn:oasis:names:tc:opendocument:xmlns:style:1.0',f:'urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0',x:'urn:oasis:names:tc:opendocument:xmlns:text:1.0'};
+  const g=(el,ns,n)=>(el&&el.getAttributeNS(N[ns],n))||'';
+  const um=(el,ns,n)=>el.getElementsByTagNameNS(N[ns],n)[0];
+  const estilos={},colw={};
+  const aut=um(doc,'o','automatic-styles');
+  if(aut)[...aut.getElementsByTagNameNS(N.s,'style')].forEach(st=>{
+    const nome=g(st,'s','name'), fam=g(st,'s','family');
+    if(fam==='table-column'){const p=um(st,'s','table-column-properties');const w=agMedida(g(p,'s','column-width'));if(w)colw[nome]=w/28.35;}
+    if(fam==='table-cell'){
+      const e=Object.assign({},AG_EST0), c=um(st,'s','table-cell-properties'), p=um(st,'s','paragraph-properties'), tx=um(st,'s','text-properties');
+      if(c){e.bg=agHex(g(c,'f','background-color'));
+        const bd=g(c,'f','border')||g(c,'f','border-top')||g(c,'f','border-left');
+        if(bd&&!/^none/i.test(bd))e.bd=agBordaPt(agMedida(bd.split(' ')[0]));
+        e.w=g(c,'f','wrap-option')==='wrap'?1:0;
+        e.v={middle:'center',top:'top',bottom:'bottom'}[g(c,'s','vertical-align')]||'';}
+      if(p)e.h={center:'center',start:'left',left:'left',end:'right',right:'right'}[g(p,'f','text-align')]||'';
+      if(tx){const fn=g(tx,'s','font-name');if(fn)e.f=fn;const fs=parseFloat(g(tx,'f','font-size'));if(fs)e.s=fs;
+        e.b=g(tx,'f','font-weight')==='bold'?1:0;e.i=g(tx,'f','font-style')==='italic'?1:0;
+        e.c=agHex(g(tx,'f','color'));if(e.c==='#000000')e.c='';}
+      estilos[nome]=e;
+    }
+  });
+  const tab=doc.getElementsByTagNameNS(N.t,'table')[0];
+  if(!tab)throw new Error('nenhuma aba encontrada');
+  const larg=[], padCol=[];   /* padCol: estilo que a coluna dá às células sem estilo próprio */
+  [...tab.getElementsByTagNameNS(N.t,'table-column')].forEach(c=>{
+    const rep=Math.min(parseInt(g(c,'t','number-columns-repeated'))||1,40), w=colw[g(c,'t','style-name')]||0, pd=g(c,'t','default-cell-style-name');
+    for(let k=0;k<rep&&larg.length<40;k++){larg.push(w?Math.round(w/0.196*10)/10:10);padCol.push(pd);}});
+  const rows=[];
+  for(const r of [...tab.getElementsByTagNameNS(N.t,'table-row')]){
+    if(rows.length>=400)break;
+    const cels=[];
+    for(const c of [...r.children]){
+      const ln=c.localName, rep=Math.min(parseInt(g(c,'t','number-columns-repeated'))||1,40);
+      if(ln!=='table-cell'&&ln!=='covered-table-cell')continue;
+      const t=ln==='table-cell'?[...c.getElementsByTagNameNS(N.x,'p')].map(p=>p.textContent).join('\n'):'';
+      const sn=g(c,'t','style-name'), sp=ln==='table-cell'?(parseInt(g(c,'t','number-columns-spanned'))||1):1;
+      for(let k=0;k<rep&&cels.length<40;k++)
+        cels.push(ln==='table-cell'?{t:t,e:estilos[sn]||estilos[padCol[cels.length]]||AG_EST0,span:sp}:null);
+    }
+    const vazia=!cels.some(x=>x&&(x.t||x.e.bg));
+    const rr=Math.min(parseInt(g(r,'t','number-rows-repeated'))||1,vazia?6:200);
+    for(let k=0;k<rr&&rows.length<400;k++)rows.push({c:cels});
+  }
+  return agExtraiSpec({larg:larg,rows:rows});
+}
+async function agLeXlsx(JSZ,buf){
+  const zip=await JSZ.loadAsync(buf), txt=async n=>{const f=zip.file(n);return f?await f.async('string'):'';};
+  const X=s=>new DOMParser().parseFromString(s,'application/xml');
+  const wb=X(await txt('xl/workbook.xml'));
+  if(!wb.getElementsByTagName('sheet').length)throw new Error('o arquivo não parece um .xlsx');
+  const rid=wb.getElementsByTagName('sheet')[0].getAttribute('r:id');
+  let alvo='worksheets/sheet1.xml';
+  [...X(await txt('xl/_rels/workbook.xml.rels')).getElementsByTagName('Relationship')].forEach(r=>{if(r.getAttribute('Id')===rid)alvo=r.getAttribute('Target');});
+  alvo=alvo.replace(/^\//,'').replace(/^xl\//,'');
+  const sst=[];
+  const ss=await txt('xl/sharedStrings.xml');
+  if(ss)[...X(ss).getElementsByTagName('si')].forEach(si=>sst.push([...si.getElementsByTagName('t')].map(t=>t.textContent).join('')));
+  const sty=X(await txt('xl/styles.xml'));
+  const rgb=el=>{const c=el&&el.getElementsByTagName('color')[0]||el;const v=c&&c.getAttribute&&c.getAttribute('rgb');return v?agHex(v.slice(-6)):'';};
+  const fontes=[...(sty.getElementsByTagName('fonts')[0]||{getElementsByTagName:()=>[]}).getElementsByTagName('font')].map(f=>({
+    f:(f.getElementsByTagName('name')[0]||{getAttribute:()=>'Arial'}).getAttribute('val'),
+    s:parseFloat((f.getElementsByTagName('sz')[0]||{getAttribute:()=>'10'}).getAttribute('val'))||10,
+    b:f.getElementsByTagName('b').length?1:0,i:f.getElementsByTagName('i').length?1:0,c:(()=>{const c=rgb(f);return c==='#000000'?'':c;})()}));
+  const fundos=[...(sty.getElementsByTagName('fills')[0]||{getElementsByTagName:()=>[]}).getElementsByTagName('fill')].map(f=>{
+    const p=f.getElementsByTagName('patternFill')[0];if(!p||p.getAttribute('patternType')!=='solid')return '';
+    const c=p.getElementsByTagName('fgColor')[0];const v=c&&c.getAttribute('rgb');return v?agHex(v.slice(-6)):'';});
+  const bordas=[...(sty.getElementsByTagName('borders')[0]||{getElementsByTagName:()=>[]}).getElementsByTagName('border')].map(b=>{
+    for(const n of ['left','top','right','bottom']){const e=b.getElementsByTagName(n)[0];const st=e&&e.getAttribute('style');if(st)return st==='thin'||st==='hair'||st==='medium'||st==='thick'?st:'thin';}return '';});
+  const xfs=[...(sty.getElementsByTagName('cellXfs')[0]||{getElementsByTagName:()=>[]}).getElementsByTagName('xf')].map(x=>{
+    const f=fontes[+x.getAttribute('fontId')]||{f:'Arial',s:10,b:0,i:0,c:''}, a=x.getElementsByTagName('alignment')[0];
+    return {f:f.f,s:f.s,b:f.b,i:f.i,c:f.c,bg:fundos[+x.getAttribute('fillId')]||'',bd:bordas[+x.getAttribute('borderId')]||'',
+      h:a?({center:'center',left:'left',right:'right'}[a.getAttribute('horizontal')]||''):'',
+      v:a?({center:'center',top:'top',bottom:'bottom'}[a.getAttribute('vertical')]||''):'',w:a&&/^(1|true)$/i.test(a.getAttribute('wrapText')||'')?1:0};});
+  const sh=X(await txt('xl/'+alvo));
+  const colIx=r=>{let n=0;String(r).replace(/[0-9]/g,'').split('').forEach(ch=>{n=n*26+ch.charCodeAt(0)-64;});return n-1;};
+  const larg=[];
+  [...sh.getElementsByTagName('col')].forEach(c=>{const a=+c.getAttribute('min')-1,b=Math.min(+c.getAttribute('max')-1,40),w=parseFloat(c.getAttribute('width'))||10;for(let k=a;k<=b;k++)larg[k]=Math.round(w*10)/10;});
+  for(let k=0;k<larg.length;k++)if(larg[k]==null)larg[k]=10;
+  const spans={};
+  [...sh.getElementsByTagName('mergeCell')].forEach(m=>{const [a,b]=m.getAttribute('ref').split(':');if(b)spans[a]=colIx(b)-colIx(a)+1;});
+  const rows=[];
+  [...sh.getElementsByTagName('row')].forEach(r=>{
+    const n=+r.getAttribute('r')-1; if(n>=400)return;
+    while(rows.length<n)rows.push({c:[]});
+    const cels=[];
+    [...r.getElementsByTagName('c')].forEach(c=>{
+      const ref=c.getAttribute('r'), i=colIx(ref); if(i>=40)return;
+      let t='';const ty=c.getAttribute('t'), v=c.getElementsByTagName('v')[0];
+      if(ty==='s'&&v)t=sst[+v.textContent]||'';
+      else if(ty==='inlineStr')t=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');
+      else if(v)t=v.textContent;
+      while(cels.length<i)cels.push(null);
+      cels[i]={t:t,e:xfs[+c.getAttribute('s')||0]||AG_EST0,span:spans[ref]||1};
+      for(let k=1;k<(spans[ref]||1);k++){cels.push(null);}
+    });
+    rows.push({c:cels});
+  });
+  return agExtraiSpec({larg:larg,rows:rows});
+}
+function agExtraiSpec(grid){
+  const R=grid.rows, tem=r=>r.c.filter(x=>x&&String(x.t).trim()!=='').length;
+  const hi=R.findIndex(r=>tem(r)>=4);
+  if(hi<0)throw new Error('não achei a linha de cabeçalho (preciso de uma linha com 4 ou mais colunas preenchidas)');
+  let nc=0;R[hi].c.forEach((x,i)=>{if(x&&String(x.t).trim())nc=i+1;});
+  const cel=(r,i)=>r.c[i]||{t:'',e:AG_EST0,span:1};
+  const topo=R.slice(0,hi).map(r=>{
+    const i=r.c.findIndex(x=>x&&String(x.t).trim()); if(i<0)return {t:''};
+    const x=r.c[i];return {t:x.t,e:x.e,m:x.span>1?1:0,tit:/^CALEND/i.test(x.t)?1:0};
+  });
+  const cab={t:Array.from({length:nc},(_,i)=>String(cel(R[hi],i).t).trim()),e:cel(R[hi],0).e};
+  let di=hi+1, df=di;
+  while(df<R.length&&tem(R[df])>0)df++;
+  const linha=df>di?Array.from({length:nc},(_,i)=>cel(R[di],i).e):[agEst({bd:'hair'})];
+  const conteudo=r=>r.c.some(x=>x&&(String(x.t).trim()||x.e.bg));
+  let ult=R.length-1;while(ult>=df&&!conteudo(R[ult]))ult--;
+  const rodape=R.slice(df,ult+1).map(r=>{
+    const c=[];r.c.forEach((x,i)=>{if(x&&(String(x.t).trim()||x.e.bg))c.push({col:i,t:String(x.t).trim(),e:x.e,span:x.span||1});});
+    return c.length?{c:c}:{};
+  });
+  const cores={ok:'#00A933',pend:'#FFFF00',na:'#FF0000'};
+  rodape.forEach(r=>(r.c||[]).forEach((x,k,a)=>{
+    const cor=(a.find(y=>y.col!==x.col&&y.e.bg)||{e:{}}).e.bg; if(!cor)return;
+    const t=x.t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(/^respondido/.test(t))cores.ok=cor;else if(/^nao respondido/.test(t))cores.pend=cor;else if(/^nao se aplica/.test(t))cores.na=cor;}));
+  let resp=cab.t.findIndex(t=>/resposta|pronto/i.test(t)); if(resp<0)resp=nc-1;
+  const larg=Array.from({length:nc},(_,i)=>grid.larg[i]||15);
+  return {nome:'',larg:larg,topo:topo,cab:cab,linha:linha,resp:resp,cores:cores,rodape:rodape};
+}
+
+function renderAgBackup(){
+  const it=agItens(), n=f=>it.filter(x=>x.freq===f).length;
+  const kp=[['Fainas no acervo',it.length],['Mensais',n('MENSAL')],['Registros de cumprimento',Object.keys(AGD.cumpr||{}).length],['Checklists',AG_CHECKLISTS.length]];
+  $('#agBkpResumo').innerHTML=kp.map(k=>'<div class="kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('');
+  const sp=AGD.modelo||agModeloPadrao();
+  const chip=(c,t)=>'<span style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 4px 0"><i style="width:16px;height:16px;border:1px solid #555;background:'+esc(c)+'"></i>'+esc(t)+'</span>';
+  $('#agModeloInfo').innerHTML='<p style="margin:0 0 6px"><b>Modelo em uso:</b> '+esc(AGD.modelo?(sp.nome||'enviado por você'):'padrão do Imediato')+'</p>'+
+    '<p style="margin:0 0 6px"><b>Colunas:</b> '+sp.cab.t.map(esc).join(' · ')+'</p>'+
+    '<p style="margin:0">'+chip(sp.cores.ok,'Respondido')+chip(sp.cores.pend,'Não respondido')+chip(sp.cores.na,'Não se aplica mais')+'</p>';
 }
 async function agBackupBaixa(tipo){
   const btn=$(tipo==='xlsx'?'#agBkpXlsx':'#agBkpOds'), rot=btn.textContent;
   btn.disabled=true;btn.textContent='Gerando…';
   try{
-    await carregaScriptAlt(['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'],()=>!!window.JSZip);
+    await agJsZip();
     const folhas=agBkpModelo();
     const z=tipo==='xlsx'?agXlsxZip(window.JSZip,folhas):agOdsZip(window.JSZip,folhas);
     const blob=await z.generateAsync({type:'blob',mimeType:tipo==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/vnd.oasis.opendocument.spreadsheet',compression:'DEFLATE'});
@@ -5054,6 +5284,18 @@ async function agBackupBaixa(tipo){
   }catch(err){toast('Não consegui gerar o backup: '+(err&&err.message?err.message:'erro'),true);}
   finally{btn.disabled=false;btn.textContent=rot;}
 }
+function agJsZip(){return carregaScriptAlt(['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'],()=>!!window.JSZip);}
+async function agModeloEnvia(arq){
+  try{
+    await agJsZip();
+    const buf=await arq.arrayBuffer();
+    const spec=/\.ods$/i.test(arq.name)?await agLeOds(window.JSZip,buf):await agLeXlsx(window.JSZip,buf);
+    spec.nome=arq.name;
+    AGD.modelo=spec;agSalva();renderAgBackup();
+    toast('Modelo carregado: '+spec.cab.t.length+' colunas. Os próximos backups saem nele.');
+  }catch(err){toast('Não consegui ler o modelo: '+(err&&err.message?err.message:'erro'),true);}
+}
+let AG_BKP='exportar';
 
 /* ---------- linha padrão de uma ocorrência ---------- */
 function agLinha(o,mostrarMes){
@@ -5424,6 +5666,16 @@ document.addEventListener('change',e=>{
   $('#agBusca').oninput=renderAgAcervo;
   $('#agMsgBusca').oninput=agMsgLista;
   $('#agBkpXlsx').onclick=()=>agBackupBaixa('xlsx');
+  $$('#subAgBkp button').forEach(b=>b.onclick=()=>{
+    AG_BKP=b.dataset.sub;
+    $$('#subAgBkp button').forEach(o=>o.setAttribute('aria-selected',o===b));
+    $('#agBkp-exportar').classList.toggle('hidden',AG_BKP!=='exportar');
+    $('#agBkp-modelo').classList.toggle('hidden',AG_BKP!=='modelo');
+    renderAgBackup();
+  });
+  $('#agModeloArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)agModeloEnvia(f);};
+  $('#agModeloPadrao').onclick=()=>{if(!AGD.modelo){toast('Já está no modelo padrão.');return;}
+    if(!confirm('Voltar ao modelo padrão do Imediato?'))return;delete AGD.modelo;agSalva();renderAgBackup();toast('Modelo padrão restaurado.');};
   $('#agBkpOds').onclick=()=>agBackupBaixa('ods');
   $('#agMsgSoTx').onchange=agMsgLista;
   ['agFiltroFreq','agFiltroFonte','agFiltroResp','agFiltroDest'].forEach(id=>$('#'+id).onchange=renderAgAcervo);
