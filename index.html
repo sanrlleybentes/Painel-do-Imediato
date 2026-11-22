@@ -1467,6 +1467,33 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .agevw{display:flex;gap:4px;align-items:center}
 .agevw .mini{padding:4px 7px;white-space:nowrap}
 .agev.ligada{border-color:var(--bordo);background:#F1F5E9}
+/* ===== SECOM: Controle de Prazos ===== */
+.secPzNav{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.secPzNav b{font:700 13px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);min-width:170px;text-align:center}
+.secPzSem,.secPzGrade{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.secPzSem span{font:600 10px var(--mono);color:var(--muted);text-align:center;padding:2px 0}
+.secPzDia{min-height:62px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.secPzDia.fora{background:transparent;border-color:transparent}
+.secPzDia.hoje{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+.secPzDia>b{font:600 11px var(--mono);color:var(--muted)}
+.secPzChip{display:block;width:100%;text-align:left;border:0;border-radius:5px;padding:2px 5px;font:600 10.5px var(--body);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#E8EEF6;color:#244}
+.secPzChip.atrasada,.secPzChip.hoje{background:#F6DAD4;color:#7a2416}
+.secPzChip.breve{background:#F7EBCB;color:#6b4c0c}
+.secPzH{margin:18px 0 8px;font:700 13px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.secPzItem{border:1px solid var(--line);border-left:4px solid #8aa3c4;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.secPzItem.atrasada,.secPzItem.hoje{border-left-color:var(--alert)}
+.secPzItem.breve{border-left-color:var(--brass)}
+.secPzItem.feita{border-left-color:var(--bordo);opacity:.85}
+.secPzItem.pisca{box-shadow:0 0 0 3px var(--brass)}
+.secPzCab{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.secPzQuando{font:700 13px var(--mono);color:var(--ink)}
+.secPzMeta{font-size:12px;color:var(--muted);margin-top:4px}
+.secPzAcoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.secPzDet{margin-top:14px}
+.secPzDet summary{cursor:pointer;font:600 12px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.secPzRat{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:rgba(255,255,255,.6)}
+.secPzResp{display:block;margin-top:6px;font-size:13px}
+@media (max-width:700px){.secPzDia{min-height:44px}.secPzChip{font-size:9.5px}}
 </style>
 
 
@@ -2318,7 +2345,6 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="subtabs" id="subViagemGrade">
         <button data-sub="condicao3" aria-selected="true">Condição III</button>
         <button data-sub="dem" aria-selected="false">DEM</button>
-        <button data-sub="romaria" aria-selected="false" data-romaria></button>
       </div>
       <div id="viagemgrade-condicao3">
         <div class="card reveal">
@@ -2370,7 +2396,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <div class="row">
           <div style="flex:0 1 200px"><label>Modo</label><select id="dexModo">
             <option value="porto">No porto</option><option value="condicao3">Condição III</option>
-            <option value="dem">DEM</option><option value="romaria" data-romaria></option></select></div>
+            <option value="dem">DEM</option></select></div>
           <div style="flex:0 1 220px"><label>Semana</label><select id="dexSemana"></select></div>
         </div>
         <div class="row" style="margin-top:16px">
@@ -2388,7 +2414,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
           <div style="flex:0 1 200px"><label>Modo</label><select id="dbModo">
             <option value="">Todos</option>
             <option value="porto">No porto</option><option value="condicao3">Condição III</option>
-            <option value="dem">DEM</option><option value="romaria" data-romaria></option></select></div>
+            <option value="dem">DEM</option></select></div>
         </div>
         <div class="scroller" id="listDetBanco"></div>
       </div>
@@ -2427,7 +2453,6 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="subtabs" id="subServicosViagem">
         <button data-sub="scondicao3" aria-selected="true">Condição III</button>
         <button data-sub="sdem" aria-selected="false">DEM</button>
-        <button data-sub="sromaria" aria-selected="false" data-romaria></button>
       </div>
       <div id="servviagem-scondicao3">
         <div class="card reveal">
@@ -2539,24 +2564,16 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   <div class="subtabs" id="subSecom">
     <button data-sub="msg" aria-selected="true">MSG</button>
     <button data-sub="expediente" aria-selected="false">Expediente</button>
+    <button data-sub="lqc" aria-selected="false">Livro de Quarto de Convés</button>
   </div>
 
-  <div class="card reveal hidden" id="secTranca">
-    <h2>SECOM <span class="n">&#128274;</span></h2>
-    <p class="hint" style="margin:0 0 12px">As mensagens da SECOM ficam no banco protegido. Digite o código de 6 dígitos do aplicativo autenticador.</p>
-    <div class="row" style="align-items:flex-end">
-      <div style="flex:0 1 220px"><label>Código do autenticador</label><input type="text" id="secSenha" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
-      <div style="flex:0 1 auto"><button class="btn" id="secEntrar">Abrir</button></div>
-    </div>
-    <p class="hint" style="margin:12px 2px 0">O código muda a cada 30 segundos e vale só para a sua conta. Confirmado, a área fica aberta por 30 minutos.</p>
-  </div>
 
   <div id="secom-msg" class="hidden">
     <div class="subtabs" id="subSecMsg">
       <button data-sub="RX" aria-selected="true">RX</button>
       <button data-sub="TX" aria-selected="false">TX</button>
       <button data-sub="prazos" aria-selected="false">Controle de Prazos</button>
-      <button data-sub="geral" aria-selected="false">Controle Geral</button>
+      <button data-sub="geral" aria-selected="false">Intérprete de MSG</button>
     </div>
 
     <div class="card reveal" id="secCardLista">
@@ -2574,12 +2591,18 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
     </div>
 
     <div class="card reveal hidden" id="secCardPrazos">
-      <h2>Controle de Prazos</h2>
-      <p class="hint" style="margin:0">Próxima etapa: as MSG que pedem resposta, com o prazo lido do texto e a marcação de respondida.</p>
+      <h2>Controle de Prazos <span class="n" id="nSecPz">0</span></h2>
+      <p class="hint" style="margin:0 0 12px">As MSG RX que exigem resposta e ainda não foram respondidas, com o prazo lido do texto pelo Intérprete de MSG (hora local do navio). Quando você grava uma TX que cita a RX, ela sai daqui sozinha. Respostas por e-mail, ofício ou outro documento você registra em <b>Registrar resposta</b>. As MSG gravadas antes de 22/11/2026 contam como já respondidas.</p>
+      <div class="kpis" id="secPzKpis" style="margin-bottom:14px"></div>
+      <div class="secPzNav"><button type="button" class="mini" id="secPzAnt">&#9664;</button><b id="secPzMesTit"></b><button type="button" class="mini" id="secPzProx">&#9654;</button></div>
+      <div id="secPzCal"></div>
+      <h3 class="secPzH">Pendentes</h3>
+      <div id="secPzLista"></div>
+      <details class="secPzDet"><summary>Respondidas e dispensadas (<span id="secPzNFeitas">0</span>)</summary><div id="secPzFeitas"></div></details>
     </div>
 
     <div class="card reveal hidden" id="secCardGeral">
-      <h2>Controle Geral <span class="n" id="nSecRat">0</span></h2>
+      <h2>Intérprete de MSG <span class="n" id="nSecRat">0</span></h2>
       <p class="hint" style="margin:0 0 12px">Envie o arquivo da MSG (.txt ou PDF da ficha SIGDEM / e-mail) ou cole o texto. O SIGAB lê o cabeçalho e mostra os campos para você conferir. Só depois de <b>Ratificar e gravar</b> ela vai para o banco.</p>
       <div class="row" style="align-items:flex-end">
         <div style="flex:1 1 260px"><label>Arquivos da MSG</label><input type="file" id="secArq" accept=".txt,.pdf,text/plain,application/pdf" multiple></div>
@@ -2592,6 +2615,10 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 
   <div id="secom-expediente" class="hidden">
     <div class="card reveal"><h2>Expediente</h2><p class="hint" style="margin:0">Aguardando a definição do que entra em Expediente.</p></div>
+  </div>
+
+  <div id="secom-lqc" class="hidden">
+    <div class="card reveal"><h2>Livro de Quarto de Convés</h2><p class="hint" style="margin:0">Aguardando a definição do que entra no Livro de Quarto de Convés.</p></div>
   </div>
 </section>
 
@@ -4905,12 +4932,12 @@ async function agMsgAbre(ref){
   $('#agMsgFaina').textContent=it?it.tit:'';
   $('#agMsgBusca').value='';
   $('#agMsgModal').classList.remove('hidden');
-  if(!tfaValido()){
-    $('#agMsgLista').innerHTML='<div class="agmvazio">O banco de MSG é protegido. Abra o módulo <b>SECOM</b>, confirme o código do autenticador e volte aqui.</div>';return;}
+  if(!podeVerSecom()){
+    $('#agMsgLista').innerHTML='<div class="agmvazio">O banco de MSG do <b>SECOM</b> só abre para o ADMIN e para quem ele liberou.</div>';return;}
   if(SEC.msgs==null){
     $('#agMsgLista').innerHTML='<div class="agmvazio">Carregando as mensagens…</div>';
     try{const r=await acessoChama('secom_listar',{});SEC.msgs=r.msgs||[];}
-    catch(e){if(/autenticador/i.test(e.message))TFA_ATE=0;
+    catch(e){
       $('#agMsgLista').innerHTML='<div class="agmvazio">'+esc(e.message)+'</div>';return;}
   }
   agMsgLista();
@@ -5826,7 +5853,7 @@ const CHAVE_DONOS={crew:['efetivo'],efetivo:['efetivo'],saude:['efetivo'],medica
   cfg:['painel','efetivo','ferias','servico','munic','agenda','obtencao','config']};
 const MOD_QUANTOCA=[['quadro','Quadro'],['historico','Histórico e Exportar'],['pessoal','Pessoal e Banco de dados']];
 /* Cada trava com 2FA só serve a quem EDITA o módulo dono dela: ter o 2FA não basta. */
-const TRAVA_MOD={'#secTranca':['secom','SECOM'],'#pbTranca':['efetivo','Pessoal','plano'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
+const TRAVA_MOD={'#pbTranca':['efetivo','Pessoal','plano'],'#cfgTranca':['config','Configurações'],'#obtCfgTranca':['obtencao','Obtenção']};
 /* Ações avulsas: liberadas além da permissão do módulo. Guardadas junto com o
    acesso rápido (modulo 'acao:<nome>'), lendo o nível assim:
      edita  = todos, inclusive o acesso rápido   (padrão quando não há linha)
@@ -18501,7 +18528,6 @@ async function secTextoDoArquivo(f){
 }
 
 /* ---- tela ---- */
-function secTrancado(){return !tfaValido();}
 async function secCarrega(){
   if(SEC.carregando)return;
   SEC.carregando=true;SEC.erro='';
@@ -18510,20 +18536,17 @@ async function secCarrega(){
     const r=await acessoChama('secom_listar',{});
     SEC.msgs=r.msgs||[];
   }catch(e){
-    if(/autenticador/i.test(e.message)){TFA_ATE=0;}
     SEC.erro=e.message;
   }finally{SEC.carregando=false;}
   renderSecom();
 }
 function renderSecom(){
-  const pode=podeVerSecom();
-  const tranc=pode&&secTrancado();
-  if(!pode||tranc){SEC.msgs=null;SEC.corpos={};}           /* sem 2FA, nada fica na memória */
-  $('#secTranca').classList.toggle('hidden',!(pode&&tranc));
-  $('#secom-msg').classList.toggle('hidden',!pode||tranc||SEC.sub!=='msg');
-  $('#secom-expediente').classList.toggle('hidden',!pode||tranc||SEC.sub!=='expediente');
+  const pode=podeVerSecom();                                 /* só o ADMIN e quem ele liberou; sem 2FA */
+  if(!pode){SEC.msgs=null;SEC.corpos={};}                    /* sem permissão, nada fica na memória */
+  $('#secom-msg').classList.toggle('hidden',!pode||SEC.sub!=='msg');
+  $('#secom-expediente').classList.toggle('hidden',!pode||SEC.sub!=='expediente');
+  $('#secom-lqc').classList.toggle('hidden',!pode||SEC.sub!=='lqc');
   if(!pode)return;
-  if(tranc){tfaPreparaTrava('#secTranca');return;}
   if(SEC.sub!=='msg')return;
   const lista=SEC.subMsg==='RX'||SEC.subMsg==='TX';
   $('#secCardLista').classList.toggle('hidden',!lista);
@@ -18531,6 +18554,7 @@ function renderSecom(){
   $('#secCardGeral').classList.toggle('hidden',SEC.subMsg!=='geral');
   if(SEC.msgs==null&&!SEC.erro){secCarrega();return;}
   if(lista)secRenderLista();
+  if(SEC.subMsg==='prazos')secRenderPrazos();
   if(SEC.subMsg==='geral')secRenderRat();
 }
 function secOpcoes(){
@@ -18595,7 +18619,188 @@ async function secAbre(d){
   }
 }
 
-/* ---- Controle Geral: ler, ratificar, gravar ---- */
+/* ═══════════ Controle de Prazos ═══════════
+   Regras do pacote do Agente de MSG (prazos.md): vale o texto, não a ficha; "P" é hora local, "Z" é UTC
+   (local = Z − 3h); ano do DTG quando o texto não traz; prazo vago não vira data; vários prazos, vale o mais cedo.
+   Cada MSG guarda em `controle`: {exige, prazo, prazo_txt, meio, tipo, origem, motivo, respondida}.
+   MSG sem `controle` são anteriores ao controle e contam como respondidas: o calendário nasce limpo. */
+const SEC_PZ_INICIO='2026-11-22';
+function secNorm(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();}
+function secPz2(n){return String(n).padStart(2,'0');}
+/* data local (Date) → 'AAAA-MM-DDTHH:MM' */
+function secPzIso(d){return d.getFullYear()+'-'+secPz2(d.getMonth()+1)+'-'+secPz2(d.getDate())+'T'+secPz2(d.getHours())+':'+secPz2(d.getMinutes());}
+/* o que a MSG RX pede: devolve o controle sugerido (o usuário confere no Intérprete antes de gravar) */
+function secPrazoLe(m){
+  if(!m||m.lado!=='RX')return null;
+  const T=secNorm((m.assunto||'')+' \n '+(m.corpo||'')).replace(/\s+/g,' ');
+  const d=/^(\d{2})(\d{2})(\d{2})Z\/([A-Z]{3})\/(\d{4})$/.exec(String(m.dtg||'').toUpperCase());
+  const baseAno=d?+d[5]:new Date().getFullYear(), baseMes=d?SEC_MESES.indexOf(d[4])+1:new Date().getMonth()+1;
+  const base=d?new Date(Date.UTC(baseAno,baseMes-1,+d[1],+d[2],+d[3])):new Date();
+  const MES='(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)';
+  const anoDe=(mes,ano)=>ano?(String(ano).length===2?2000+(+ano):+ano):(mes<baseMes?baseAno+1:baseAno);
+  const achados=[];
+  /* até 041200P[/JUL] ou 041200Z */
+  for(const x of T.matchAll(new RegExp('ATE\\s+(?:AS?\\s+)?(\\d{2})(\\d{2})(\\d{2})\\s*([PZ])(?:\\s*\\/\\s*'+MES+'(?:\\s*\\/\\s*(\\d{4}))?)?','g'))){
+    const mes=x[5]?SEC_MESES.indexOf(x[5])+1:baseMes, ano=anoDe(mes,x[6]);
+    let t=Date.UTC(ano,mes-1,+x[1],+x[2],+x[3]); if(x[4]==='Z')t-=3*3600e3;      /* tudo em hora local do navio (UTC−3) */
+    const u=new Date(t);
+    achados.push({quando:t,iso:u.getUTCFullYear()+'-'+secPz2(u.getUTCMonth()+1)+'-'+secPz2(u.getUTCDate())+'T'+secPz2(u.getUTCHours())+':'+secPz2(u.getUTCMinutes()),txt:x[0].trim(),hora:true});
+  }
+  /* até (o dia) 15SET / 15 SET 2026 — sem "de cada mês" */
+  for(const x of T.matchAll(new RegExp('ATE\\s+(?:O\\s+DIA\\s+)?(\\d{1,2})\\s*(?:DE\\s+)?'+MES+'[A-Z]*\\.?(?:\\s*(?:DE\\s+|\\/\\s*)?(\\d{4}|\\d{2}(?!\\d)))?','g'))){
+    const mes=SEC_MESES.indexOf(x[2])+1, ano=anoDe(mes,x[3]), dia=+x[1];
+    if(dia<1||dia>31)continue;
+    achados.push({quando:Date.UTC(ano,mes-1,dia,23,59),iso:ano+'-'+secPz2(mes)+'-'+secPz2(dia),txt:x[0].trim(),hora:false});
+  }
+  /* no prazo de N dias (contados do DTG) */
+  for(const x of T.matchAll(/NO PRAZO (?:MAXIMO )?DE (\d{1,3}) (?:\(\w+\) )?DIAS/g)){
+    const u=new Date(base.getTime()-3*3600e3+(+x[1])*864e5);
+    achados.push({quando:Date.UTC(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate(),23,59),
+      iso:u.getUTCFullYear()+'-'+secPz2(u.getUTCMonth()+1)+'-'+secPz2(u.getUTCDate()),txt:x[0],hora:false});
+  }
+  achados.sort((a,b)=>a.quando-b.quando);
+  const pedido=/\b(SOL|SOLICITO|DET|DETERMINO|CPR|ENC|ENCAMINHAR|INF|INFORMAR|IND|INDICAR|APS|APRESENTAR|RSP|RAT|DEVERA|DEVERAO|CNS PSB|RESTITUIR|REMETER|ENVIAR|PREENCHER|LANCAR|CONFIRMAR)\b/.test(T);
+  const papel=m.papel||'';
+  const dirigida=papel==='acao'||papel==='coletivo'||papel==='coletivo_nao_confirmado';
+  const cond=/CASO HAJA INTERESSE|HAVENDO INTERESSE|CASO POSITIVO|SE HOUVER|CASO HAJA\b/.test(T);
+  const cns=/CNS PSB/.test(T), pref=/PREFERENCIALMENTE ATE/.test(T);
+  const vago=/IMEDIATAMENTE|COM A (?:MAIOR )?BREVIDADE|BREVIDADE POSSIVEL|OPORTUNAMENTE/.test(T);
+  const exige=dirigida&&(achados.length>0||pedido);
+  const meio=/E-?MAIL|CORREIO ELETRONICO|ZIMBRA|@MARINHA/.test(T)?'E-mail':/\bOFICIO\b|\bOF\b N/.test(T)?'Ofício':'MSG';
+  const tipo=!exige?'ciencia':cond?'condicional':cns?'solicitacao':pref?'preferencial':achados.length?'obrigatoria':vago?'vago':'sem_prazo';
+  const p=achados[0];
+  return {exige:exige,prazo:exige&&p?p.iso:'',prazo_txt:achados.map(a=>a.txt).join(' · ')||(vago?'prazo vago (não explícito)':''),
+    meio:meio,tipo:tipo,origem:'auto',motivo:'',respondida:null};
+}
+const SEC_PZ_TIPO={obrigatoria:'Obrigatória',solicitacao:'Solicitação (CNS PSB)',preferencial:'Prazo preferencial',condicional:'Condicional',
+  vago:'Prazo vago',sem_prazo:'Sem prazo explícito',ciencia:'Só ciência'};
+/* DTG citados na TX que batem com RX pendentes: são as que a TX responde */
+function secRespondeA(m){
+  if(!m||m.lado!=='TX')return [];
+  const T=secNorm((m.assunto||'')+' '+(m.corpo||'')), proprio=String(m.dtg||'').slice(0,7);
+  const out=[];
+  for(const x of T.matchAll(/\b[A-Z]?-?(\d{6})Z(?:\s*\/\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)(?:\s*\/\s*(\d{4}))?)?/g)){
+    if(x[1]+'Z'===proprio&&!x[2])continue;
+    (SEC.msgs||[]).forEach(r=>{
+      if(r.lado!=='RX'||!secPendente(r)||out.indexOf(r)>=0)return;
+      const [dd,mm]=String(r.dtg||'').split('/');
+      if(dd!==x[1]+'Z')return;
+      if(x[2]&&mm!==x[2])return;
+      if(x[3]&&String(r.ano)!==x[3])return;
+      out.push(r);
+    });
+  }
+  return out;
+}
+function secPendente(m){const c=m&&m.controle;return !!(c&&c.exige&&!c.respondida);}
+function secPzQuando(c){if(!c||!c.prazo)return null;return new Date(c.prazo.length>10?c.prazo:c.prazo+'T23:59');}
+function secPzStatus(c){
+  const q=secPzQuando(c); if(!q)return 'semprazo';
+  const agora=Date.now(), ms=q.getTime();
+  if(ms<agora)return 'atrasada';
+  const h=hoje(); if(c.prazo.slice(0,10)===h)return 'hoje';
+  if(c.prazo.slice(0,10)<=addDias(h,3))return 'breve';
+  return 'futuro';
+}
+const SEC_PZ_ROT={atrasada:'Atrasada',hoje:'Vence hoje',breve:'Vence em breve',futuro:'No prazo',semprazo:'Sem prazo'};
+function secPzData(c){
+  if(!c||!c.prazo)return 'sem prazo explícito';
+  const [d,h]=c.prazo.split('T');
+  return d.split('-').reverse().join('/')+(h?' '+h.replace(':','h'):'');
+}
+async function secGravaControle(m,controle){
+  const r=await acessoChama('secom_controle',{id:m.id,controle:controle,aparelho_id:aparelhoId()});
+  m.controle=r&&r.controle?r.controle:controle;
+  return m.controle;
+}
+function secRenderPrazos(){
+  const ms=(SEC.msgs||[]).filter(x=>x.lado==='RX'&&x.controle);
+  const pend=ms.filter(secPendente).sort((a,b)=>{
+    const qa=secPzQuando(a.controle),qb=secPzQuando(b.controle);
+    if(!qa&&!qb)return secOrdem(b)-secOrdem(a); if(!qa)return 1; if(!qb)return -1; return qa-qb;});
+  const feitas=ms.filter(x=>x.controle&&(x.controle.respondida||!x.controle.exige)).sort((a,b)=>secOrdem(b)-secOrdem(a));
+  const cont=k=>pend.filter(x=>secPzStatus(x.controle)===k).length;
+  $('#nSecPz').textContent=pend.length;
+  $('#secPzKpis').innerHTML=[['Pendentes',pend.length],['Atrasadas',cont('atrasada')],['Vencem até 3 dias',cont('hoje')+cont('breve')],['Sem prazo',cont('semprazo')]]
+    .map(k=>'<div class="kpi"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('');
+  /* calendário do mês */
+  const ym=SEC.pzMes||hoje().slice(0,7); SEC.pzMes=ym;
+  const [a,mo]=ym.split('-').map(Number), prim=new Date(a,mo-1,1), dias=new Date(a,mo,0).getDate();
+  const vazio=(prim.getDay()+6)%7;
+  const porDia={};
+  pend.forEach(x=>{const c=x.controle; if(!c.prazo||c.prazo.slice(0,7)!==ym)return; (porDia[+c.prazo.slice(8,10)]=porDia[+c.prazo.slice(8,10)]||[]).push(x);});
+  let g='<div class="secPzSem">'+['SEG','TER','QUA','QUI','SEX','SÁB','DOM'].map(s=>'<span>'+s+'</span>').join('')+'</div><div class="secPzGrade">';
+  for(let i=0;i<vazio;i++)g+='<div class="secPzDia fora"></div>';
+  for(let dd=1;dd<=dias;dd++){
+    const iso=ym+'-'+secPz2(dd), it=(porDia[dd]||[]).sort((p,q)=>secPzQuando(p.controle)-secPzQuando(q.controle));
+    g+='<div class="secPzDia'+(iso===hoje()?' hoje':'')+'"><b>'+dd+'</b>'+it.map(x=>{
+      const c=x.controle,h=c.prazo.length>10?c.prazo.slice(11).replace(':','h')+' ':'';
+      return '<button type="button" class="secPzChip '+secPzStatus(c)+'" data-pzver="'+x.id+'" title="'+esc((x.letra||'')+x.dtg+' — '+(x.assunto||''))+'">'+esc(h+(x.assunto||x.dtg).slice(0,28))+'</button>';
+    }).join('')+'</div>';
+  }
+  g+='</div>';
+  $('#secPzMesTit').textContent=AG_MLONGO[mo]+' de '+a;
+  $('#secPzCal').innerHTML=g;
+  const linha=(x,feita)=>{
+    const c=x.controle, st=feita?'feita':secPzStatus(c);
+    const resp=c.respondida;
+    return '<div class="secPzItem '+st+'" id="secPz-'+x.id+'"><div class="secPzCab">'+
+      '<span class="secPzQuando">'+esc(feita?(resp?'Respondida':'Dispensada'):secPzData(c))+'</span>'+
+      '<span class="pill '+({atrasada:'red',hoje:'red',breve:'out',futuro:'blue',semprazo:'',feita:'in'}[st])+'">'+(feita?(resp?'Respondida':'Não exige'):SEC_PZ_ROT[st])+'</span>'+
+      '<b class="mono">'+esc((x.letra||'')+x.dtg)+'</b> <span>'+esc(x.assunto||'(sem assunto)')+'</span></div>'+
+      '<div class="secPzMeta">De '+esc(x.de||'—')+' · responder por <b>'+esc(c.meio||'MSG')+'</b> · '+esc(SEC_PZ_TIPO[c.tipo]||c.tipo||'')+
+      (c.prazo_txt?' · lido no texto: '+esc(c.prazo_txt):'')+'</div>'+
+      (feita?'<div class="secPzMeta">'+(resp?(resp.tx_dtg?'Respondida pela TX <b class="mono">'+esc(resp.tx_dtg)+'</b>':'Respondida por '+esc(resp.por||'')+': '+esc(resp.texto||''))+(resp.em?' em '+esc(brDate(resp.em.slice(0,10))):''):'Motivo: '+esc(c.motivo||'—'))+
+        ' <button type="button" class="mini" data-pzreabre="'+x.id+'">Reabrir</button></div>':
+      '<div class="secPzAcoes"><button type="button" class="mini" data-pzresp="'+x.id+'">Registrar resposta</button>'+
+        '<button type="button" class="mini" data-pzprazo="'+x.id+'">Corrigir prazo</button>'+
+        '<button type="button" class="mini" data-pzdisp="'+x.id+'">Não exige resposta</button></div><div class="secPzForm" id="secPzForm-'+x.id+'"></div>')+
+    '</div>';
+  };
+  $('#secPzLista').innerHTML=pend.length?pend.map(x=>linha(x,false)).join(''):'<div class="secVazio">Nenhuma MSG pendente de resposta.</div>';
+  $('#secPzFeitas').innerHTML=feitas.length?feitas.slice(0,60).map(x=>linha(x,true)).join(''):'<div class="secVazio">Nada ainda.</div>';
+  $('#secPzNFeitas').textContent=feitas.length;
+}
+function secPzAbreForm(id,qual){
+  const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m)return;
+  const box=$('#secPzForm-'+id); if(!box)return;
+  const c=m.controle||{};
+  if(qual==='resp')box.innerHTML='<div class="row" style="align-items:flex-end;gap:8px;margin-top:8px">'+
+    '<div style="flex:0 1 150px"><label>Respondi por</label><select id="pzMeio-'+id+'">'+['MSG','E-mail','Ofício','Outro'].map(o=>'<option'+(o===(c.meio||'MSG')?' selected':'')+'>'+o+'</option>').join('')+'</select></div>'+
+    '<div style="flex:1 1 300px"><label>O que foi enviado (DTG, nº do ofício, assunto do e-mail…)</label><input type="text" id="pzTxt-'+id+'"></div>'+
+    '<button type="button" class="btn" data-pzrespok="'+id+'">Gravar resposta</button></div>';
+  if(qual==='prazo'){const [dd,hh]=(c.prazo||'').split('T');box.innerHTML='<div class="row" style="align-items:flex-end;gap:8px;margin-top:8px">'+
+    '<div style="flex:0 1 170px"><label>Data</label><input type="date" id="pzData-'+id+'" value="'+esc(dd||'')+'"></div>'+
+    '<div style="flex:0 1 120px"><label>Hora (local)</label><input type="time" id="pzHora-'+id+'" value="'+esc(hh||'')+'"></div>'+
+    '<button type="button" class="btn" data-pzprazook="'+id+'">Gravar prazo</button></div>';}
+  if(qual==='disp')box.innerHTML='<div class="row" style="align-items:flex-end;gap:8px;margin-top:8px">'+
+    '<div style="flex:1 1 300px"><label>Por que não exige resposta</label><input type="text" id="pzMot-'+id+'" placeholder="Ex.: só ciência; não se aplica ao navio"></div>'+
+    '<button type="button" class="btn" data-pzdispok="'+id+'">Confirmar</button></div>';
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-pzver],[data-pzresp],[data-pzprazo],[data-pzdisp],[data-pzrespok],[data-pzprazook],[data-pzdispok],[data-pzreabre],#secPzAnt,#secPzProx');
+  if(!t)return;
+  if(t.id==='secPzAnt'||t.id==='secPzProx'){const [a,m]=(SEC.pzMes||hoje().slice(0,7)).split('-').map(Number);
+    const d=new Date(a,m-1+(t.id==='secPzAnt'?-1:1),1);SEC.pzMes=d.getFullYear()+'-'+secPz2(d.getMonth()+1);secRenderPrazos();return;}
+  if(t.dataset.pzver){const el=$('#secPz-'+t.dataset.pzver);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('pisca');setTimeout(()=>el.classList.remove('pisca'),1600);}return;}
+  if(t.dataset.pzresp){secPzAbreForm(t.dataset.pzresp,'resp');return;}
+  if(t.dataset.pzprazo){secPzAbreForm(t.dataset.pzprazo,'prazo');return;}
+  if(t.dataset.pzdisp){secPzAbreForm(t.dataset.pzdisp,'disp');return;}
+  const id=t.dataset.pzrespok||t.dataset.pzprazook||t.dataset.pzdispok||t.dataset.pzreabre;
+  const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m)return;
+  const c=Object.assign({},m.controle||{});
+  if(t.dataset.pzrespok){const txt=$('#pzTxt-'+id).value.trim(); if(!txt){toast('Diga o que foi enviado.',true);return;}
+    c.respondida={por:$('#pzMeio-'+id).value,texto:txt,em:secPzIso(new Date()),quem:(PERFIL&&PERFIL.email)||''};}
+  if(t.dataset.pzprazook){const d=$('#pzData-'+id).value,h=$('#pzHora-'+id).value; c.prazo=d?(h?d+'T'+h:d):''; c.origem='manual';}
+  if(t.dataset.pzdispok){c.exige=false;c.motivo=$('#pzMot-'+id).value.trim()||'não exige resposta';}
+  if(t.dataset.pzreabre){c.exige=true;c.respondida=null;c.motivo='';}
+  t.disabled=true;
+  try{await secGravaControle(m,c);toast('Controle de prazo gravado.');}
+  catch(err){toast(err.message,true);t.disabled=false;return;}
+  secRenderPrazos();
+});
+
+/* ---- Intérprete de MSG: ler, ratificar, gravar ---- */
 const SEC_CAMPOS=[['lado','Lado'],['dtg','Data-hora (ddhhmmZ/MMM/AAAA)'],['letra','Letra'],['precedencia','Precedência'],
   ['sigilo','Sigilo'],['papel','Papel do AVHOTO'],['de','De'],['para','Para'],['info','Info'],['assunto','Assunto']];
 function secRatCampo(i,k,rot,v){
@@ -18610,6 +18815,27 @@ function secRatCampo(i,k,rot,v){
 function secDuplicataLocal(m){
   return (SEC.msgs||[]).find(x=>x.lado===m.lado&&x.dtg===m.dtg&&(x.de||'')===(m.de||''));
 }
+/* RX: o que a MSG pede e até quando (lido do texto; o usuário confere). TX: quais RX pendentes ela responde. */
+function secRatPrazoHtml(m,i){
+  if(m.lado==='RX'){
+    if(m.controle===undefined||m._pzLado!=='RX'){m.controle=secPrazoLe(m);m._pzLado='RX';}
+    const c=m.controle||{exige:false};
+    const [d,h]=(c.prazo||'').split('T');
+    return '<div class="secPzRat"><b>Controle de prazo</b>'+
+      '<div class="secGrade"><div><label>Exige resposta?</label><select data-pz="'+i+'" data-pk="exige"><option value="1"'+(c.exige?' selected':'')+'>Sim</option><option value="0"'+(!c.exige?' selected':'')+'>Não</option></select></div>'+
+      '<div><label>Prazo (data)</label><input type="date" data-pz="'+i+'" data-pk="data" value="'+esc(d||'')+'"></div>'+
+      '<div><label>Hora local</label><input type="time" data-pz="'+i+'" data-pk="hora" value="'+esc(h||'')+'"></div>'+
+      '<div><label>Responder por</label><select data-pz="'+i+'" data-pk="meio">'+['MSG','E-mail','Ofício','Outro'].map(o=>'<option'+(o===c.meio?' selected':'')+'>'+o+'</option>').join('')+'</select></div></div>'+
+      '<p class="hint" style="margin:6px 0 0">'+esc(SEC_PZ_TIPO[c.tipo]||'')+(c.prazo_txt?' · lido no texto: '+esc(c.prazo_txt):' · nenhum prazo com data no texto')+'</p></div>';
+  }
+  m._pzLado='TX';
+  const rs=secRespondeA(m);
+  m.responde=rs.map(r=>r.id).filter(id=>!(m.respNao||[]).includes(id));
+  if(!rs.length)return '<div class="secPzRat"><b>Controle de prazo</b><p class="hint" style="margin:4px 0 0">Esta TX não cita nenhuma RX pendente.</p></div>';
+  return '<div class="secPzRat"><b>Esta TX responde a</b>'+rs.map(r=>'<label class="secPzResp"><input type="checkbox" data-pzresptx="'+i+'" value="'+r.id+'"'+(m.responde.includes(r.id)?' checked':'')+'> '+
+    '<b class="mono">'+esc((r.letra||'')+r.dtg)+'</b> '+esc(r.assunto||'')+' <span class="hint">(prazo: '+esc(secPzData(r.controle))+')</span></label>').join('')+
+    '<p class="hint" style="margin:4px 0 0">Ao gravar a TX, as marcadas saem do Controle de Prazos como respondidas por ela.</p></div>';
+}
 function secRenderRat(){
   $('#nSecRat').textContent=SEC.rat.length;
   $('#secRatLista').innerHTML=SEC.rat.map((m,i)=>{
@@ -18619,6 +18845,7 @@ function secRenderRat(){
       av.map(a=>'<p class="secAviso">'+esc(a)+'</p>').join('')+
       '<div class="secGrade">'+SEC_CAMPOS.map(([k,r])=>secRatCampo(i,k,r,m[k])).join('')+
       '<div class="larga"><label>Texto da MSG</label><textarea data-rat="'+i+'" data-k="corpo">'+esc(m.corpo||'')+'</textarea></div></div>'+
+      secRatPrazoHtml(m,i)+
       '<div class="row" style="margin-top:10px;gap:8px"><button class="btn" data-ratok="'+i+'">Ratificar e gravar</button>'+
       '<button class="btn ghost" data-ratfora="'+i+'">Descartar</button></div></div>';
   }).join('');
@@ -18626,6 +18853,18 @@ function secRenderRat(){
     const m=SEC.rat[+el.dataset.rat]; if(!m)return;
     m[el.dataset.k]=el.dataset.k==='dtg'||el.dataset.k==='letra'?el.value.toUpperCase().replace(/\s+/g,''):el.value;
   }));
+  $$('#secRatLista [data-pz]').forEach(el=>el.addEventListener('change',()=>{
+    const m=SEC.rat[+el.dataset.pz]; if(!m)return; const c=m.controle=m.controle||{exige:false,prazo:'',meio:'MSG',tipo:'sem_prazo',origem:'manual'};
+    const k=el.dataset.pk;
+    if(k==='exige')c.exige=el.value==='1';
+    if(k==='meio')c.meio=el.value;
+    if(k==='data'||k==='hora'){const box=el.closest('.secPzRat'),d=box.querySelector('[data-pk="data"]').value,h=box.querySelector('[data-pk="hora"]').value;c.prazo=d?(h?d+'T'+h:d):'';c.origem='manual';}
+  }));
+  $$('#secRatLista [data-pzresptx]').forEach(el=>el.addEventListener('change',()=>{
+    const m=SEC.rat[+el.dataset.pzresptx]; if(!m)return; const id=+el.value; m.respNao=m.respNao||[];
+    if(el.checked)m.respNao=m.respNao.filter(x=>x!==id); else if(!m.respNao.includes(id))m.respNao.push(id);
+  }));
+  $$('#secRatLista [data-rat][data-k="lado"]').forEach(el=>el.addEventListener('change',()=>secRenderRat()));
   $$('#secRatLista [data-ratfora]').forEach(b=>b.onclick=()=>{SEC.rat.splice(+b.dataset.ratfora,1);secRenderRat();});
   $$('#secRatLista [data-ratok]').forEach(b=>b.onclick=()=>secRatifica(+b.dataset.ratok,b));
 }
@@ -18639,18 +18878,27 @@ async function secRatifica(i,b){
   try{
     const corpo={lado:m.lado,dtg:m.dtg,letra:m.letra,precedencia:m.precedencia,de:secLimpa(m.de),para:secLimpa(m.para),
       info:secLimpa(m.info),assunto:secLimpa(m.assunto),sigilo:secLimpa(m.sigilo),papel:m.papel,corpo:m.corpo||'',
-      ficha:m.ficha||null,formato:m.formato,arquivo:m.arquivo};
+      ficha:m.ficha||null,formato:m.formato,arquivo:m.arquivo,
+      controle:m.lado==='RX'?Object.assign({},m.controle||secPrazoLe(m)||{exige:false},{respondida:null}):null};
     const r=await acessoChama('secom_incluir',{msg:corpo,aparelho_id:aparelhoId()});
     if(r.duplicata){toast('Essa MSG já está no banco. Nada foi gravado.',true);b.disabled=false;return;}
     SEC.rat.splice(i,1);
     if(SEC.msgs)SEC.msgs.push({id:r.id,lado:corpo.lado,ano:+md[4],mes:SEC_MESES.indexOf(md[3])+1,dtg:corpo.dtg,
       letra:(corpo.letra||'').toUpperCase()||null,precedencia:corpo.precedencia||null,assunto:corpo.assunto||null,
-      sigilo:corpo.sigilo||null,papel:corpo.papel,de:corpo.de||null,para:corpo.para||null,info:corpo.info||null});
-    toast('MSG '+corpo.lado+' '+corpo.dtg+' gravada no banco.');
+      sigilo:corpo.sigilo||null,papel:corpo.papel,de:corpo.de||null,para:corpo.para||null,info:corpo.info||null,controle:corpo.controle});
+    let baixas=0;
+    if(corpo.lado==='TX'){
+      for(const rid of secRespondeA(m).map(x=>x.id).filter(id=>!(m.respNao||[]).includes(id))){
+        const rx=(SEC.msgs||[]).find(x=>x.id===rid); if(!rx)continue;
+        try{await secGravaControle(rx,Object.assign({},rx.controle,{respondida:{por:'MSG',tx_id:r.id,tx_dtg:(corpo.letra||'')+corpo.dtg,
+          texto:'TX '+(corpo.letra||'')+corpo.dtg,em:secPzIso(new Date()),quem:(PERFIL&&PERFIL.email)||''}}));baixas++;}
+        catch(e){toast('A TX foi gravada, mas não deu baixa em '+rx.dtg+': '+e.message,true);}
+      }
+    }
+    toast('MSG '+corpo.lado+' '+corpo.dtg+' gravada no banco.'+(baixas?' Deu baixa em '+baixas+' RX no Controle de Prazos.':''));
     secRenderRat();
   }catch(e){
     b.disabled=false;
-    if(/autenticador/i.test(e.message)){TFA_ATE=0;toast(e.message,true);renderSecom();return;}
     toast(e.message,true);
   }
 }
@@ -18680,7 +18928,6 @@ $('#secInterpretar').onclick=()=>{
   const t=$('#secCola').value; if(!t.trim()){toast('Cole o texto da MSG.',true);return;}
   SEC.rat.push(secInterpreta(t,'txt',''));$('#secCola').value='';secRenderRat();
 };
-ligaTrava('#secSenha','#secEntrar',()=>{SEC.erro='';renderSecom();});
 ligaTrava('#pbSenha','#pbEntrar',()=>{PB_ABERTO=podeVerPlano();renderPlano();});
 if($('#pbFechar'))$('#pbFechar').onclick=()=>{PB_ABERTO=false;TFA_ATE=0;renderPlano();};
 if($('#pbBusca'))$('#pbBusca').addEventListener('input',renderListaPB);
