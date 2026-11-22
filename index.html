@@ -18386,18 +18386,18 @@ function secPrecDe(m){
   if(p)return p.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   return {R:'ROTINA',P:'PREFERENCIAL'}[m.letra]||'';
 }
-/* o banco tem a mesma classificação escrita de vários jeitos: agrupa para o filtro */
-function secSigiloDe(m){
-  const v=String(m.sigilo||'').trim(); if(!v)return 'Não informado';
+/* Nome oficial de cada sigilo. Documento preparatório (completo ou não) é sempre "DOCUMENTO PREPARATÓRIO - ACESSO RESTRITO";
+   Ostensivo e Sem restrição são a mesma coisa e ficam em "Sem restrição". Vale na leitura, na ratificação e no servidor. */
+function secSigiloCanon(v){
+  v=String(v||'').trim(); if(!v)return '';
   const k=v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  if(k.includes('preparat')&&k.includes('restrit'))return 'Documento preparatório – acesso restrito';
-  if(k.includes('preparat'))return 'Documento preparatório';
-  if(k.startsWith('sem restri'))return 'Sem restrição';
-  if(k.startsWith('ostensivo'))return 'Ostensivo';
+  if(k.includes('preparat'))return 'DOCUMENTO PREPARATÓRIO - ACESSO RESTRITO';
+  if(k.startsWith('sem restri')||k.startsWith('ostensivo'))return 'Sem restrição';
   if(k.includes('pessoal'))return 'Informação pessoal';
   if(k.includes('p&d'))return 'Informação de P&D';
   return v;
 }
+function secSigiloDe(m){return secSigiloCanon(m.sigilo)||'Não informado';}
 function secOrdem(m){return (+m.ano||0)*1e8+(+m.mes||0)*1e6+(parseInt(String(m.dtg||'').slice(0,6),10)||0);}
 
 /* ---- leitura do cabeçalho (porte do ler_msg.py do pacote do Agente de MSG) ---- */
@@ -18490,7 +18490,7 @@ function secInterpreta(t,base,arquivo){
     out.formato=base==='txt'?'txt':'pdf_email_zimbra';
   }
   out.de=r.de||'';out.para=r.para||'';out.info=r.info||'';out.assunto=r.assunto||'';
-  out.sigilo=r.classificacao||'';out.corpo=r.corpo||'';out.precedencia=r.precedencia||'';
+  out.sigilo=secSigiloCanon(r.classificacao);out.corpo=r.corpo||'';out.precedencia=r.precedencia||'';
   if(r.ficha&&Object.keys(r.ficha).length)out.ficha=r.ficha;
   const d=SEC_DTG.exec(r.dtg_bruto||'');
   if(d){
@@ -18877,7 +18877,7 @@ async function secRatifica(i,b){
   b.disabled=true;
   try{
     const corpo={lado:m.lado,dtg:m.dtg,letra:m.letra,precedencia:m.precedencia,de:secLimpa(m.de),para:secLimpa(m.para),
-      info:secLimpa(m.info),assunto:secLimpa(m.assunto),sigilo:secLimpa(m.sigilo),papel:m.papel,corpo:m.corpo||'',
+      info:secLimpa(m.info),assunto:secLimpa(m.assunto),sigilo:secSigiloCanon(secLimpa(m.sigilo)),papel:m.papel,corpo:m.corpo||'',
       ficha:m.ficha||null,formato:m.formato,arquivo:m.arquivo,
       controle:m.lado==='RX'?Object.assign({},m.controle||secPrazoLe(m)||{exige:false},{respondida:null}):null};
     const r=await acessoChama('secom_incluir',{msg:corpo,aparelho_id:aparelhoId()});
