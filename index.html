@@ -4043,15 +4043,19 @@ function ddmmmCurto(iso){if(iso==='-')return '-';const d=new Date(iso+'T12:00:00
 function ausenciasSemana(ref,modo){
   const fimJanela=(modo&&MODO_CFG[modo]&&!MODO_CFG[modo].temPorDoSolRotina)?ref:addDias(ref,6);
   const noPeriodo=(ini,fim)=>!(fim<ref||ini>fimJanela);
-  const ferias=FER.periodos.filter(p=>p.tipo==='ferias'&&p.status!=='cancelada'&&noPeriodo(p.ini,p.fim))
+  /* férias, LTS, dispensa e paternidade tiram da escala: aparecem aqui com o rótulo do tipo */
+  const ROT_AUS={ferias:'FÉRIAS',lts:'LTS',dispensa:'DISPENSA',paternidade:'PATERNIDADE'};
+  const ferias=FER.periodos.filter(p=>ROT_AUS[p.tipo]&&p.status!=='cancelada'&&noPeriodo(p.ini,p.fim))
     .map(p=>{const x=milPorId(p.mil);
-      return {ini:p.ini,txt:(x?rotulo(x):nomeDe(p.mil))+' (FÉRIAS '+ddmmmCurto(p.ini)+' a '+ddmmmCurto(p.fim)+')'};});
+      return {mil:p.mil,ini:p.ini,txt:(x?rotulo(x):nomeDe(p.mil))+' ('+ROT_AUS[p.tipo]+' '+ddmmmCurto(p.ini)+' a '+ddmmmCurto(p.fim)+')'};});
   const destaques=(EFE.eventos||[]).filter(e=>ausenciaTiraDaEscala(e)&&e.pend!=='encerrado'&&e.pend!=='dispensado'&&
       noPeriodo(e.data,e.fim||'9999-12-31'))
     .map(e=>{const x=milPorId(e.mil), rot=e.tipo==='curso_ida'?'CURSO/DST':'DST';
-      return {ini:e.data,txt:(x?rotulo(x):nomeDe(e.mil))+' ('+rot+' '+ddmmmCurto(e.data)+
+      return {mil:e.mil,ini:e.data,txt:(x?rotulo(x):nomeDe(e.mil))+' ('+rot+' '+ddmmmCurto(e.data)+
         (e.fim?' a '+ddmmmCurto(e.fim):' em curso')+')'};});
-  return ferias.concat(destaques).sort((a,b)=>a.ini.localeCompare(b.ini)).map(o=>o.txt);
+  /* ordem de antiguidade (posição do militar na lista da tripulação); no mesmo militar, pela data de início */
+  return ferias.concat(destaques)
+    .sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||a.ini.localeCompare(b.ini)).map(o=>o.txt);
 }
 
 /* ---- campos de data em DD/MM/AAAA (o input real, oculto, guarda AAAA-MM-DD) ---- */
