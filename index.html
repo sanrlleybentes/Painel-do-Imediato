@@ -6664,7 +6664,11 @@ function obtFundeProcessos(novos){
     if(velho){
       const guardar={id:velho.id,fase:velho.fase,obs:velho.obs,
         arquivos:(n.arquivos&&n.arquivos.length)?n.arquivos:(velho.arquivos||[])};
-      porChave.set(k,Object.assign({},velho,n,guardar));
+      /* campo vazio da busca nova NÃO apaga o que já estava gravado: quando o Compras.gov.br não
+         responde, o processo vem só do PNCP, sem valor, NUP nem homologação, e isso zerava tudo */
+      const cheio={}; Object.keys(n).forEach(c=>{const x=n[c]; if(x!=null&&x!==''&&!(Array.isArray(x)&&!x.length))cheio[c]=x;});
+      if(velho.fonte==='compras'&&cheio.fonte==='pncp')cheio.fonte='compras';
+      porChave.set(k,Object.assign({},velho,cheio,guardar));
       atualizados++;
     }else{
       porChave.set(k,Object.assign({id:uid(),fase:'',obs:'',arquivos:[]},n));
@@ -6901,7 +6905,6 @@ const obtOpcoesFase=(p,vazio)=>'<option value="">'+vazio+'</option>'+
   '<optgroup label="Encerrada sem contratação">'+OBT_ENCERRA.map(f=>'<option'+(p.fase===f?' selected':'')+'>'+esc(f)+'</option>').join('')+'</optgroup>';
 
 const obtUasgNavio=()=>String((OBT.uasgs&&OBT.uasgs[0])||'784515');
-const OBT_DIAS_ANTIGA=90; let OBT_VER_ANTIGAS=false;
 const obtDoNavio=p=>String(p.uasg)===obtUasgNavio();
 const obtHomologado=p=>p.homologado!=null&&p.homologado!=='';
 /* em trâmite: publicada e ainda sem homologação. É o que a base sustenta. */
@@ -6948,19 +6951,14 @@ function renderObtRadar(){
   const fora=new Set(OBT.ignorados||[]);
   const chaveDe=p=>'p:'+(p.pncp||p.id);
   const tramiteTudo=meus.filter(p=>obtEmTramite(p)&&/dispensa/i.test(p.modalidade||''));
-  const tramiteBase=tramiteTudo.filter(p=>!fora.has(chaveDe(p)));
-  /* dispensa velha e sem fase marcada quase sempre já terminou e a base aberta não registrou:
-     sai da lista (e do contador) e fica numa linha recolhida, com "mostrar" e "tirar todas" */
-  const antiga=p=>{ if(p.fase)return false; const d=obtDiasAte(p.publicado); return d!==null&&-d>OBT_DIAS_ANTIGA; };
-  const tramiteAntigas=tramiteBase.filter(antiga);
-  const tramite=OBT_VER_ANTIGAS?tramiteBase:tramiteBase.filter(p=>!antiga(p));
+  const tramite=tramiteTudo.filter(p=>!fora.has(chaveDe(p)));
   const tramiteOcultas=tramiteTudo.length-tramite.length;
   const neAbertas=OBT.nes.filter(n=>n.situacao==='emitida');
 
   $('#obtKpis').innerHTML=
     '<div class="kpi"><span>Processos em '+ano+'</span><b>'+doAno.length+'</b></div>'+
     '<div class="kpi"><span>Homologados em '+ano+'</span><b>'+homologados.length+'</b></div>'+
-    '<div class="kpi"><span>Dispensas em trâmite</span><b style="color:'+(tramite.length?'var(--terra)':'inherit')+'">'+(tramite.length-(OBT_VER_ANTIGAS?tramiteAntigas.length:0))+'</b></div>'+
+    '<div class="kpi"><span>Dispensas em trâmite</span><b style="color:'+(tramite.length?'var(--terra)':'inherit')+'">'+tramite.length+'</b></div>'+
     '<div class="kpi"><span>NE sem entrega</span><b style="color:'+(neAbertas.length?'var(--terra)':'inherit')+'">'+neAbertas.length+'</b></div>';
 
   $('#obtRadarEscopo').innerHTML='Escopo do radar: <b>UASG '+esc(obtUasgNavio())+' — '+
@@ -6993,13 +6991,6 @@ function renderObtRadar(){
      }).join('')+'</tbody></table>')
     :'<p class="hint" style="margin:0">Nenhuma dispensa em trâmite.'+
       (meus.length?'':' A base ainda não tem processos desta UASG — clique em <b>Atualizar do governo</b> aqui em cima.')+'</p>';
-  if(tramiteAntigas.length){
-    $('#obtTramite').innerHTML+='<p class="obtocultos">'+tramiteAntigas.length+' dispensa'+(tramiteAntigas.length>1?'s antigas':' antiga')+
-      ' (mais de '+OBT_DIAS_ANTIGA+' dias, sem fase marcada)'+(OBT_VER_ANTIGAS?' aparecendo na lista':' fora da lista')+': '+
-      tramiteAntigas.map(p=>'<b>'+esc(p.compra)+'/'+esc(p.ano)+'</b>').join(', ')+'. '+
-      '<button id="obtVerAntigas">'+(OBT_VER_ANTIGAS?'Esconder':'Mostrar')+'</button> '+
-      '<button id="obtTiraAntigas" title="tira da lista; dá para trazer de volta">Tirar todas</button></p>';
-  }
   if(tramiteOcultas){
     $('#obtTramite').innerHTML+='<p class="obtocultos">'+tramiteOcultas+' dispensa'+(tramiteOcultas>1?'s que você tirou':' que você tirou')+
       ' daqui. <button id="obtVoltaTramite">Trazer de volta</button></p>';
@@ -7016,12 +7007,6 @@ function renderObtRadar(){
     if(await salvar('obtencao',OBT))toast('dispensa reaberta');
     renderObtRadar();
   });
-  if($('#obtVerAntigas'))$('#obtVerAntigas').onclick=()=>{OBT_VER_ANTIGAS=!OBT_VER_ANTIGAS;renderObtRadar();};
-  if($('#obtTiraAntigas'))$('#obtTiraAntigas').onclick=async()=>{
-    OBT.ignorados=[...new Set([...(OBT.ignorados||[]),...tramiteAntigas.map(chaveDe)])];
-    if(await salvar('obtencao',OBT))toast(tramiteAntigas.length+' dispensas antigas tiradas do trâmite');
-    renderObtRadar();
-  };
   $$('[data-tiratramite]').forEach(b=>b.onclick=async()=>{
     OBT.ignorados=[...new Set([...(OBT.ignorados||[]),b.dataset.tiratramite])];
     if(await salvar('obtencao',OBT))toast('dispensa tirada do trâmite');
