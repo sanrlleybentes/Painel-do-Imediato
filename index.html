@@ -1494,6 +1494,12 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .secPzRat{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:rgba(255,255,255,.6)}
 .secPzResp{display:block;margin-top:6px;font-size:13px}
 @media (max-width:700px){.secPzDia{min-height:44px}.secPzChip{font-size:9.5px}}
+
+/* ===== Barra dos módulos fixa: o cabeçalho (brasão, nome, relógio) rola embora; a linha dos módulos,
+   o usuário e a corda grudam no topo, para trocar de módulo sem voltar lá em cima ===== */
+.navFixa{position:sticky;top:0;z-index:60}
+.agbarra{top:calc(var(--navFixaH,0px) + 8px)}
+#mapaMental{top:calc(var(--navFixaH,0px) + 14px) !important}
 </style>
 
 
@@ -1637,6 +1643,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   </div>
 </div>
 
+<div class="navFixa" id="navFixa">
 <div class="faixaSessao hidden" id="faixaSessao"></div>
 
 <div class="tabs" role="tablist">
@@ -1651,6 +1658,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   <button role="tab" data-tab="config" aria-selected="false">Configurações</button>
 </div>
 <div class="cordaDiv" aria-hidden="true"></div>
+</div>
 
 
 <main>
@@ -22008,5 +22016,12 @@ load(true);
   document.addEventListener('click',agenda,true);
   window.addEventListener('resize',agenda);
   setTimeout(desenha,500);
+})();
+
+/* altura da barra fixa, para o que também gruda (mapa mental, barra da Agenda) ficar logo abaixo dela */
+(function(){
+  const nf=document.getElementById('navFixa'); if(!nf)return;
+  const mede=()=>document.documentElement.style.setProperty('--navFixaH',Math.round(nf.getBoundingClientRect().height-6)+'px');
+  if(window.ResizeObserver)new ResizeObserver(mede).observe(nf); addEventListener('resize',mede); mede();
 })();
 </script>
