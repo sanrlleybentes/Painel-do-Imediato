@@ -3527,7 +3527,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div id="obtPorFase" class="obtfases"></div>
     </div>
     <div class="card reveal">
-      <h2>Últimos processos <span class="n" id="nObtRecentes">0</span></h2>
+      <h2>Processos do navio <span class="n" id="nObtRecentes">0</span></h2>
       <div class="scroller" id="obtRecentes"></div>
     </div>
   </div>
@@ -7048,7 +7048,8 @@ function renderObtRadar(){
     s.onchange=async()=>{ await antes(); renderObtRadar(); };
   });
 
-  const recentes=meus.slice(0,12);
+  /* todos os processos do navio, do mais novo para o mais antigo (antes só os 12 primeiros: as dispensas 1 a 14 de 2026 ficavam de fora) */
+  const recentes=meus.slice().sort((a,b)=>String(b.publicado||'').localeCompare(String(a.publicado||''))||(+b.compra||0)-(+a.compra||0));
   $('#nObtRecentes').textContent=recentes.length;
   $('#obtRecentes').innerHTML=recentes.length?obtTabelaProcessos(recentes,true)
     :'<p class="hint" style="margin:0">Sem processos desta UASG na base.</p>';
