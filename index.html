@@ -1500,6 +1500,12 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .navFixa{position:sticky;top:0;z-index:60}
 .agbarra{top:calc(var(--navFixaH,0px) + 8px)}
 #mapaMental{top:calc(var(--navFixaH,0px) + 14px) !important}
+
+/* ===== SECOM: busca no texto das MSG ===== */
+.secBuscaInfo{font-size:12.5px;color:var(--muted);padding:6px 8px 8px}
+.secBuscaInfo.erro{color:var(--alert)}
+.secTrecho{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);line-height:1.35}
+.secMsg mark,.secPre mark{background:#F3D98A;color:inherit;border-radius:2px;padding:0 1px}
 </style>
 
 
@@ -2591,7 +2597,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <div><label>Mês</label><select id="secFMes"></select></div>
         <div><label>Precedência</label><select id="secFPrec"></select></div>
         <div><label>Sigilo</label><select id="secFSig"></select></div>
-        <div class="secBusca"><label>Buscar</label><input type="text" id="secFBusca" placeholder="DTG, assunto ou OM"></div>
+        <div class="secBusca"><label>Buscar</label><input type="text" id="secFBusca" placeholder="DTG, assunto, OM ou qualquer palavra do texto (nome, frase)"></div>
         <div><label>Ordem</label><select id="secFOrd"><option value="d">Mais recentes primeiro</option><option value="c">Mais antigas primeiro</option></select></div>
       </div>
       <div class="secLista" id="secLista"></div>
@@ -18394,7 +18400,7 @@ const SEC_DTG=/([A-Z])?-?\s*(\d{6})\s*Z?\s*\/\s*([A-Za-z]{3})\s*\/\s*(\d{4})/;
 const SEC_PAPEL={origem:['','origem'],acao:['acao','para ação'],ciencia:['ciencia','para ciência'],coletivo:['','por coletivo'],
   coletivo_nao_confirmado:['','coletivo não confirmado'],nao_enderecado:['','AVHOTO não endereçado']};
 
-let SEC={msgs:null,corpos:{},carregando:false,erro:'',lado:'RX',sub:'msg',subMsg:'RX',lim:60,rat:[]};
+let SEC={busca:{q:'',lado:'',achados:null,estado:'',erro:''},msgs:null,corpos:{},carregando:false,erro:'',lado:'RX',sub:'msg',subMsg:'RX',lim:60,rat:[]};
 
 function secLimpa(x){return String(x||'').replace(/\s+/g,' ').trim();}
 function secToks(x){return String(x||'').toUpperCase().split(/[,;\s]+/).filter(Boolean);}
@@ -18586,6 +18592,51 @@ function secOpcoes(){
   const sigs=[...new Set(ms.map(secSigiloDe))].sort((a,b)=>a.localeCompare(b,'pt'));
   keep('#secFSig','<option value="">Todos</option>'+sigs.map(v=>'<option>'+esc(v)+'</option>').join(''));
 }
+/* ── busca no texto das MSG: o texto não vem na lista (seria pesado), então o servidor procura e
+   devolve os ids e um trecho. Sem acento e sem maiúscula; "aspas" = frase exata; várias palavras = todas. ── */
+const secSemAcento=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function secTermos(q){const r=[];String(q||'').replace(/"([^"]+)"|(\S+)/g,(_,f,p)=>{const t=(f||p||'').trim();if(t.length>=2)r.push(t);return '';});return r;}
+const secBuscaChave=q=>secSemAcento(q).replace(/\s+/g,' ').trim();
+function secAchouNoTexto(id){
+  const fb=$('#secFBusca')?$('#secFBusca').value.trim():'';
+  const b=SEC.busca; return !!(b.achados&&b.lado===SEC.subMsg&&b.q===secBuscaChave(fb)&&b.achados.has(id));
+}
+/* realça os termos num texto já escapado, sem quebrar acentos (compara letra a letra sem acento) */
+function secMarca(txt,q){
+  const ts=secTermos(q).map(secSemAcento).filter(Boolean); txt=String(txt||'');
+  if(!ts.length)return esc(txt);
+  const base=secSemAcento(txt); if(base.length!==txt.length)return esc(txt);
+  const marca=new Array(txt.length).fill(false);
+  ts.forEach(t=>{let i=0;while((i=base.indexOf(t,i))>=0){for(let k=i;k<i+t.length;k++)marca[k]=true;i+=t.length;}});
+  let out='',dentro=false;
+  for(let k=0;k<txt.length;k++){
+    if(marca[k]&&!dentro){out+='<mark>';dentro=true;}
+    if(!marca[k]&&dentro){out+='</mark>';dentro=false;}
+    out+=esc(txt[k]);
+  }
+  return out+(dentro?'</mark>':'');
+}
+let SEC_BUSCA_T=0;
+function secBuscaAgenda(){
+  clearTimeout(SEC_BUSCA_T);
+  const fb=$('#secFBusca').value.trim();
+  if(fb.length<3||!secTermos(fb).length)return;
+  const chave=secBuscaChave(fb), lado=SEC.subMsg;
+  if(SEC.busca.q===chave&&SEC.busca.lado===lado&&SEC.busca.estado!=='erro')return;
+  SEC.busca={q:chave,lado:lado,achados:null,estado:'buscando',erro:''};
+  SEC_BUSCA_T=setTimeout(async()=>{
+    try{
+      const r=await acessoChama('secom_buscar',{q:fb,lado:lado});
+      if(SEC.busca.q!==chave||SEC.busca.lado!==lado)return;
+      SEC.busca.achados=new Map((r.achados||[]).map(a=>[+a.id,a.trecho||'']));
+      SEC.busca.estado='ok';
+    }catch(e){
+      if(SEC.busca.q!==chave)return;
+      SEC.busca.estado='erro'; SEC.busca.erro=e.message; SEC.busca.achados=new Map();
+    }
+    secRenderLista();
+  },450);
+}
 function secRenderLista(){
   $('#secTit').textContent=SEC.subMsg==='RX'?'Mensagens recebidas':'Mensagens transmitidas';
   if(SEC.erro){$('#secLista').innerHTML='<div class="secVazio">'+esc(SEC.erro)+' <a href="#" id="secDeNovo">Tentar de novo</a></div>';$('#secMais').innerHTML='';
@@ -18596,14 +18647,20 @@ function secRenderLista(){
     fb=$('#secFBusca').value.trim().toUpperCase(),desc=$('#secFOrd').value!=='c';
   const l=SEC.msgs.filter(m=>m.lado===SEC.subMsg&&(!fa||String(m.ano)===fa)&&(!fm||String(m.mes)===fm)&&
     (!fp||secPrecDe(m)===fp)&&(!fs||secSigiloDe(m)===fs)&&
-    (!fb||((m.letra||'')+m.dtg+' '+(m.assunto||'')+' '+(m.de||'')+' '+(m.para||'')+' '+(m.info||'')).toUpperCase().includes(fb)));
+    (!fb||((m.letra||'')+m.dtg+' '+(m.assunto||'')+' '+(m.de||'')+' '+(m.para||'')+' '+(m.info||'')).toUpperCase().includes(fb)||secAchouNoTexto(m.id)));
   l.sort((a,b)=>desc?secOrdem(b)-secOrdem(a):secOrdem(a)-secOrdem(b));
   $('#nSecMsg').textContent=l.length;
-  $('#secLista').innerHTML=l.length?l.slice(0,SEC.lim).map(m=>{
+  const bq=SEC.busca, buscando=fb.length>=3&&bq.q===secBuscaChave(fb)&&bq.lado===SEC.subMsg;
+  const info=fb.length<3?'':!buscando||bq.estado==='buscando'?'<div class="secBuscaInfo">Procurando também no texto das MSG…</div>':
+    bq.erro?'<div class="secBuscaInfo erro">Busca no texto indisponível: '+esc(bq.erro)+'</div>':
+    '<div class="secBuscaInfo">Busca no texto das MSG: <b>'+bq.achados.size+'</b> com '+(secTermos(fb).length>1?'todos os termos':'o termo')+
+      (bq.achados.size>=400?' (mostrando as 400 mais recentes; refine a busca)':'')+'. Use "aspas" para frase exata.</div>';
+  $('#secLista').innerHTML=info+(l.length?l.slice(0,SEC.lim).map(m=>{
     const le=(m.letra||secPrecDe(m).charAt(0)||'?').toUpperCase();
+    const tr=buscando&&bq.achados?bq.achados.get(m.id):null;
     return '<div class="secMsg" data-id="'+m.id+'"><button type="button"><span class="dtg"><i class="'+esc(le)+'">'+esc(le)+'</i>'+esc(m.dtg)+'</span>'+
-      '<span class="ass">'+esc(m.assunto||'(sem assunto)')+'</span><span class="seta">&#9660;</span></button><div class="secCorpo"></div></div>';
-  }).join(''):'<div class="secVazio">Nenhuma MSG com esses filtros.</div>';
+      '<span class="ass">'+esc(m.assunto||'(sem assunto)')+(tr?'<span class="secTrecho">…'+secMarca(tr,fb)+'…</span>':'')+'</span><span class="seta">&#9660;</span></button><div class="secCorpo"></div></div>';
+  }).join(''):(buscando&&bq.estado==='buscando'?'':'<div class="secVazio">Nenhuma MSG com esses filtros.</div>'));
   $('#secMais').innerHTML=l.length>SEC.lim?'<button class="mini" id="secBMais">Mostrar mais ('+(l.length-SEC.lim)+')</button>':'';
   if($('#secBMais'))$('#secBMais').onclick=()=>{SEC.lim+=60;secRenderLista();};
   $$('#secLista .secMsg>button').forEach(b=>b.onclick=()=>secAbre(b.parentNode));
@@ -18618,7 +18675,7 @@ function secDetalheHtml(m){
     '<span>Para</span><b>'+esc(m.para||'—')+'</b>'+(m.info?'<span>Info</span><b>'+esc(m.info)+'</b>':'')+
     (f.prazo&&f.prazo!=='-'?'<span>Prazo (ficha)</span><b>'+esc(f.prazo)+'</b>':'')+
     (m.arquivo?'<span>Arquivo</span><b>'+esc(m.arquivo)+'</b>':'')+'</div>'+
-    '<pre class="secPre">'+esc(m.corpo||'')+'</pre>';
+    '<pre class="secPre">'+secMarca(m.corpo||'',($('#secFBusca')&&$('#secFBusca').value.trim())||'')+'</pre>';
 }
 async function secAbre(d){
   const id=+d.dataset.id;
@@ -18936,10 +18993,11 @@ $$('#subSecom button').forEach(b=>b.onclick=()=>{
 $$('#subSecMsg button').forEach(b=>b.onclick=()=>{
   SEC.subMsg=b.dataset.sub; SEC.lim=60;
   $$('#subSecMsg button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  if(SEC.subMsg==='RX'||SEC.subMsg==='TX')secBuscaAgenda();
   renderSecom();
 });
 ['#secFAno','#secFMes','#secFPrec','#secFSig','#secFOrd'].forEach(x=>$(x).onchange=()=>{SEC.lim=60;secRenderLista();});
-$('#secFBusca').addEventListener('input',()=>{SEC.lim=60;secRenderLista();});
+$('#secFBusca').addEventListener('input',()=>{SEC.lim=60;secBuscaAgenda();secRenderLista();});
 $('#secArq').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)secRecebeArquivos(fs);};
 $('#secInterpretar').onclick=()=>{
   const t=$('#secCola').value; if(!t.trim()){toast('Cole o texto da MSG.',true);return;}
