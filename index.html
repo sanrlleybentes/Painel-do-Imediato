@@ -1506,6 +1506,57 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 .secBuscaInfo.erro{color:var(--alert)}
 .secTrecho{display:block;margin-top:3px;font-size:12.5px;color:var(--muted);line-height:1.35}
 .secMsg mark,.secPre mark{background:#F3D98A;color:inherit;border-radius:2px;padding:0 1px}
+
+/* ===== SECOM: Livro de Quartos do Convés ===== */
+#secom-lqc .lqcLinha{display:flex;flex-wrap:wrap;gap:10px 14px;margin:0 0 10px}
+#secom-lqc .lqcLinha label{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex:1 1 150px}
+#secom-lqc .lqcLinha label.lqcResp{flex:2 1 220px}
+#secom-lqc .lqcTexto{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#secom-lqc .lqcTexto textarea{width:100%;box-sizing:border-box;font:14px var(--body);text-transform:none;letter-spacing:0}
+#secom-lqc .lqcAcoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;margin:10px 0}
+#secom-lqc .lqcAcoes .hint{margin-right:auto}
+#secom-lqc .lqcSub{margin:16px 0 8px;font:600 12px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lqcGrupo{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;overflow:hidden}
+.lqcGrupoTit{background:#F3E9D2;padding:6px 12px;font:600 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--dest)}
+.lqcItem{display:grid;grid-template-columns:190px 1fr 64px;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--line)}
+.lqcItem:first-of-type{border-top:0}
+.lqcNome{font-size:13px;color:var(--ink)}
+.lqcNome b{color:var(--brass)}
+.lqcCtl{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.lqcChip{padding:4px 10px !important;font:600 12px var(--mono) !important;cursor:pointer}
+.lqcParte{display:inline-flex;gap:5px;padding-left:6px;margin-left:2px;border-left:1px dashed var(--line)}
+.lqcCtl .lqcIn{width:150px !important;flex:0 0 auto;padding:5px 8px;font:13px var(--mono);min-height:0}
+.lqcCtl .lqcSel{width:auto !important;flex:0 0 auto;padding:4px 6px;font:13px var(--mono)}
+.lqcVal{font:700 14px var(--mono);text-align:center;color:var(--bordo);background:#FBF6E9;border-radius:6px;padding:4px 2px}
+.lqcVal.vazio{color:var(--line);font-weight:400}
+@media (max-width:700px){.lqcItem{grid-template-columns:1fr 56px}.lqcCtl{grid-column:1/-1;grid-row:2}}
+.lqcTabA{border-collapse:collapse;font-size:12px;min-width:520px}
+.lqcTabA th,.lqcTabA td{border:1px solid var(--line);padding:3px 6px}
+.lqcTabA th{font:600 11px var(--mono);background:#F3E9D2}
+.lqcTabA .lqcI{font-size:11px;font-weight:600;white-space:nowrap}
+.lqcTabA .lqcV{text-align:center;font-family:var(--mono)}
+.lqcTabA .lqcG{width:22px;padding:0;background:#FBF6E9}
+.lqcTabA .lqcG span{display:block;writing-mode:vertical-rl;transform:rotate(180deg);font:600 10px var(--display);letter-spacing:.08em;text-transform:uppercase;margin:auto}
+.lqcTabB{width:100%;border-collapse:collapse}
+.lqcTabB td{vertical-align:top}
+.lqcTabB .lqcTxt{white-space:pre-wrap;min-width:260px}
+.lqcSimbLista{display:grid;gap:6px}
+.lqcSimbIt{display:grid;grid-template-columns:210px 1fr;gap:10px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+.lqcSimbIt b{color:var(--ink)}
+@media (max-width:700px){.lqcSimbIt{grid-template-columns:1fr}}
+.lqcDiaH{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 8px}
+.lqcDiaH summary{cursor:pointer;font-size:13.5px}
+.lqcDiaH[open] summary{margin-bottom:8px}
+.lqcTipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:0 0 14px}
+.lqcTipos button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:4px}
+.lqcTipos button b{font:600 13px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.lqcTipos button small{font-size:12px;color:var(--muted)}
+.lqcTipos button[aria-pressed="true"]{border-color:var(--brass);background:#F3E9D2;box-shadow:0 0 0 2px rgba(204,162,90,.25)}
+.lqcDiasTopo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}
+.lqcDiasTopo .hint{margin-right:auto}
+.lqcDiasLista{display:flex;flex-wrap:wrap;gap:6px}
+.lqcDiaCk{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;font:13px var(--mono);background:#fff}
+.lqcDiaCk small{color:var(--muted);font-size:11px}
 </style>
 
 
@@ -2632,7 +2683,107 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
   </div>
 
   <div id="secom-lqc" class="hidden">
-    <div class="card reveal"><h2>Livro de Quarto de Convés</h2><p class="hint" style="margin:0">Aguardando a definição do que entra no Livro de Quarto de Convés.</p></div>
+    <div class="subtabs" id="subLqc">
+      <button data-sub="simb" aria-selected="true">Simbologia Padrão</button>
+      <button data-sub="A" aria-selected="false">Folha A</button>
+      <button data-sub="B" aria-selected="false">Folha B</button>
+      <button data-sub="hist" aria-selected="false">Histórico</button>
+      <button data-sub="exp" aria-selected="false">Exportar</button>
+      <button data-sub="cfg" aria-selected="false">Configuração</button>
+    </div>
+
+    <div class="card reveal" id="lqcSimb">
+      <h2>Simbologia Padrão</h2>
+      <p class="hint" style="margin:0 0 10px">Livro de Quartos do Convés (EM-60-04). O que lançar em cada item da Folha A. "—" quando o item não se aplica ao quarto.</p>
+      <div id="lqcSimbCorpo"></div>
+    </div>
+
+    <div class="card reveal hidden" id="lqcA">
+      <h2>Folha A</h2>
+      <p class="hint" style="margin:0 0 12px">Quem está de serviço escolhe o dia e o quarto, marca cada item e grava. Gravar de novo o mesmo dia e quarto substitui o que estava.</p>
+      <div class="lqcLinha">
+        <label>Data<input type="date" id="lqcAData"></label>
+        <label>Quarto<select id="lqcAQuarto"></select></label>
+        <label class="hidden" id="lqcAOutroL">Outro quarto<input type="text" id="lqcAOutro" placeholder="ex. 20-24" maxlength="5"></label>
+        <label class="lqcResp">Responsável<select id="lqcAResp"></select></label>
+      </div>
+      <div class="lqcLinha">
+        <label>Navio<input type="text" id="lqcANavio" maxlength="120"></label>
+        <label>Porto<input type="text" id="lqcAPorto" maxlength="120"></label>
+        <label>Viagem de<input type="text" id="lqcAViagem" maxlength="120"></label>
+        <label>Para<input type="text" id="lqcAPara" maxlength="120"></label>
+      </div>
+      <div class="lqcAcoes">
+        <span id="lqcAEstado" class="hint"></span>
+        <button class="mini" id="lqcACopia" type="button">Copiar do quarto anterior</button>
+        <button class="mini" id="lqcALimpa" type="button">Limpar</button>
+      </div>
+      <div id="lqcAItens"></div>
+      <div class="lqcAcoes">
+        <button class="mini del hidden" id="lqcAExclui" type="button">Excluir este quarto</button>
+        <button class="btn" id="lqcAGrava" type="button">Gravar quarto</button>
+      </div>
+      <h3 class="lqcSub">Folha A do dia</h3>
+      <div class="scroller" id="lqcADia"></div>
+    </div>
+
+    <div class="card reveal hidden" id="lqcB">
+      <h2>Folha B</h2>
+      <p class="hint" style="margin:0 0 12px">Ocorrências do serviço: o que aconteceu, em que dia e em que quarto.</p>
+      <div class="lqcLinha">
+        <label>Data<input type="date" id="lqcBData"></label>
+        <label>Quarto<select id="lqcBQuarto"></select></label>
+        <label class="hidden" id="lqcBOutroL">Outro quarto<input type="text" id="lqcBOutro" placeholder="ex. 15-18" maxlength="5"></label>
+        <label class="lqcResp">Responsável<select id="lqcBResp"></select></label>
+      </div>
+      <label class="lqcTexto">Ocorrência<textarea id="lqcBTexto" rows="5" maxlength="8000" placeholder="Ex.: Às 08:30 o navio desatracou da BNVC."></textarea></label>
+      <div class="lqcAcoes">
+        <span id="lqcBEstado" class="hint"></span>
+        <button class="mini hidden" id="lqcBCancela" type="button">Cancelar edição</button>
+        <button class="btn" id="lqcBGrava" type="button">Gravar ocorrência</button>
+      </div>
+      <h3 class="lqcSub">Ocorrências do mês <span class="n" id="nLqcB">0</span></h3>
+      <div class="scroller" id="lqcBLista"></div>
+    </div>
+
+    <div class="card reveal hidden" id="lqcH">
+      <h2>Histórico</h2>
+      <div class="subtabs" id="subLqcHist">
+        <button data-sub="A" aria-selected="true">Folha A</button>
+        <button data-sub="B" aria-selected="false">Folha B</button>
+      </div>
+      <div class="lqcLinha">
+        <label>Mês<input type="month" id="lqcHMes"></label>
+        <label class="lqcBusca hidden" id="lqcHBuscaL">Buscar<input type="text" id="lqcHBusca" placeholder="palavra, nome, quarto"></label>
+      </div>
+      <div id="lqcHCorpo"></div>
+    </div>
+
+    <div class="card reveal hidden" id="lqcE">
+      <h2>Exportar</h2>
+      <p class="hint" style="margin:0 0 12px">PDF no formato do livro (EM-60-04), em fundo branco.</p>
+      <div class="lqcTipos" id="lqcETipo">
+        <button type="button" data-tipo="livro" aria-pressed="true"><b>Exportar Livro</b><small>Capa, Folhas A de cada dia e Folha B do mês</small></button>
+        <button type="button" data-tipo="A" aria-pressed="false"><b>Folha A</b><small>Uma folha por dia escolhido</small></button>
+        <button type="button" data-tipo="B" aria-pressed="false"><b>Folha B</b><small>Ocorrências dos dias escolhidos</small></button>
+      </div>
+      <div class="lqcLinha">
+        <label>Período<select id="lqcEModo"><option value="mes">Mês inteiro</option><option value="dias">Dias escolhidos</option></select></label>
+        <label id="lqcEMesL">Mês<input type="month" id="lqcEMes"></label>
+        <label id="lqcEDeL" class="hidden">De<input type="date" id="lqcEDe"></label>
+        <label id="lqcEAteL" class="hidden">Até<input type="date" id="lqcEAte"></label>
+      </div>
+      <div id="lqcEDias"></div>
+      <div class="lqcAcoes">
+        <span id="lqcEEstado" class="hint"></span>
+        <button class="btn" id="lqcEGera" type="button">Gerar PDF</button>
+      </div>
+    </div>
+
+    <div class="card reveal hidden" id="lqcC">
+      <h2>Configuração</h2>
+      <p class="hint" style="margin:0">Aguardando a definição do que entra na Configuração do Livro de Quartos.</p>
+    </div>
   </div>
 </section>
 
@@ -18570,6 +18721,7 @@ function renderSecom(){
   $('#secom-expediente').classList.toggle('hidden',!pode||SEC.sub!=='expediente');
   $('#secom-lqc').classList.toggle('hidden',!pode||SEC.sub!=='lqc');
   if(!pode)return;
+  if(SEC.sub==='lqc'){lqcRender();return;}
   if(SEC.sub!=='msg')return;
   const lista=SEC.subMsg==='RX'||SEC.subMsg==='TX';
   $('#secCardLista').classList.toggle('hidden',!lista);
@@ -18990,6 +19142,575 @@ $$('#subSecom button').forEach(b=>b.onclick=()=>{
   $$('#subSecom button').forEach(o=>o.setAttribute('aria-selected',o===b));
   renderSecom();
 });
+/* ═══════════ SECOM: Livro de Quartos do Convés (EM-60-04) ═══════════
+   Folha A: um registro por dia e quarto (os 30 itens da Simbologia Padrão). Folha B: uma linha por ocorrência.
+   Mora na tabela secom_lqc, fechada como as MSG: só a função `acesso` lê e grava, para quem tem o SECOM.
+   O valor de cada item é texto curto, no formato do livro ("V", "1-N", "R-B", "—"). */
+const LQC_GRUPOS=[[1,13,'Sempre escriturados'],[14,17,'Navio porto'],[18,30,'Navio em viagem']];
+const LQC_DIRS=['N','NE','E','SE','S','SW','W','NW'];
+const LQC_ITENS=[
+  {n:1,nome:'Regime',tipo:'op',ops:[['N','Normal'],['R1','Prontidão 1'],['R2','Prontidão 2'],['R3','Prontidão 3'],['V','Viagem']],
+    simb:'(N) Normal · (R) Prontidão (R1, R2 ou R3) · (V) Viagem'},
+  {n:2,nome:'Rotina',tipo:'op',ops:[['N','Normal'],['S','Sexta-feira'],['D','Domingo'],['E','Especial']],
+    simb:'(N) Normal · (S) Sexta-feira · (D) Domingo · (E) Especial'},
+  {n:3,nome:'Condição de fechamento',tipo:'op',livre:true,ops:[['X','X'],['Y','Y'],['Z','Z'],['A','A'],['B','B'],['B-1','B-1']],ex:'outra',
+    simb:'A, B, B-1 etc., de acordo com a doutrina do CAV para cada navio'},
+  {n:4,nome:'Energia elétrica',tipo:'partes',partes:[[['B','Bordo'],['T','Terra'],['N','Outro navio'],['SE','Sem energia']],[['NE','Navegação às escuras']]],
+    simb:'(B) Bordo · (T) Terra · (N) Outro navio · (SE) Sem energia. Em navegação às escuras, acrescentar (NE)'},
+  {n:5,nome:'Dotação de munição',tipo:'op',ops:[['P','Paz'],['A','Adestramento'],['S','Sem munição'],['G','Guerra']],
+    simb:'(P) Paz · (A) Adestramento · (S) Sem munição · (G) Guerra'},
+  {n:6,nome:'Paióis de munição',tipo:'op',ops:[['V','Ventilados'],['N','Não ventilados'],['R','Refrigerados']],
+    simb:'(V) Ventilados · (N) Não ventilados · (R) Refrigerados'},
+  {n:7,nome:'Viaturas prontas',tipo:'txt',ex:'1, 2, 3...',simb:'1, 2, 3, 4 etc., conforme o número da viatura que estiver pronta em terra'},
+  {n:8,nome:'Lanchas prontas',tipo:'txt',ex:'2-3',simb:'1, 2, 3, 4 etc., conforme o número da lancha que estiver pronta n\'água. Exemplo: 2-3, 1-4'},
+  {n:9,nome:'Municiamento',tipo:'txt',ex:'nº de rações',simb:'Número de rações no fim do quarto'},
+  {n:10,nome:'Mar',tipo:'beaufort',simb:'Situação do mar (escala Beaufort) e direção das vagas. Exemplo: 3 N, 8 SW'},
+  {n:11,nome:'Vento',tipo:'beaufort',simb:'Intensidade (escala Beaufort) e direção. Exemplo: 2 NW'},
+  {n:12,nome:'Aeronaves no ar',tipo:'txt',ex:'5-3',simb:'Número de aeronaves de asa fixa e número de helicópteros. Exemplo: 5-3, 5-0, 0-1'},
+  {n:13,nome:'Aeronaves no convés',tipo:'txt',ex:'5-3',simb:'As prontas, como no item anterior'},
+  {n:14,nome:'Situação',tipo:'op',ops:[['A','Atracado'],['F','Fundeado'],['B','Amarrado à boia'],['D','Dique']],
+    simb:'(A) Atracado · (F) Fundeado · (B) Amarrado à boia · (D) Dique'},
+  {n:15,nome:'Amarração',tipo:'partes',partes:[[['N','Normal'],['S','Singela'],['R','Reforçada']],[['B','Espia em bom estado'],['M','Espia em mau estado']]],
+    simb:'Amarração e estado das espias: (N) Normal · (S) Singela · (R) Reforçada; (B) Espia em bom estado · (M) Espia em mau estado. Exemplo: N-B, S-M'},
+  {n:16,nome:'Ferro',tipo:'txt',ex:'3-B-BE',simb:'Número de quartéis n\'água, estado da amarra e bordo. Exemplo: 3-B-BE, 2-M-BB'},
+  {n:17,nome:'Pernoite',tipo:'multi',ops:[['C','Comandante'],['I','Imediato'],['OS','Oficiais superiores']],
+    simb:'(C) Comandante · (I) Imediato · (OS) Oficiais superiores (no quarto d\'alva ou serviço de 00/12)'},
+  {n:18,nome:'Missão',tipo:'op',ops:[['A','Adestramento'],['S','Socorro'],['H','Hidrografia'],['R','Representação'],['E','Experiência'],
+    ['I','Submarino em imersão / Instrução'],['T','Transporte de material ou pessoal'],['CO','Comboio'],['P','Patrulha'],['O','Outras'],['C','Comercial']],
+    simb:'(A) Adestramento · (S) Socorro · (H) Hidrografia · (R) Representação · (E) Experiência · (I) Submarino em imersão · (T) Transporte de material ou pessoal · (CO) Comboio · (P) Patrulha · (I) Instrução · (O) Outras · (C) Comercial'},
+  {n:19,nome:'Grupamento',tipo:'op',livre:true,ops:[['E','Escoteiro']],ex:'GT 11.5',
+    simb:'(E) Escoteiro, ou indicativo operativo do grupo ou unidade de que faz parte, na concepção mais genérica. Exemplo: GT 11.5, UT 11.5.1, EU 11.4.1'},
+  {n:20,nome:'Dispositivo',tipo:'txt',simb:'Símbolo do dispositivo e símbolo da publicação de referência'},
+  {n:21,nome:'Formatura',tipo:'txt',simb:'Símbolo de formatura e símbolo da publicação de referência'},
+  {n:22,nome:'Plano',tipo:'txt',simb:'Símbolo do plano que o navio estiver executando e publicação de referência'},
+  {n:23,nome:'Eixo',tipo:'txt',ex:'000',simb:'Em três algarismos'},
+  {n:24,nome:'Rumo/veloc.',tipo:'txt',ex:'130 17 ou RP',simb:'Rumo em três algarismos e velocidade em dois algarismos, ou rumos práticos (RP). Exemplos: 130 17, RP'},
+  {n:25,nome:'Guia',tipo:'txt',simb:'Indicativo externo e fonia do guia'},
+  {n:26,nome:'Posto',tipo:'txt',simb:'Em quatro ou cinco algarismos, conforme a publicação citada em 22'},
+  {n:27,nome:'OCT',tipo:'txt',simb:'Lançar o indicativo fonia'},
+  {n:28,nome:'ODE',tipo:'txt',simb:'Lançar o indicativo fonia'},
+  {n:29,nome:'Instalação de máquinas',tipo:'partes',partes:[[['N','Normal'],['PD','Plantas divididas'],['PU','Planta única']],[['SP','Superaquecido'],['ST','Saturado']]],
+    simb:'(N) Normal · (PD) Plantas divididas · (PU) Planta única · (SP) Superaquecido · (ST) Saturado. Exemplo: PD-SP, PU-ST'},
+  {n:30,nome:'Equipamentos na linha',tipo:'op',livre:true,ops:[['T','Turbinas'],['MCP','Motores principais'],['TC','Turbina de cruzeiro']],ex:'C-1 e 3-TC',
+    simb:'(T) Turbinas · (MCP) Motores principais · (TC) Turbina de cruzeiro · (C 1, 2, 3...) Número das caldeiras na linha. Exemplo: C-1 e 3-TC'}
+];
+const LQC_OUTRAS=['Movimentação do navio: citar local (porto, cais, navios a contrabordo) e hora da movimentação;',
+  'Recebimento ou saída de combustível, munição, numerário ou equipamento;',
+  'Acidentes com vítimas ou avarias que afetem as condições de eficiência do navio;',
+  'Ocorrências diversas cujo registro seja julgado necessário (IPMS, óbitos, grandes reparos, fanais, ordens especiais etc.).'];
+const LQC_QUARTOS=['00-04','04-08','08-12','12-16','16-20','20-24','12-24'];
+const LQC_MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+let LQC={sub:'simb',hist:'A',meses:{},fa:null,fb:null,exp:{tipo:'livro'},pronto:false};
+
+const lqcNavio=()=>(CFG&&CFG.navio)||'AvHoFlu "Rio Tocantins"';
+const lqcYm=d=>String(d).slice(0,7);
+const lqcFimMes=ym=>{const [a,m]=ym.split('-').map(Number);return ym+'-'+pad(new Date(a,m,0).getDate());};
+const lqcOrdQ=(a,b)=>String(a).localeCompare(String(b));
+const lqcDataExt=iso=>{const d=new Date(iso+'T12:00:00');return d.getDate()+' de '+LQC_MESES[d.getMonth()]+' de '+d.getFullYear();};
+const lqcItem=n=>LQC_ITENS[n-1];
+function lqcNomeMil(m){return m?(postoBase(m.posto)+' '+(m.nome||'')).trim():'';}
+function lqcQuartoAgora(){const h=new Date().getHours();return LQC_QUARTOS[Math.floor(h/4)];}
+async function lqcBusca(de,ate,folha){const r=await acessoChama('lqc_listar',{de,ate,folha:folha||''});return r.linhas||[];}
+async function lqcMes(ym,forca){
+  if(!forca&&LQC.meses[ym])return LQC.meses[ym];
+  LQC.meses[ym]=await lqcBusca(ym+'-01',lqcFimMes(ym));
+  return LQC.meses[ym];
+}
+const lqcDoMes=ym=>LQC.meses[ym]||[];
+
+/* ── navegação ── */
+function lqcRender(){
+  ['simb','A','B','hist','exp','cfg'].forEach(s=>{
+    const id={simb:'lqcSimb',A:'lqcA',B:'lqcB',hist:'lqcH',exp:'lqcE',cfg:'lqcC'}[s];
+    $('#'+id).classList.toggle('hidden',LQC.sub!==s);
+  });
+  if(!LQC.pronto)lqcPrepara();
+  if(LQC.sub==='simb')lqcRenderSimb();
+  if(LQC.sub==='A')lqcRenderA();
+  if(LQC.sub==='B')lqcRenderB();
+  if(LQC.sub==='hist')lqcRenderHist();
+  if(LQC.sub==='exp')lqcRenderExp();
+}
+function lqcOpcoesResp(sel,atual){
+  const lista=all().filter(m=>m.grupo!=='destacado').slice().sort((a,b)=>ordemAtual(a.id)-ordemAtual(b.id));
+  sel.innerHTML='<option value="">—</option>'+lista.map(m=>'<option value="'+esc(m.id)+'">'+esc(lqcNomeMil(m))+'</option>').join('');
+  sel.value=atual&&lista.some(m=>m.id===atual)?atual:'';
+}
+function lqcOpcoesQuarto(sel,atual){
+  sel.innerHTML=LQC_QUARTOS.map(q=>'<option>'+q+'</option>').join('')+'<option value="outro">Outro…</option>';
+  sel.value=LQC_QUARTOS.includes(atual)?atual:'outro';
+}
+function lqcPrepara(){
+  LQC.pronto=true;
+  const eu=PERFIL&&PERFIL.militar?PERFIL.militar.id:'';
+  LQC.fa={data:hoje(),quarto:lqcQuartoAgora(),resp_id:eu,itens:{},cab:{navio:lqcNavio(),porto:'',viagem_de:'',para:''},id:0};
+  LQC.fb={data:hoje(),quarto:lqcQuartoAgora(),resp_id:eu,id:0};
+  $('#lqcHMes').value=lqcYm(hoje()); $('#lqcEMes').value=lqcYm(hoje());
+  $('#lqcEDe').value=lqcYm(hoje())+'-01'; $('#lqcEAte').value=hoje();
+}
+
+/* ── Simbologia Padrão ── */
+function lqcRenderSimb(){
+  if($('#lqcSimbCorpo').dataset.ok)return;
+  $('#lqcSimbCorpo').dataset.ok='1';
+  $('#lqcSimbCorpo').innerHTML=LQC_GRUPOS.map(([a,b,g])=>'<h3 class="lqcSub">'+g+'</h3><div class="lqcSimbLista">'+
+    LQC_ITENS.slice(a-1,b).map(it=>'<div class="lqcSimbIt"><b>'+it.n+'. '+esc(it.nome)+'</b><span>'+esc(it.simb)+'</span></div>').join('')+'</div>').join('')+
+    '<h3 class="lqcSub">31. Outras ocorrências (vão na Folha B)</h3><div class="lqcSimbLista">'+
+    LQC_OUTRAS.map((t,i)=>'<div class="lqcSimbIt"><b>'+'abcd'[i]+')</b><span>'+esc(t)+'</span></div>').join('')+
+    '<div class="lqcSimbIt"><b>Observação</b><span>Após o lançamento das ocorrências do quarto, deve seguir-se a assinatura do responsável.</span></div></div>';
+}
+
+/* ── Folha A: editor dos 30 itens ── */
+function lqcQuartoDe(selId,outroId){
+  const v=$(selId).value; return v==='outro'?$(outroId).value.trim():v;
+}
+function lqcValPartes(it,v){
+  const toks=String(v||'').split('-').filter(Boolean);
+  return it.partes.map(p=>{const t=toks.find(x=>p.some(o=>o[0]===x));return t||'';});
+}
+function lqcCtlHtml(it,v){
+  const chip=(val,tit,on,attrs)=>'<button type="button" class="chip lqcChip" '+attrs+' data-v="'+esc(val)+'" title="'+esc(tit)+'" aria-pressed="'+(on?'true':'false')+'">'+esc(val)+'</button>';
+  const na=chip('—','Não se aplica',v==='—','data-n="'+it.n+'" data-k="na"');
+  if(it.tipo==='op'){
+    const conhecido=it.ops.some(o=>o[0]===v);
+    return na+it.ops.map(o=>chip(o[0],o[1],v===o[0],'data-n="'+it.n+'" data-k="op"')).join('')+
+      (it.livre?'<input type="text" class="lqcIn" data-n="'+it.n+'" maxlength="40" placeholder="'+esc(it.ex||'outro')+'" value="'+esc(!conhecido&&v!=='—'?v:'')+'">':'');
+  }
+  if(it.tipo==='multi'){
+    const sel=String(v||'').split('-');
+    return na+it.ops.map(o=>chip(o[0],o[1],sel.includes(o[0]),'data-n="'+it.n+'" data-k="multi"')).join('');
+  }
+  if(it.tipo==='partes'){
+    const pv=v==='—'?[]:lqcValPartes(it,v);
+    return na+it.partes.map((p,i)=>'<span class="lqcParte">'+p.map(o=>chip(o[0],o[1],pv[i]===o[0],'data-n="'+it.n+'" data-k="parte" data-p="'+i+'"')).join('')+'</span>').join('');
+  }
+  if(it.tipo==='beaufort'){
+    const [f,d]=v&&v!=='—'?String(v).split('-'):['',''];
+    return na+'<select class="lqcSel" data-n="'+it.n+'" data-bf="f"><option value="">força</option>'+
+      Array.from({length:13},(_,i)=>'<option'+(String(i)===f?' selected':'')+'>'+i+'</option>').join('')+'</select>'+
+      '<select class="lqcSel" data-n="'+it.n+'" data-bf="d"><option value="">direção</option>'+
+      LQC_DIRS.concat(['VAR']).map(x=>'<option'+(x===d?' selected':'')+'>'+x+'</option>').join('')+'</select>';
+  }
+  return na+'<input type="text" class="lqcIn" data-n="'+it.n+'" maxlength="40" placeholder="'+esc(it.ex||'')+'" value="'+esc(v!=='—'?(v||''):'')+'">';
+}
+function lqcRenderItens(){
+  const f=LQC.fa;
+  $('#lqcAItens').innerHTML=LQC_GRUPOS.map(([a,b,g])=>'<div class="lqcGrupo"><div class="lqcGrupoTit">'+g+'</div>'+
+    LQC_ITENS.slice(a-1,b).map(it=>{
+      const v=f.itens[it.n]||'';
+      return '<div class="lqcItem" title="'+esc(it.simb)+'"><div class="lqcNome"><b>'+it.n+'.</b> '+esc(it.nome)+'</div>'+
+        '<div class="lqcCtl">'+lqcCtlHtml(it,v)+'</div><div class="lqcVal'+(v?'':' vazio')+'">'+esc(v||'·')+'</div></div>';
+    }).join('')+'</div>').join('');
+}
+function lqcSetItem(n,v){
+  if(v)LQC.fa.itens[n]=v; else delete LQC.fa.itens[n];
+}
+function lqcCliqueItem(e){
+  const b=e.target.closest('.lqcChip'); if(!b)return;
+  const n=+b.dataset.n, it=lqcItem(n), v=b.dataset.v, atual=LQC.fa.itens[n]||'';
+  if(b.dataset.k==='na'||b.dataset.k==='op')lqcSetItem(n,atual===v?'':v);
+  else if(b.dataset.k==='multi'){
+    let s=atual==='—'?[]:atual.split('-').filter(Boolean);
+    s=s.includes(v)?s.filter(x=>x!==v):s.concat(v);
+    lqcSetItem(n,it.ops.map(o=>o[0]).filter(x=>s.includes(x)).join('-'));
+  }else if(b.dataset.k==='parte'){
+    const pv=atual==='—'?it.partes.map(()=>''):lqcValPartes(it,atual), i=+b.dataset.p;
+    pv[i]=pv[i]===v?'':v;
+    lqcSetItem(n,pv.filter(Boolean).join('-'));
+  }
+  lqcRenderItens();
+}
+function lqcEntradaItem(e){
+  const el=e.target;
+  if(el.classList.contains('lqcIn')){
+    lqcSetItem(+el.dataset.n,el.value.trim());
+    const val=el.closest('.lqcItem').querySelector('.lqcVal'); const v=LQC.fa.itens[+el.dataset.n]||'';
+    val.textContent=v||'·'; val.classList.toggle('vazio',!v);
+    el.closest('.lqcCtl').querySelectorAll('.lqcChip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.v===v?'true':'false'));
+  }
+  if(el.classList.contains('lqcSel')){
+    const n=+el.dataset.n, ss=el.closest('.lqcCtl').querySelectorAll('.lqcSel');
+    const fv=ss[0].value, dv=ss[1].value;
+    lqcSetItem(n,fv!==''||dv?[fv,dv].filter(x=>x!=='').join('-'):'');
+    lqcRenderItens();
+  }
+}
+/* carrega no formulário o quarto já gravado (se houver) para o dia e quarto escolhidos */
+function lqcCarregaFormA(){
+  const f=LQC.fa, q=f.quarto;
+  const r=lqcDoMes(lqcYm(f.data)).find(x=>x.folha==='A'&&x.data===f.data&&x.quarto===q);
+  const doDia=lqcDoMes(lqcYm(f.data)).filter(x=>x.folha==='A'&&x.data===f.data);
+  const cabDia=(doDia.find(x=>x.dados&&x.dados.cab&&(x.dados.cab.porto||x.dados.cab.navio))||{}).dados;
+  if(r){f.id=r.id;f.itens=Object.assign({},r.dados.itens||{});f.resp_id=r.resp_id||f.resp_id;f.cab=Object.assign({},f.cab,r.dados.cab||{});}
+  else{f.id=0;f.itens={};if(cabDia)f.cab=Object.assign({},f.cab,cabDia.cab);}
+  $('#lqcAEstado').textContent=r?'Quarto já gravado por '+(r.resp||r.por||'—')+' · editando':'Quarto novo';
+  $('#lqcAExclui').classList.toggle('hidden',!r);
+}
+async function lqcRenderA(recarrega){
+  const f=LQC.fa;
+  $('#lqcAData').value=f.data;
+  lqcOpcoesQuarto($('#lqcAQuarto'),f.quarto);
+  $('#lqcAOutroL').classList.toggle('hidden',$('#lqcAQuarto').value!=='outro');
+  if($('#lqcAQuarto').value==='outro')$('#lqcAOutro').value=f.quarto;
+  lqcOpcoesResp($('#lqcAResp'),f.resp_id);
+  $('#lqcAEstado').textContent='Carregando…';
+  try{await lqcMes(lqcYm(f.data),recarrega);}
+  catch(e){$('#lqcAEstado').textContent=e.message;}
+  lqcCarregaFormA();
+  $('#lqcANavio').value=f.cab.navio||''; $('#lqcAPorto').value=f.cab.porto||'';
+  $('#lqcAViagem').value=f.cab.viagem_de||''; $('#lqcAPara').value=f.cab.para||'';
+  $('#lqcAResp').value=f.resp_id||'';
+  lqcRenderItens();
+  $('#lqcADia').innerHTML=lqcTabelaAHtml(f.data,lqcDoMes(lqcYm(f.data)).filter(x=>x.folha==='A'&&x.data===f.data));
+}
+/* a Folha A de um dia, como no livro: itens nas linhas, quartos nas colunas */
+function lqcTabelaAHtml(dia,linhas){
+  if(!linhas.length)return '<p class="hint" style="margin:0">Nenhum quarto gravado em '+brDate(dia)+'.</p>';
+  linhas=linhas.slice().sort((a,b)=>lqcOrdQ(a.quarto,b.quarto));
+  const cab=(linhas.find(x=>x.dados.cab&&(x.dados.cab.porto||x.dados.cab.viagem_de))||linhas[0]).dados.cab||{};
+  const ctx=[cab.navio,cab.porto?'Porto: '+cab.porto:'',cab.viagem_de?'Viagem de '+cab.viagem_de+(cab.para?' para '+cab.para:''):''].filter(Boolean).join(' · ');
+  return '<p class="hint" style="margin:0 0 6px"><b>'+esc(lqcDataExt(dia))+'</b>'+(ctx?' · '+esc(ctx):'')+'</p>'+
+    '<table class="lqcTabA"><thead><tr><th></th><th>Item</th>'+linhas.map(l=>'<th>'+esc(l.quarto)+'</th>').join('')+'</tr></thead><tbody>'+
+    LQC_GRUPOS.map(([a,b,g])=>LQC_ITENS.slice(a-1,b).map((it,i)=>'<tr>'+(i===0?'<td class="lqcG" rowspan="'+(b-a+1)+'"><span>'+esc(g)+'</span></td>':'')+
+      '<td class="lqcI">'+it.n+'. '+esc(it.nome.toUpperCase())+'</td>'+linhas.map(l=>'<td class="lqcV">'+esc((l.dados.itens||{})[it.n]||'')+'</td>').join('')+'</tr>').join('')).join('')+
+    '</tbody><tfoot><tr><td></td><td class="lqcI">NOME LEGÍVEL</td>'+linhas.map(l=>'<td class="lqcV">'+esc(l.resp||'')+'</td>').join('')+'</tr></tfoot></table>';
+}
+async function lqcGravaA(){
+  const f=LQC.fa;
+  f.quarto=lqcQuartoDe('#lqcAQuarto','#lqcAOutro');
+  if(!/^\d{2}-\d{2}$/.test(f.quarto)){toast('Quarto inválido. Use o formato 00-04.',true);return;}
+  if(!f.data){toast('Escolha a data.',true);return;}
+  if(!Object.keys(f.itens).length){toast('Marque ao menos um item.',true);return;}
+  const mil=milPorId($('#lqcAResp').value);
+  f.resp_id=mil?mil.id:''; f.cab={navio:$('#lqcANavio').value.trim(),porto:$('#lqcAPorto').value.trim(),
+    viagem_de:$('#lqcAViagem').value.trim(),para:$('#lqcAPara').value.trim()};
+  if(!mil){toast('Escolha o responsável pelo quarto.',true);return;}
+  const bt=$('#lqcAGrava'); bt.disabled=true;
+  try{
+    await acessoChama('lqc_gravar',{folha:'A',data:f.data,quarto:f.quarto,dados:{itens:f.itens,cab:f.cab},resp:lqcNomeMil(mil),resp_id:mil.id,id:f.id||0,aparelho_id:aparelhoId()});
+    toast('Quarto '+f.quarto+' de '+brDate(f.data)+' gravado.');
+    await lqcRenderA(true);
+  }catch(e){toast(e.message,true);}
+  finally{bt.disabled=false;}
+}
+function lqcCopiaAnterior(){
+  const f=LQC.fa, q=lqcQuartoDe('#lqcAQuarto','#lqcAOutro');
+  const todas=Object.values(LQC.meses).flat().filter(x=>x.folha==='A'&&(x.data<f.data||(x.data===f.data&&lqcOrdQ(x.quarto,q)<0)));
+  todas.sort((a,b)=>(a.data+a.quarto).localeCompare(b.data+b.quarto));
+  const ant=todas[todas.length-1];
+  if(!ant){toast('Não achei quarto anterior gravado neste mês.',true);return;}
+  f.itens=Object.assign({},ant.dados.itens||{});
+  lqcRenderItens();
+  toast('Copiado do quarto '+ant.quarto+' de '+brDate(ant.data)+'. Confira antes de gravar.');
+}
+
+/* ── Folha B: ocorrências ── */
+async function lqcRenderB(recarrega){
+  const f=LQC.fb;
+  $('#lqcBData').value=f.data;
+  lqcOpcoesQuarto($('#lqcBQuarto'),f.quarto);
+  $('#lqcBOutroL').classList.toggle('hidden',$('#lqcBQuarto').value!=='outro');
+  if($('#lqcBQuarto').value==='outro')$('#lqcBOutro').value=f.quarto;
+  lqcOpcoesResp($('#lqcBResp'),f.resp_id);
+  $('#lqcBCancela').classList.toggle('hidden',!f.id);
+  $('#lqcBEstado').textContent=f.id?'Editando ocorrência':'';
+  $('#lqcBGrava').textContent=f.id?'Gravar alteração':'Gravar ocorrência';
+  const ym=lqcYm(f.data);
+  $('#lqcBLista').innerHTML='<p class="hint" style="margin:0">Carregando…</p>';
+  try{await lqcMes(ym,recarrega);}catch(e){$('#lqcBLista').innerHTML='<p class="hint" style="margin:0">'+esc(e.message)+'</p>';return;}
+  const l=lqcDoMes(ym).filter(x=>x.folha==='B').sort((a,b)=>(a.data+a.quarto).localeCompare(b.data+b.quarto)||a.id-b.id);
+  $('#nLqcB').textContent=l.length;
+  $('#lqcBLista').innerHTML=lqcTabelaBHtml(l,true);
+  $$('#lqcBLista [data-lqced]').forEach(b=>b.onclick=()=>{
+    const r=l.find(x=>x.id===+b.dataset.lqced); if(!r)return;
+    Object.assign(LQC.fb,{id:r.id,data:r.data,quarto:r.quarto,resp_id:r.resp_id||''});
+    $('#lqcBTexto').value=r.dados.texto||''; lqcRenderB(); $('#lqcBTexto').focus();
+  });
+  $$('#lqcBLista [data-lqcdel]').forEach(b=>b.onclick=()=>lqcExclui(+b.dataset.lqcdel,'esta ocorrência',()=>lqcRenderB(true)));
+}
+function lqcTabelaBHtml(l,acoes,marca){
+  if(!l.length)return '<p class="hint" style="margin:0">Nenhuma ocorrência.</p>';
+  return '<table class="lqcTabB"><thead><tr><th>Dia</th><th>Quarto</th><th>Ocorrência</th><th>Responsável</th>'+(acoes?'<th></th>':'')+'</tr></thead><tbody>'+
+    l.map(r=>'<tr><td class="mono">'+brDate(r.data)+'</td><td class="mono">'+esc(r.quarto)+'</td>'+
+      '<td class="lqcTxt">'+(marca?secMarca(r.dados.texto||'',marca):esc(r.dados.texto||''))+'</td><td>'+esc(r.resp||'')+'</td>'+
+      (acoes?'<td class="acts"><button class="mini" data-lqced="'+r.id+'">Editar</button><button class="mini del" data-lqcdel="'+r.id+'">Excluir</button></td>':'')+'</tr>').join('')+
+    '</tbody></table>';
+}
+async function lqcGravaB(){
+  const f=LQC.fb;
+  f.data=$('#lqcBData').value; f.quarto=lqcQuartoDe('#lqcBQuarto','#lqcBOutro');
+  const texto=$('#lqcBTexto').value.trim(), mil=milPorId($('#lqcBResp').value);
+  if(!f.data){toast('Escolha a data.',true);return;}
+  if(!/^\d{2}-\d{2}$/.test(f.quarto)){toast('Quarto inválido. Use o formato 00-04.',true);return;}
+  if(!texto){toast('Escreva a ocorrência.',true);return;}
+  if(!mil){toast('Escolha o responsável.',true);return;}
+  const bt=$('#lqcBGrava'); bt.disabled=true;
+  try{
+    await acessoChama('lqc_gravar',{folha:'B',data:f.data,quarto:f.quarto,dados:{texto},resp:lqcNomeMil(mil),resp_id:mil.id,id:f.id||0,aparelho_id:aparelhoId()});
+    toast(f.id?'Ocorrência alterada.':'Ocorrência gravada.');
+    f.id=0; f.resp_id=mil.id; $('#lqcBTexto').value='';
+    await lqcRenderB(true);
+  }catch(e){toast(e.message,true);}
+  finally{bt.disabled=false;}
+}
+function lqcExclui(id,oque,depois){
+  confirmar('Excluir do Livro de Quartos','Excluir '+oque+'? O registro sai do livro (fica no rastro de auditoria).',async()=>{
+    try{await acessoChama('lqc_excluir',{id:id,aparelho_id:aparelhoId()});toast('Excluído.');LQC.meses={};depois();}
+    catch(e){toast(e.message,true);}
+  });
+}
+
+/* ── Histórico ── */
+async function lqcRenderHist(){
+  const ym=$('#lqcHMes').value||lqcYm(hoje());
+  $('#lqcHBuscaL').classList.toggle('hidden',LQC.hist!=='B');
+  const corpo=$('#lqcHCorpo'); corpo.innerHTML='<p class="hint" style="margin:0">Carregando…</p>';
+  try{await lqcMes(ym);}catch(e){corpo.innerHTML='<p class="hint" style="margin:0">'+esc(e.message)+'</p>';return;}
+  const l=lqcDoMes(ym);
+  if(LQC.hist==='A'){
+    const dias=[...new Set(l.filter(x=>x.folha==='A').map(x=>x.data))].sort().reverse();
+    corpo.innerHTML=dias.length?dias.map(d=>{
+      const doDia=l.filter(x=>x.folha==='A'&&x.data===d);
+      return '<details class="lqcDiaH"><summary><b>'+brDate(d)+'</b> · '+doDia.length+' quarto'+(doDia.length>1?'s':'')+': '+
+        doDia.sort((a,b)=>lqcOrdQ(a.quarto,b.quarto)).map(x=>esc(x.quarto)+' ('+esc(x.resp||'—')+')').join(', ')+'</summary>'+
+        '<div class="scroller">'+lqcTabelaAHtml(d,doDia)+'</div></details>';
+    }).join(''):'<p class="hint" style="margin:0">Nenhuma Folha A neste mês.</p>';
+  }else{
+    const q=$('#lqcHBusca').value.trim(), qs=secSemAcento(q);
+    const b=l.filter(x=>x.folha==='B'&&(!qs||secSemAcento([x.quarto,x.resp,x.dados.texto,brDate(x.data)].join(' ')).includes(qs)))
+      .sort((a,b)=>(a.data+a.quarto).localeCompare(b.data+b.quarto)||a.id-b.id);
+    corpo.innerHTML='<div class="scroller">'+lqcTabelaBHtml(b,false,q)+'</div>';
+  }
+}
+
+/* ── Exportar ── */
+async function lqcRenderExp(){
+  $$('#lqcETipo button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tipo===LQC.exp.tipo?'true':'false'));
+  const dias=$('#lqcEModo').value==='dias';
+  $('#lqcEMesL').classList.toggle('hidden',dias); $('#lqcEDeL').classList.toggle('hidden',!dias); $('#lqcEAteL').classList.toggle('hidden',!dias);
+  const [de,ate]=lqcEPeriodo();
+  const box=$('#lqcEDias');
+  if(!de||!ate||ate<de){box.innerHTML='<p class="hint">Escolha o período.</p>';return;}
+  box.innerHTML='<p class="hint">Procurando os dias com registro…</p>';
+  try{LQC.exp.linhas=await lqcBusca(de,ate);LQC.exp.de=de;LQC.exp.ate=ate;}
+  catch(e){box.innerHTML='<p class="hint">'+esc(e.message)+'</p>';return;}
+  const l=LQC.exp.linhas, folha=LQC.exp.tipo==='B'?['B']:LQC.exp.tipo==='A'?['A']:['A','B'];
+  const ds=[...new Set(l.filter(x=>folha.includes(x.folha)).map(x=>x.data))].sort();
+  if(!ds.length){box.innerHTML='<p class="hint">Nenhum registro '+(LQC.exp.tipo==='B'?'na Folha B':LQC.exp.tipo==='A'?'na Folha A':'no livro')+' neste período.</p>';return;}
+  box.innerHTML='<div class="lqcDiasTopo"><span class="hint">'+ds.length+' dia'+(ds.length>1?'s':'')+' com registro'+(dias?' — desmarque os que não quer no PDF':'')+'</span>'+
+    (dias?'<button class="mini" type="button" id="lqcETodos">Marcar todos</button><button class="mini" type="button" id="lqcENenhum">Nenhum</button>':'')+'</div>'+
+    '<div class="lqcDiasLista">'+ds.map(d=>{
+      const a=l.filter(x=>x.folha==='A'&&x.data===d).length, b=l.filter(x=>x.folha==='B'&&x.data===d).length;
+      return '<label class="lqcDiaCk"><input type="checkbox" value="'+d+'" checked'+(dias?'':' disabled')+'> '+brDate(d).slice(0,5)+
+        '<small>'+(a?a+' A':'')+(a&&b?' · ':'')+(b?b+' B':'')+'</small></label>';
+    }).join('')+'</div>';
+  if($('#lqcETodos')){$('#lqcETodos').onclick=()=>$$('#lqcEDias input').forEach(c=>c.checked=true);$('#lqcENenhum').onclick=()=>$$('#lqcEDias input').forEach(c=>c.checked=false);}
+}
+function lqcEPeriodo(){
+  if($('#lqcEModo').value==='dias')return [$('#lqcEDe').value,$('#lqcEAte').value];
+  const ym=$('#lqcEMes').value; return ym?[ym+'-01',lqcFimMes(ym)]:['',''];
+}
+function lqcGeraPdf(){
+  const l=LQC.exp.linhas||[];
+  const dias=$$('#lqcEDias input:checked').map(c=>c.value).sort();
+  if(!dias.length){toast('Nenhum dia escolhido.',true);return;}
+  const sel=l.filter(x=>dias.includes(x.data));
+  const tipo=LQC.exp.tipo, D=new Pdf();
+  let primeira=true; const pagina=()=>{if(!primeira)D.novaPagina();primeira=false;};
+  const meses=[...new Set(dias.map(lqcYm))].sort();
+  const diasA=dias.filter(d=>sel.some(x=>x.folha==='A'&&x.data===d));
+  if(tipo==='livro'){pagina();lqcPdfCapa(D,meses);}
+  meses.forEach(ym=>{
+    if(tipo!=='B')diasA.filter(d=>lqcYm(d)===ym).forEach(d=>{pagina();lqcPdfFolhaA(D,d,sel.filter(x=>x.folha==='A'&&x.data===d));});
+    if(tipo!=='A'){
+      const ocs=sel.filter(x=>x.folha==='B'&&lqcYm(x.data)===ym).sort((a,b)=>(a.data+a.quarto).localeCompare(b.data+b.quarto)||a.id-b.id);
+      if(ocs.length||tipo==='livro'){pagina();lqcPdfFolhaB(D,ym,ocs);}
+    }
+  });
+  if(primeira){toast('Nada para exportar nesses dias.',true);return;}
+  const dt=d=>ddmmmCurto(d)+d.slice(0,4);
+  const per=$('#lqcEModo').value==='mes'&&meses.length===1?MESES_ABREV[+meses[0].slice(5)-1]+meses[0].slice(0,4):
+    (dias.length===1?dt(dias[0]):dt(dias[0])+'_a_'+dt(dias[dias.length-1]));
+  const nome={livro:'Livro_de_Quartos_do_Conves',A:'Folha_A',B:'Folha_B'}[tipo]+'_'+per+'.pdf';
+  entregarPdf(D.bytes(),nome);
+  $('#lqcEEstado').textContent='Gerado: '+nome;
+}
+
+/* ── PDF no formato do livro (fundo branco) ── */
+Pdf.prototype.txtV=function(s,xMm,yCentroMm,o){
+  /* texto de baixo para cima (como a coluna de grupos da Folha A) */
+  o=o||{}; const size=o.size||8, f=o.font||'F2', w=larguraTxt(s,size,f==='F2');
+  const X=xMm+size*0.3528*0.35, Y=yCentroMm+w/2;
+  this.ops.push('BT /'+f+' '+size+' Tf 0 1 -1 0 '+(X*MM).toFixed(2)+' '+((this.PGH-Y)*MM).toFixed(2)+' Tm ('+escPdf(s)+') Tj ET');
+};
+Pdf.prototype.cru=function(s){this.ops.push(s);};
+function lqcPdfRodapeImediato(D){
+  D.linha(122,281,196,281);
+  D.txt('IMEDIATO',159,285,{size:8,font:'F2',align:'center'});
+  D.txt('ASSINATURA PARA REMESSA',159,289,{size:8,font:'F2',align:'center'});
+}
+function lqcPdfCampo(D,rot,x,y,x1,x2,valor){
+  D.txt(rot,x,y,{size:9,font:'F2'});
+  D.linha(x1,y+0.8,x2,y+0.8);
+  if(valor)D.txt(valor,x1+1.5,y-0.3,{size:9.5});
+}
+function lqcPdfFolhaA(D,dia,linhas){
+  linhas=linhas.slice().sort((a,b)=>lqcOrdQ(a.quarto,b.quarto)).slice(0,7);
+  const cab=(linhas.find(x=>x.dados.cab&&(x.dados.cab.porto||x.dados.cab.viagem_de))||linhas[0]||{dados:{}}).dados.cab||{};
+  D.txt('FOLHA A',105,16,{size:15,font:'F2',align:'center'});
+  lqcPdfCampo(D,'NAVIO:',14,27,30,100,cab.navio||'');
+  lqcPdfCampo(D,'VIAGEM DE',104,27,124,160,cab.viagem_de||'');
+  lqcPdfCampo(D,'PARA',163,27,173,196,cab.para||'');
+  lqcPdfCampo(D,'PORTO:',14,34,30,100,cab.porto||'');
+  const d=new Date(dia+'T12:00:00');
+  D.txt('DATA',104,34,{size:9,font:'F2'});
+  D.linha(114,34.8,134,34.8); D.txt(String(d.getDate()),124,33.7,{size:9.5,align:'center'});
+  D.txt('de',137,34,{size:9,font:'F2'});
+  D.linha(142,34.8,178,34.8); D.txt(LQC_MESES[d.getMonth()],160,33.7,{size:9.5,align:'center'});
+  D.txt('de',180,34,{size:9,font:'F2'});
+  D.linha(185,34.8,196,34.8); D.txt(String(d.getFullYear()),190.5,33.7,{size:9.5,align:'center'});
+  D.linha(14,43,84,43); D.txt('COMANDANTE',49,47,{size:9,font:'F2',align:'center'});
+  /* grade: grupo | item | 7 quartos */
+  const x0=14, wG=7, wI=50, nQ=7, wQ=(182-wG-wI)/nQ, top=50, hH=6, hR=5.15;
+  const xQ=i=>x0+wG+wI+i*wQ;
+  D.caixa(xQ(0),top,wQ*nQ,hH); D.txt('QUARTOS OU SERVIÇOS',xQ(0)+wQ*nQ/2,top+4.3,{size:8.5,font:'F2',align:'center'});
+  for(let i=0;i<nQ;i++){
+    D.caixa(xQ(i),top+hH,wQ,hH);
+    if(linhas[i])D.txt(linhas[i].quarto,xQ(i)+wQ/2,top+hH+4.3,{size:9,align:'center'});
+  }
+  const y0=top+2*hH;
+  LQC_GRUPOS.forEach(([a,b,g])=>{
+    const ya=y0+(a-1)*hR, h=(b-a+1)*hR;
+    D.caixa(x0,ya,wG,h);
+    D.txtV(g.toUpperCase(),x0+wG/2,ya+h/2,{size:h<30?6:7});
+  });
+  LQC_ITENS.forEach((it,k)=>{
+    const y=y0+k*hR;
+    D.caixa(x0+wG,y,wI,hR);
+    D.txt(it.n+'. '+it.nome.toUpperCase(),x0+wG+1.4,y+3.7,{size:7,font:'F2'});
+    for(let i=0;i<nQ;i++){
+      D.caixa(xQ(i),y,wQ,hR);
+      const v=linhas[i]?(linhas[i].dados.itens||{})[it.n]||'':'';
+      if(v)D.txt(v,xQ(i)+wQ/2,y+3.75,{size:8.5,align:'center'});
+    }
+  });
+  /* serviço · assinatura · nome legível */
+  let y=y0+30*hR+5;
+  const cs=[[14,36,'SERVIÇO'],[50,72,'ASSINATURA'],[122,74,'NOME LEGÍVEL']];
+  cs.forEach(([x,w,t])=>{D.caixa(x,y,w,6);D.txt(t,x+w/2,y+4.3,{size:8.5,font:'F2',align:'center'});});
+  y+=6;
+  for(let i=0;i<nQ;i++){
+    cs.forEach(([x,w])=>D.caixa(x,y,w,5.4));
+    if(linhas[i]){
+      D.txt(linhas[i].quarto,14+18,y+3.9,{size:9,align:'center'});
+      D.txt(linhas[i].resp||'',124,y+3.9,{size:9});
+    }
+    y+=5.4;
+  }
+  lqcPdfRodapeImediato(D);
+}
+function lqcPdfFolhaB(D,ym,ocs){
+  const [ano,mes]=ym.split('-');
+  const xs=[14,26,47,170,196];   /* Dia | Quarto | Ocorrências | Rubrica */
+  const topoTab=40, hCab=12, fimTab=272, sz=9.5, lh=4.3;
+  const cabecalho=()=>{
+    D.txt('FOLHA B',105,16,{size:15,font:'F2',align:'center'});
+    D.linha(14,29,68,29); D.txt('COMANDANTE',41,33,{size:8.5,font:'F2',align:'center'});
+    D.linha(74,29,132,29); D.txt(lqcNavio(),103,28,{size:9,align:'center'}); D.txt('NAVIO',103,33,{size:8.5,font:'F2',align:'center'});
+    D.linha(138,29,172,29); D.txt(LQC_MESES[+mes-1],155,28,{size:9,align:'center'}); D.txt('MÊS',155,33,{size:8.5,font:'F2',align:'center'});
+    D.linha(178,29,196,29); D.txt(ano,187,28,{size:9,align:'center'}); D.txt('ANO',187,33,{size:8.5,font:'F2',align:'center'});
+    D.caixa(14,topoTab,182,hCab);
+    [['DIA'],['QUARTO','OU','SERVIÇO'],['OCORRÊNCIAS'],['RUBRICA','DO','IMEDIATO']].forEach((t,i)=>{
+      const cx=(xs[i]+xs[i+1])/2, y1=topoTab+hCab/2-(t.length-1)*1.7+1.2;
+      t.forEach((s,k)=>D.txt(s,cx,y1+k*3.4,{size:7.5,font:'F2',align:'center'}));
+    });
+    D.caixa(14,topoTab+hCab,182,fimTab-topoTab-hCab);
+    for(let i=1;i<4;i++)D.linha(xs[i],topoTab,xs[i],fimTab);
+    lqcPdfRodapeImediato(D);
+  };
+  cabecalho();
+  let y=topoTab+hCab+5;
+  const larg=xs[3]-xs[2]-4;
+  ocs.forEach(o=>{
+    const linhas=quebra(o.dados.texto||'',sz,larg);
+    const precisa=linhas.length*lh+lh+3;
+    if(y+precisa>fimTab-2){D.novaPagina();cabecalho();y=topoTab+hCab+5;}
+    D.txt(String(+o.data.slice(8)),(xs[0]+xs[1])/2,y,{size:sz,align:'center'});
+    D.txt(o.quarto,(xs[1]+xs[2])/2,y,{size:sz,align:'center'});
+    linhas.forEach((ln,k)=>D.txt(ln,xs[2]+2,y+k*lh,{size:sz}));
+    y+=linhas.length*lh;
+    D.txt(o.resp||'',xs[3]-2,y,{size:8.5,font:'F3',align:'right'});
+    y+=lh+3;
+  });
+}
+function lqcPdfCapa(D,meses){
+  D.txt('EM - 60-04',196,14,{size:8,font:'F2',align:'right'});
+  D.txt('7530-19-001-8222',196,18,{size:8,font:'F2',align:'right'});
+  D.linha(14,26,74,26); D.txt('COMANDANTE',44,30,{size:8,font:'F2',align:'center'});
+  D.caixa(22,40,166,232); D.caixa(24,42,162,228);
+  D.txt('LIVRO DE QUARTOS',105,72,{size:30,font:'F2',align:'center'});
+  D.txt('DO',105,88,{size:30,font:'F2',align:'center'});
+  D.txt('CONVÉS',105,104,{size:30,font:'F2',align:'center'});
+  lqcPdfAncora(D,105,150);
+  D.txt('MARINHA DO BRASIL',105,206,{size:16,font:'F2',align:'center'});
+  D.txt('ESTADO MAIOR DA ARMADA',105,215,{size:16,font:'F2',align:'center'});
+  D.txt(lqcNavio(),105,230,{size:12,align:'center'});
+  const per=meses.map(ym=>LQC_MESES[+ym.slice(5)-1]+' de '+ym.slice(0,4)).join(' · ');
+  D.txt(per.charAt(0).toUpperCase()+per.slice(1),105,237,{size:11,align:'center'});
+  D.caixa(132,244,48,22); D.txt('CARIMBO DO NAVIO',156,256,{size:7,align:'center'});
+}
+/* âncora simples, em traço, no centro da capa (cx, cy em mm) */
+function lqcPdfAncora(D,cx,cy){
+  const P=(x,y)=>((cx+x)*MM).toFixed(2)+' '+((D.PGH-(cy+y))*MM).toFixed(2);
+  const k=0.5523, r=5;
+  D.cru('1.2 w '+P(r,-24)+' m '+
+    [[r,-24-r*k,r*k,-24-r,0,-24-r],[-r*k,-24-r,-r,-24-r*k,-r,-24],[-r,-24+r*k,-r*k,-24+r,0,-24+r],[r*k,-24+r,r,-24+r*k,r,-24]]
+      .map(c=>P(c[0],c[1])+' '+P(c[2],c[3])+' '+P(c[4],c[5])+' c').join(' ')+' S');
+  D.cru('1.4 w '+P(0,-19)+' m '+P(0,24)+' l S');
+  D.cru('1.2 w '+P(-12,-13)+' m '+P(12,-13)+' l S');
+  D.cru('1.4 w '+P(-22,8)+' m '+P(-20,22)+' '+P(-6,27)+' '+P(0,24)+' c '+P(6,27)+' '+P(20,22)+' '+P(22,8)+' c S');
+  D.cru('1 w '+P(-22,8)+' m '+P(-27,13)+' l '+P(-20,14)+' l h S '+P(22,8)+' m '+P(27,13)+' l '+P(20,14)+' l h S');
+  D.cru('0.5 w');
+}
+
+/* ── eventos ── */
+$$('#subLqc button').forEach(b=>b.onclick=()=>{
+  LQC.sub=b.dataset.sub;
+  $$('#subLqc button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  lqcRender();
+});
+$$('#subLqcHist button').forEach(b=>b.onclick=()=>{
+  LQC.hist=b.dataset.sub;
+  $$('#subLqcHist button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  lqcRenderHist();
+});
+$('#lqcAItens').addEventListener('click',lqcCliqueItem);
+$('#lqcAItens').addEventListener('input',lqcEntradaItem);
+$('#lqcAItens').addEventListener('change',e=>{if(e.target.classList.contains('lqcSel'))lqcEntradaItem(e);});
+$('#lqcAData').onchange=()=>{LQC.fa.data=$('#lqcAData').value||hoje();lqcRenderA();};
+$('#lqcAQuarto').onchange=()=>{
+  $('#lqcAOutroL').classList.toggle('hidden',$('#lqcAQuarto').value!=='outro');
+  if($('#lqcAQuarto').value!=='outro'){LQC.fa.quarto=$('#lqcAQuarto').value;lqcRenderA();}
+};
+$('#lqcAOutro').onchange=()=>{const q=$('#lqcAOutro').value.trim();if(/^\d{2}-\d{2}$/.test(q)){LQC.fa.quarto=q;lqcRenderA();}};
+$('#lqcAResp').onchange=()=>{LQC.fa.resp_id=$('#lqcAResp').value;};
+$('#lqcACopia').onclick=lqcCopiaAnterior;
+$('#lqcALimpa').onclick=()=>{LQC.fa.itens={};lqcRenderItens();};
+$('#lqcAGrava').onclick=lqcGravaA;
+$('#lqcAExclui').onclick=()=>{const f=LQC.fa;if(f.id)lqcExclui(f.id,'o quarto '+f.quarto+' de '+brDate(f.data),()=>lqcRenderA(true));};
+$('#lqcBData').onchange=()=>{LQC.fb.data=$('#lqcBData').value||hoje();lqcRenderB();};
+$('#lqcBQuarto').onchange=()=>{
+  $('#lqcBOutroL').classList.toggle('hidden',$('#lqcBQuarto').value!=='outro');
+  if($('#lqcBQuarto').value!=='outro')LQC.fb.quarto=$('#lqcBQuarto').value;
+};
+$('#lqcBResp').onchange=()=>{LQC.fb.resp_id=$('#lqcBResp').value;};
+$('#lqcBGrava').onclick=lqcGravaB;
+$('#lqcBCancela').onclick=()=>{LQC.fb.id=0;$('#lqcBTexto').value='';lqcRenderB();};
+$('#lqcHMes').onchange=lqcRenderHist;
+$('#lqcHBusca').addEventListener('input',lqcRenderHist);
+$$('#lqcETipo button').forEach(b=>b.onclick=()=>{LQC.exp.tipo=b.dataset.tipo;lqcRenderExp();});
+['#lqcEModo','#lqcEMes','#lqcEDe','#lqcEAte'].forEach(s=>$(s).onchange=lqcRenderExp);
+$('#lqcEGera').onclick=lqcGeraPdf;
 $$('#subSecMsg button').forEach(b=>b.onclick=()=>{
   SEC.subMsg=b.dataset.sub; SEC.lim=60;
   $$('#subSecMsg button').forEach(o=>o.setAttribute('aria-selected',o===b));
