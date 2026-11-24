@@ -1547,6 +1547,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 @media (max-width:700px){.lqcSimbIt{grid-template-columns:1fr}}
 .lqcDiaH{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 8px}
 .lqcDiaH summary{cursor:pointer;font-size:13.5px}
+.lqcQAcoes{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 10px}
+.lqcQ{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:#fff}
+.lqcQ b{font-family:var(--mono);font-size:13px}
 .lqcDiaH[open] summary{margin-bottom:8px}
 .lqcTipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:0 0 14px}
 .lqcTipos button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;display:flex;flex-direction:column;gap:4px}
@@ -2717,7 +2720,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <label class="lqcResp">Responsável<select id="lqcAResp"></select></label>
       </div>
       <div class="lqcLinha">
-        <label>Navio<input type="text" id="lqcANavio" maxlength="120"></label>
+        <label>Navio<input type="text" id="lqcANavio" maxlength="120" value="AVHOTO" readonly></label>
         <label>Porto<input type="text" id="lqcAPorto" maxlength="120" list="lqcPortos" autocomplete="off" placeholder="BNVC, Estação das Docas ou outro"></label><datalist id="lqcPortos"></datalist>
         <label>Viagem de<input type="text" id="lqcAViagem" maxlength="120"></label>
         <label>Para<input type="text" id="lqcAPara" maxlength="120"></label>
@@ -19222,7 +19225,8 @@ const LQC_QUARTOS=['00-04','04-08','08-12','12-16','16-20','20-24','12-24'];
 const LQC_MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 let LQC={clima:{},tokClima:0,sub:'simb',hist:'A',meses:{},fa:null,fb:null,exp:{tipo:'livro'},pronto:false};
 
-const lqcNavio=()=>(CFG&&CFG.navio)||'AvHoFlu "Rio Tocantins"';
+const LQC_NAVIO='AVHOTO';                                    /* o navio, sempre pelo trigrama */
+const lqcNavio=()=>LQC_NAVIO;
 const lqcYm=d=>String(d).slice(0,7);
 const lqcFimMes=ym=>{const [a,m]=ym.split('-').map(Number);return ym+'-'+pad(new Date(a,m,0).getDate());};
 const lqcOrdQ=(a,b)=>String(a).localeCompare(String(b));
@@ -19250,6 +19254,16 @@ function lqcRender(){
   if(LQC.sub==='B')lqcRenderB();
   if(LQC.sub==='hist')lqcRenderHist();
   if(LQC.sub==='exp')lqcRenderExp();
+}
+function lqcIrPara(sub){
+  LQC.sub=sub;
+  $$('#subLqc button').forEach(o=>o.setAttribute('aria-selected',o.dataset.sub===sub?'true':'false'));
+  lqcRender();
+}
+function lqcEditaB(r){
+  Object.assign(LQC.fb,{id:r.id,data:r.data,quarto:r.quarto,resp_id:r.resp_id||''});
+  $('#lqcBTexto').value=(r.dados&&r.dados.texto)||'';
+  lqcIrPara('B'); $('#lqcBTexto').focus();
 }
 function lqcOpcoesResp(sel,atual){
   const lista=all().filter(m=>m.grupo!=='destacado').slice().sort((a,b)=>ordemAtual(a.id)-ordemAtual(b.id));
@@ -19519,7 +19533,7 @@ async function lqcRenderA(recarrega){
   try{await lqcMes(lqcYm(f.data),recarrega);}
   catch(e){$('#lqcAEstado').textContent=e.message;}
   lqcCarregaFormA();
-  $('#lqcANavio').value=f.cab.navio||''; $('#lqcAPorto').value=f.cab.porto||'';
+  f.cab.navio=LQC_NAVIO; $('#lqcANavio').value=LQC_NAVIO; $('#lqcAPorto').value=f.cab.porto||'';
   $('#lqcAViagem').value=f.cab.viagem_de||''; $('#lqcAPara').value=f.cab.para||'';
   $('#lqcAResp').value=f.resp_id||'';
   lqcRenderItens();
@@ -19544,7 +19558,7 @@ async function lqcGravaA(){
   if(!/^\d{2}-\d{2}$/.test(f.quarto)){toast('Quarto inválido. Use o formato 00-04.',true);return;}
   if(!f.data){toast('Escolha a data.',true);return;}
   const mil=milPorId($('#lqcAResp').value);
-  f.resp_id=mil?mil.id:''; f.cab={navio:$('#lqcANavio').value.trim(),porto:$('#lqcAPorto').value.trim(),
+  f.resp_id=mil?mil.id:''; f.cab={navio:LQC_NAVIO,porto:$('#lqcAPorto').value.trim(),
     viagem_de:$('#lqcAViagem').value.trim(),para:$('#lqcAPara').value.trim()};
   const fl=lqcFaltasA();
   if(fl.falta.length){
@@ -19593,8 +19607,7 @@ async function lqcRenderB(recarrega){
   $('#lqcBLista').innerHTML=lqcTabelaBHtml(l,true);
   $$('#lqcBLista [data-lqced]').forEach(b=>b.onclick=()=>{
     const r=l.find(x=>x.id===+b.dataset.lqced); if(!r)return;
-    Object.assign(LQC.fb,{id:r.id,data:r.data,quarto:r.quarto,resp_id:r.resp_id||''});
-    $('#lqcBTexto').value=r.dados.texto||''; lqcRenderB(); $('#lqcBTexto').focus();
+    lqcEditaB(r);
   });
   $$('#lqcBLista [data-lqcdel]').forEach(b=>b.onclick=()=>lqcExclui(+b.dataset.lqcdel,'esta ocorrência',()=>lqcRenderB(true)));
 }
@@ -19643,14 +19656,26 @@ async function lqcRenderHist(){
       const doDia=l.filter(x=>x.folha==='A'&&x.data===d);
       return '<details class="lqcDiaH"><summary><b>'+brDate(d)+'</b> · '+doDia.length+' quarto'+(doDia.length>1?'s':'')+': '+
         doDia.sort((a,b)=>lqcOrdQ(a.quarto,b.quarto)).map(x=>esc(x.quarto)+' ('+esc(x.resp||'—')+')').join(', ')+'</summary>'+
+        '<div class="lqcQAcoes">'+doDia.slice().sort((a,b)=>lqcOrdQ(a.quarto,b.quarto)).map(x=>
+          '<span class="lqcQ"><b>'+esc(x.quarto)+'</b><button class="mini" data-histed="'+x.id+'">Editar</button><button class="mini del" data-histdel="'+x.id+'">Excluir</button></span>').join('')+'</div>'+
         '<div class="scroller">'+lqcTabelaAHtml(d,doDia)+'</div></details>';
     }).join(''):'<p class="hint" style="margin:0">Nenhuma Folha A neste mês.</p>';
   }else{
     const q=$('#lqcHBusca').value.trim(), qs=secSemAcento(q);
     const b=l.filter(x=>x.folha==='B'&&(!qs||secSemAcento([x.quarto,x.resp,x.dados.texto,brDate(x.data)].join(' ')).includes(qs)))
       .sort((a,b)=>(a.data+a.quarto).localeCompare(b.data+b.quarto)||a.id-b.id);
-    corpo.innerHTML='<div class="scroller">'+lqcTabelaBHtml(b,false,q)+'</div>';
+    corpo.innerHTML='<div class="scroller">'+lqcTabelaBHtml(b,true,q)+'</div>';
+    $$('#lqcHCorpo [data-lqced]').forEach(x=>x.onclick=()=>{const r=b.find(y=>y.id===+x.dataset.lqced); if(r)lqcEditaB(r);});
+    $$('#lqcHCorpo [data-lqcdel]').forEach(x=>x.onclick=()=>lqcExclui(+x.dataset.lqcdel,'esta ocorrência',lqcRenderHist));
   }
+  $$('#lqcHCorpo [data-histed]').forEach(x=>x.onclick=()=>{
+    const r=l.find(y=>y.id===+x.dataset.histed); if(!r)return;
+    LQC.fa.data=r.data; LQC.fa.quarto=r.quarto; lqcIrPara('A');
+  });
+  $$('#lqcHCorpo [data-histdel]').forEach(x=>x.onclick=()=>{
+    const r=l.find(y=>y.id===+x.dataset.histdel); if(!r)return;
+    lqcExclui(r.id,'o quarto '+r.quarto+' de '+brDate(r.data),lqcRenderHist);
+  });
 }
 
 /* ── Exportar ── */
@@ -19738,7 +19763,7 @@ function lqcPdfFolhaA(D,dia,linhas){
   linhas=linhas.slice().sort((a,b)=>lqcOrdQ(a.quarto,b.quarto)).slice(0,7);
   const cab=(linhas.find(x=>x.dados.cab&&(x.dados.cab.porto||x.dados.cab.viagem_de))||linhas[0]||{dados:{}}).dados.cab||{};
   D.txt('FOLHA A',105,16,{size:15,font:'F2',align:'center'});
-  lqcPdfCampo(D,'NAVIO:',14,27,30,100,cab.navio||'');
+  lqcPdfCampo(D,'NAVIO:',14,27,30,100,LQC_NAVIO);
   lqcPdfCampo(D,'VIAGEM DE',104,27,124,160,cab.viagem_de||'');
   lqcPdfCampo(D,'PARA',163,27,173,196,cab.para||'');
   lqcPdfCampo(D,'PORTO:',14,34,30,100,cab.porto||'');
@@ -19783,7 +19808,7 @@ function lqcPdfFolhaA(D,dia,linhas){
     cs.forEach(([x,w])=>D.caixa(x,y,w,5.4));
     if(linhas[i]){
       D.txt(linhas[i].quarto,14+18,y+3.9,{size:9,align:'center'});
-      D.txt(linhas[i].resp||'',124,y+3.9,{size:9});
+      D.txt(linhas[i].resp||'',159,y+3.9,{size:9,align:'center'});
     }
     y+=5.4;
   }
