@@ -2702,7 +2702,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <h2>Folha A</h2>
       <p class="hint" style="margin:0 0 12px">Quem está de serviço escolhe o dia e o quarto, marca cada item e grava. Gravar de novo o mesmo dia e quarto substitui o que estava.</p>
       <div class="lqcLinha">
-        <label>Data<input type="date" id="lqcAData"></label>
+        <label>Data<input type="hidden" id="lqcAData"><input type="text" id="lqcADataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></label>
         <label>Quarto<select id="lqcAQuarto"></select></label>
         <label class="hidden" id="lqcAOutroL">Outro quarto<input type="text" id="lqcAOutro" placeholder="ex. 20-24" maxlength="5"></label>
         <label class="lqcResp">Responsável<select id="lqcAResp"></select></label>
@@ -2731,7 +2731,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <h2>Folha B</h2>
       <p class="hint" style="margin:0 0 12px">Ocorrências do serviço: o que aconteceu, em que dia e em que quarto.</p>
       <div class="lqcLinha">
-        <label>Data<input type="date" id="lqcBData"></label>
+        <label>Data<input type="hidden" id="lqcBData"><input type="text" id="lqcBDataBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></label>
         <label>Quarto<select id="lqcBQuarto"></select></label>
         <label class="hidden" id="lqcBOutroL">Outro quarto<input type="text" id="lqcBOutro" placeholder="ex. 15-18" maxlength="5"></label>
         <label class="lqcResp">Responsável<select id="lqcBResp"></select></label>
@@ -2753,7 +2753,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <button data-sub="B" aria-selected="false">Folha B</button>
       </div>
       <div class="lqcLinha">
-        <label>Mês<input type="month" id="lqcHMes"></label>
+        <label>Mês<input type="hidden" id="lqcHMes"><input type="text" id="lqcHMesBr" class="datebr" inputmode="numeric" placeholder="MM/AAAA" maxlength="7" readonly></label>
         <label class="lqcBusca hidden" id="lqcHBuscaL">Buscar<input type="text" id="lqcHBusca" placeholder="palavra, nome, quarto"></label>
       </div>
       <div id="lqcHCorpo"></div>
@@ -2769,9 +2769,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       </div>
       <div class="lqcLinha">
         <label>Período<select id="lqcEModo"><option value="mes">Mês inteiro</option><option value="dias">Dias escolhidos</option></select></label>
-        <label id="lqcEMesL">Mês<input type="month" id="lqcEMes"></label>
-        <label id="lqcEDeL" class="hidden">De<input type="date" id="lqcEDe"></label>
-        <label id="lqcEAteL" class="hidden">Até<input type="date" id="lqcEAte"></label>
+        <label id="lqcEMesL">Mês<input type="hidden" id="lqcEMes"><input type="text" id="lqcEMesBr" class="datebr" inputmode="numeric" placeholder="MM/AAAA" maxlength="7" readonly></label>
+        <label id="lqcEDeL" class="hidden">De<input type="hidden" id="lqcEDe"><input type="text" id="lqcEDeBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></label>
+        <label id="lqcEAteL" class="hidden">Até<input type="hidden" id="lqcEAte"><input type="text" id="lqcEAteBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></label>
       </div>
       <div id="lqcEDias"></div>
       <div class="lqcAcoes">
@@ -18987,6 +18987,10 @@ function secRenderPrazos(){
   $('#secPzFeitas').innerHTML=feitas.length?feitas.slice(0,60).map(x=>linha(x,true)).join(''):'<div class="secVazio">Nada ainda.</div>';
   $('#secPzNFeitas').textContent=feitas.length;
 }
+const secPzHoraOk=h=>/^([01]\d|2[0-3]):[0-5]\d$/.test(String(h||''));
+/* campo de hora em HH:MM (24 h): o type="time" do navegador mostra AM/PM conforme o idioma do aparelho */
+document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('horabr'))return;
+  let v=t.value.replace(/\D/g,'').slice(0,4); if(v.length>2)v=v.slice(0,2)+':'+v.slice(2); t.value=v;});
 function secPzAbreForm(id,qual){
   const m=(SEC.msgs||[]).find(x=>String(x.id)===String(id)); if(!m)return;
   const box=$('#secPzForm-'+id); if(!box)return;
@@ -18996,9 +19000,10 @@ function secPzAbreForm(id,qual){
     '<div style="flex:1 1 300px"><label>O que foi enviado (DTG, nº do ofício, assunto do e-mail…)</label><input type="text" id="pzTxt-'+id+'"></div>'+
     '<button type="button" class="btn" data-pzrespok="'+id+'">Gravar resposta</button></div>';
   if(qual==='prazo'){const [dd,hh]=(c.prazo||'').split('T');box.innerHTML='<div class="row" style="align-items:flex-end;gap:8px;margin-top:8px">'+
-    '<div style="flex:0 1 170px"><label>Data</label><input type="date" id="pzData-'+id+'" value="'+esc(dd||'')+'"></div>'+
-    '<div style="flex:0 1 120px"><label>Hora (local)</label><input type="time" id="pzHora-'+id+'" value="'+esc(hh||'')+'"></div>'+
-    '<button type="button" class="btn" data-pzprazook="'+id+'">Gravar prazo</button></div>';}
+    '<div style="flex:0 1 170px"><label>Data</label><input type="hidden" id="pzData-'+id+'"><input type="text" id="pzData-'+id+'Br" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+    '<div style="flex:0 1 120px"><label>Hora (local)</label><input type="text" class="horabr" id="pzHora-'+id+'" inputmode="numeric" placeholder="HH:MM" maxlength="5" value="'+esc(hh||'')+'"></div>'+
+    '<button type="button" class="btn" data-pzprazook="'+id+'">Gravar prazo</button></div>';
+    setDataDia('pzData-'+id,dd||''); ligaCalDia('pzData-'+id);}
   if(qual==='disp')box.innerHTML='<div class="row" style="align-items:flex-end;gap:8px;margin-top:8px">'+
     '<div style="flex:1 1 300px"><label>Por que não exige resposta</label><input type="text" id="pzMot-'+id+'" placeholder="Ex.: só ciência; não se aplica ao navio"></div>'+
     '<button type="button" class="btn" data-pzdispok="'+id+'">Confirmar</button></div>';
@@ -19017,7 +19022,9 @@ document.addEventListener('click',async e=>{
   const c=Object.assign({},m.controle||{});
   if(t.dataset.pzrespok){const txt=$('#pzTxt-'+id).value.trim(); if(!txt){toast('Diga o que foi enviado.',true);return;}
     c.respondida={por:$('#pzMeio-'+id).value,texto:txt,em:secPzIso(new Date()),quem:(PERFIL&&PERFIL.email)||''};}
-  if(t.dataset.pzprazook){const d=$('#pzData-'+id).value,h=$('#pzHora-'+id).value; c.prazo=d?(h?d+'T'+h:d):''; c.origem='manual';}
+  if(t.dataset.pzprazook){const d=$('#pzData-'+id).value,h=$('#pzHora-'+id).value.trim();
+    if(h&&!secPzHoraOk(h)){toast('Hora inválida. Use HH:MM, por exemplo 14:30.',true);return;}
+    c.prazo=d?(h?d+'T'+h:d):''; c.origem='manual';}
   if(t.dataset.pzdispok){c.exige=false;c.motivo=$('#pzMot-'+id).value.trim()||'não exige resposta';}
   if(t.dataset.pzreabre){c.exige=true;c.respondida=null;c.motivo='';}
   t.disabled=true;
@@ -19049,8 +19056,8 @@ function secRatPrazoHtml(m,i){
     const [d,h]=(c.prazo||'').split('T');
     return '<div class="secPzRat"><b>Controle de prazo</b>'+
       '<div class="secGrade"><div><label>Exige resposta?</label><select data-pz="'+i+'" data-pk="exige"><option value="1"'+(c.exige?' selected':'')+'>Sim</option><option value="0"'+(!c.exige?' selected':'')+'>Não</option></select></div>'+
-      '<div><label>Prazo (data)</label><input type="date" data-pz="'+i+'" data-pk="data" value="'+esc(d||'')+'"></div>'+
-      '<div><label>Hora local</label><input type="time" data-pz="'+i+'" data-pk="hora" value="'+esc(h||'')+'"></div>'+
+      '<div><label>Prazo (data)</label><input type="hidden" id="pzRatD-'+i+'" data-pz="'+i+'" data-pk="data" value="'+esc(d||'')+'"><input type="text" id="pzRatD-'+i+'Br" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+      '<div><label>Hora local</label><input type="text" class="horabr" data-pz="'+i+'" data-pk="hora" inputmode="numeric" placeholder="HH:MM" maxlength="5" value="'+esc(h||'')+'"></div>'+
       '<div><label>Responder por</label><select data-pz="'+i+'" data-pk="meio">'+['MSG','E-mail','Ofício','Outro'].map(o=>'<option'+(o===c.meio?' selected':'')+'>'+o+'</option>').join('')+'</select></div></div>'+
       '<p class="hint" style="margin:6px 0 0">'+esc(SEC_PZ_TIPO[c.tipo]||'')+(c.prazo_txt?' · lido no texto: '+esc(c.prazo_txt):' · nenhum prazo com data no texto')+'</p></div>';
   }
@@ -19079,12 +19086,13 @@ function secRenderRat(){
     const m=SEC.rat[+el.dataset.rat]; if(!m)return;
     m[el.dataset.k]=el.dataset.k==='dtg'||el.dataset.k==='letra'?el.value.toUpperCase().replace(/\s+/g,''):el.value;
   }));
+  $$('#secRatLista input[type=hidden][data-pk="data"]').forEach(el=>{setDataDia(el.id,el.value);ligaCalDia(el.id);});
   $$('#secRatLista [data-pz]').forEach(el=>el.addEventListener('change',()=>{
     const m=SEC.rat[+el.dataset.pz]; if(!m)return; const c=m.controle=m.controle||{exige:false,prazo:'',meio:'MSG',tipo:'sem_prazo',origem:'manual'};
     const k=el.dataset.pk;
     if(k==='exige')c.exige=el.value==='1';
     if(k==='meio')c.meio=el.value;
-    if(k==='data'||k==='hora'){const box=el.closest('.secPzRat'),d=box.querySelector('[data-pk="data"]').value,h=box.querySelector('[data-pk="hora"]').value;c.prazo=d?(h?d+'T'+h:d):'';c.origem='manual';}
+    if(k==='data'||k==='hora'){const box=el.closest('.secPzRat'),d=box.querySelector('[data-pk="data"]').value,h=box.querySelector('[data-pk="hora"]').value.trim();c.prazo=d?(secPzHoraOk(h)?d+'T'+h:d):'';c.origem='manual';}
   }));
   $$('#secRatLista [data-pzresptx]').forEach(el=>el.addEventListener('change',()=>{
     const m=SEC.rat[+el.dataset.pzresptx]; if(!m)return; const id=+el.value; m.respNao=m.respNao||[];
@@ -19157,8 +19165,8 @@ const LQC_ITENS=[
     simb:'A, B, B-1 etc., de acordo com a doutrina do CAV para cada navio'},
   {n:4,nome:'Energia elétrica',tipo:'partes',partes:[[['B','Bordo'],['T','Terra'],['N','Outro navio'],['SE','Sem energia']],[['NE','Navegação às escuras']]],
     simb:'(B) Bordo · (T) Terra · (N) Outro navio · (SE) Sem energia. Em navegação às escuras, acrescentar (NE)'},
-  {n:5,nome:'Dotação de munição',tipo:'op',ops:[['P','Paz'],['A','Adestramento'],['S','Sem munição'],['G','Guerra']],
-    simb:'(P) Paz · (A) Adestramento · (S) Sem munição · (G) Guerra'},
+  {n:5,nome:'Dotação de munição',tipo:'multi',ops:[['P','Paz'],['A','Adestramento'],['S','Sem munição'],['G','Guerra']],
+    simb:'(P) Paz · (A) Adestramento · (S) Sem munição · (G) Guerra. Pode haver mais de uma ao mesmo tempo (ex.: P-A)'},
   {n:6,nome:'Paióis de munição',tipo:'op',ops:[['V','Ventilados'],['N','Não ventilados'],['R','Refrigerados']],
     simb:'(V) Ventilados · (N) Não ventilados · (R) Refrigerados'},
   {n:7,nome:'Viaturas prontas',tipo:'txt',ex:'1, 2, 3...',simb:'1, 2, 3, 4 etc., conforme o número da viatura que estiver pronta em terra'},
@@ -19245,8 +19253,8 @@ function lqcPrepara(){
   const eu=PERFIL&&PERFIL.militar?PERFIL.militar.id:'';
   LQC.fa={data:hoje(),quarto:lqcQuartoAgora(),resp_id:eu,itens:{},cab:{navio:lqcNavio(),porto:'',viagem_de:'',para:''},id:0};
   LQC.fb={data:hoje(),quarto:lqcQuartoAgora(),resp_id:eu,id:0};
-  $('#lqcHMes').value=lqcYm(hoje()); $('#lqcEMes').value=lqcYm(hoje());
-  $('#lqcEDe').value=lqcYm(hoje())+'-01'; $('#lqcEAte').value=hoje();
+  setDataMes('lqcHMes',lqcYm(hoje())); setDataMes('lqcEMes',lqcYm(hoje()));
+  setDataDia('lqcEDe',lqcYm(hoje())+'-01'); setDataDia('lqcEAte',hoje());
 }
 
 /* ── Simbologia Padrão ── */
@@ -19289,7 +19297,7 @@ function lqcCtlHtml(it,v){
     return na+'<select class="lqcSel" data-n="'+it.n+'" data-bf="f"><option value="">força</option>'+
       Array.from({length:13},(_,i)=>'<option'+(String(i)===f?' selected':'')+'>'+i+'</option>').join('')+'</select>'+
       '<select class="lqcSel" data-n="'+it.n+'" data-bf="d"><option value="">direção</option>'+
-      LQC_DIRS.concat(['VAR']).map(x=>'<option'+(x===d?' selected':'')+'>'+x+'</option>').join('')+'</select>';
+      LQC_DIRS.map(x=>'<option'+(x===d?' selected':'')+'>'+x+'</option>').join('')+'</select>';
   }
   return na+'<input type="text" class="lqcIn" data-n="'+it.n+'" maxlength="40" placeholder="'+esc(it.ex||'')+'" value="'+esc(v!=='—'?(v||''):'')+'">';
 }
@@ -19348,7 +19356,7 @@ function lqcCarregaFormA(){
 }
 async function lqcRenderA(recarrega){
   const f=LQC.fa;
-  $('#lqcAData').value=f.data;
+  setDataDia('lqcAData',f.data);
   lqcOpcoesQuarto($('#lqcAQuarto'),f.quarto);
   $('#lqcAOutroL').classList.toggle('hidden',$('#lqcAQuarto').value!=='outro');
   if($('#lqcAQuarto').value==='outro')$('#lqcAOutro').value=f.quarto;
@@ -19407,7 +19415,7 @@ function lqcCopiaAnterior(){
 /* ── Folha B: ocorrências ── */
 async function lqcRenderB(recarrega){
   const f=LQC.fb;
-  $('#lqcBData').value=f.data;
+  setDataDia('lqcBData',f.data);
   lqcOpcoesQuarto($('#lqcBQuarto'),f.quarto);
   $('#lqcBOutroL').classList.toggle('hidden',$('#lqcBQuarto').value!=='outro');
   if($('#lqcBQuarto').value==='outro')$('#lqcBOutro').value=f.quarto;
@@ -19711,6 +19719,7 @@ $('#lqcHBusca').addEventListener('input',lqcRenderHist);
 $$('#lqcETipo button').forEach(b=>b.onclick=()=>{LQC.exp.tipo=b.dataset.tipo;lqcRenderExp();});
 ['#lqcEModo','#lqcEMes','#lqcEDe','#lqcEAte'].forEach(s=>$(s).onchange=lqcRenderExp);
 $('#lqcEGera').onclick=lqcGeraPdf;
+['lqcAData','lqcBData','lqcEDe','lqcEAte'].forEach(ligaCalDia); ['lqcHMes','lqcEMes'].forEach(ligaCalMes);
 $$('#subSecMsg button').forEach(b=>b.onclick=()=>{
   SEC.subMsg=b.dataset.sub; SEC.lim=60;
   $$('#subSecMsg button').forEach(o=>o.setAttribute('aria-selected',o===b));
