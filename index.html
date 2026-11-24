@@ -21844,9 +21844,15 @@ function pdfPapeleta(D,reg){
   D.txt('Assinatura',105,y,{size:9,align:'center'});
 }
 
+/* nome do arquivo: Papeleta_de_Férias_40_3SG_AFONSO_28NOV2026_a_06DEZ2026.pdf
+   (número de controle do ano, graduação sem "º" e sem especialidade, nome de guerra, período) */
 function nomeArquivoPapeleta(reg){
   const rotulo={ferias:'Férias',licenca:'Licença',transito:'Trânsito'}[reg.tipo||'ferias'];
-  return 'Papeleta_de_'+rotulo+'_'+reg.numero+'_'+String(reg.nome||'').trim().replace(/\s+/g,'_')+'.pdf';
+  const posto=postoBase(reg.posto).replace(/[ºª°]/g,'');
+  const guerra=String(reg.guerra||(milPorId(reg.mil)||{}).nome||reg.nome||'').trim();
+  const dt=iso=>ddmmmCurto(iso)+String(iso).slice(0,4);
+  return ['Papeleta_de_'+rotulo,reg.numero,posto,guerra,dt(reg.ini),'a',dt(reg.fim)]
+    .filter(x=>x!==''&&x!=null).join('_').replace(/\s+/g,'_').replace(/[\/:*?"<>|]/g,'')+'.pdf';
 }
 function coletaFormPapeleta(){
   const mil=milPorId($('#pfMil').value);
