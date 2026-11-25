@@ -3362,6 +3362,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
     <div class="subtabs" id="subObtCh12">
       <button data-ch12="dispensa" aria-selected="true">Dispensa Eletrônica</button>
       <button data-ch12="solemp" aria-selected="false">Controle SOLEMP</button>
+      <button data-ch12="entrega" aria-selected="false">Controle de entrega</button>
       <button data-ch12="empenhos" aria-selected="false">Notas de Empenho</button>
       <button data-ch12="materiais" aria-selected="false">Controle de PDM</button>
       <button data-ch12="financeiro" aria-selected="false">Visão financeira</button>
@@ -3524,19 +3525,6 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="obtmeta" id="obtSolResumo" style="margin-top:10px"></div>
     </div>
 
-    <div class="card reveal" id="obtSolCe">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px">
-        <h2 style="margin:0">Controle de entrega <span class="n" id="nObtCe">0</span></h2>
-      </div>
-      <p class="hint" style="margin:0 0 12px">Só entram as SOLEMPs <b>empenhadas</b>. Vermelho: a data prevista venceu. Amarelo: faltam até 5 dias úteis (sábado, domingo e feriado nacional não contam). Quando o material chega ou o serviço fica pronto, a SOLEMP passa sozinha para a etapa <b>Material entregue</b>.</p>
-      <div class="cekpis" id="obtCeKpis"></div>
-      <div class="row" style="align-items:flex-end;margin-bottom:12px">
-        <div class="ceabas" id="obtCeAbas" style="flex:1 1 auto"></div>
-        <div style="flex:0 1 280px"><input type="text" id="obtCeBusca" placeholder="SOLEMP, NE, fornecedor ou item" autocomplete="off"></div>
-      </div>
-      <div class="scroller" id="obtCeLista"></div>
-    </div>
-
     <div class="card reveal">
       <h2>Processos do navio <span class="n" id="nObtProc">0</span></h2>
       <p class="hint" style="margin:0 0 12px">As dispensas eletrônicas da UASG do navio, como o governo as publicou. Clique na linha para abrir os anexos do PNCP. A coluna <b>Etapa</b> é sua: marque em que ponto do trâmite cada dispensa está — a base aberta não informa isso, e o que você marcar aqui sobrevive às sincronizações.</p>
@@ -3560,6 +3548,22 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="scroller" id="obtListaProc" style="margin-top:14px"></div>
     </div>
   </div><!-- fim de #obtch12-solemp -->
+
+  <!-- ======= CONTROLE DE ENTREGA ======= -->
+  <div id="obtch12-entrega" class="hidden">
+    <div class="card reveal" id="obtSolCe">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px">
+        <h2 style="margin:0">Controle de entrega <span class="n" id="nObtCe">0</span></h2>
+      </div>
+      <p class="hint" style="margin:0 0 12px">Só entram as SOLEMPs <b>empenhadas</b>. Vermelho: a data prevista venceu. Amarelo: faltam até 5 dias úteis (sábado, domingo e feriado nacional não contam). Quando o material chega ou o serviço fica pronto, a SOLEMP passa sozinha para a etapa <b>Material entregue</b>.</p>
+      <div class="cekpis" id="obtCeKpis"></div>
+      <div class="row" style="align-items:flex-end;margin-bottom:12px">
+        <div class="ceabas" id="obtCeAbas" style="flex:1 1 auto"></div>
+        <div style="flex:0 1 280px"><input type="text" id="obtCeBusca" placeholder="SOLEMP, NE, fornecedor ou item" autocomplete="off"></div>
+      </div>
+      <div class="scroller" id="obtCeLista"></div>
+    </div>
+  </div><!-- fim de #obtch12-entrega -->
 
   <!-- ======= NOTAS DE EMPENHO ======= -->
   <div id="obtch12-empenhos" class="hidden">
@@ -6716,7 +6720,7 @@ let OBT_SUB='radar', OBT_PROC_SUB='outras', OBT_CH12_SUB='dispensa', OBT_EDIT_NE
 let OBT_NE_LOTE=[];
 let OBT_NE_ABERTA='';
 const OBT_PROC_ABAS=['outras','atas'];
-const OBT_CH12_ABAS=['dispensa','solemp','empenhos','materiais','financeiro'];
+const OBT_CH12_ABAS=['dispensa','solemp','entrega','empenhos','materiais','financeiro'];
 
 const OBT_PDM_LIMITE_PADRAO=65492.11; /* Decreto 12.807/2025, art. 75-II da Lei 14.133 — atualizado desde 1º/1/2026 */
 function obtVazio(){
@@ -7024,6 +7028,7 @@ function renderObtencao(){
   if(OBT_SUB==='controleh12'){
     if(OBT_CH12_SUB==='dispensa')renderDispensa();
     else if(OBT_CH12_SUB==='solemp'){renderSolemps();renderObtProcessos();}
+    else if(OBT_CH12_SUB==='entrega')renderControleEntrega();
     else if(OBT_CH12_SUB==='empenhos')renderObtEmpenhos();
     else if(OBT_CH12_SUB==='materiais')renderObtPdm();
     else if(OBT_CH12_SUB==='financeiro')renderObtFinanceiro();
@@ -8312,7 +8317,6 @@ function renderSolemps(){
     ('Mostrando '+Math.min(lista.length,300)+' de '+lista.length+' · soma '+
      brl(lista.reduce((a,s)=>a+solTotal(s),0))):'';
   solLigaLista();
-  renderControleEntrega();
 }
 function solLigaLista(){
   $$('tr[data-sol]').forEach(tr=>tr.onclick=e=>{
