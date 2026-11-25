@@ -19207,7 +19207,7 @@ const LQC_ITENS=[
   {n:21,nome:'Formatura',tipo:'txt',simb:'Símbolo de formatura e símbolo da publicação de referência'},
   {n:22,nome:'Plano',tipo:'txt',simb:'Símbolo do plano que o navio estiver executando e publicação de referência'},
   {n:23,nome:'Eixo',tipo:'txt',ex:'000',simb:'Em três algarismos'},
-  {n:24,nome:'Rumo/veloc.',tipo:'rumoveloc',simb:'Rumo em três algarismos e velocidade em nós, ou rumos práticos (RP). Preencha o rumo e a veloc.: o livro recebe no formato 130º 4,5 (rumo e velocidade em nós, com o símbolo de minuto)'},
+  {n:24,nome:'Rumo/veloc.',tipo:'rumoveloc',simb:'Rumo em três algarismos e velocidade em nós, ou rumos práticos (RP). Preencha o rumo e a veloc.: o livro recebe rumo, hífen e velocidade em nós (ex.: 130º-4,5)'},
   {n:25,nome:'Guia',tipo:'txt',simb:'Indicativo externo e fonia do guia'},
   {n:26,nome:'Posto',tipo:'txt',simb:'Em quatro ou cinco algarismos, conforme a publicação citada em 22'},
   {n:27,nome:'OCT',tipo:'txt',simb:'Lançar o indicativo fonia'},
@@ -19406,14 +19406,14 @@ function lqcCtlHtml(it,v){
   }
   return na+'<input type="text" class="lqcIn" data-n="'+it.n+'" maxlength="40" placeholder="'+esc(it.ex||'')+'" value="'+esc(v!=='—'?(v||''):'')+'">';
 }
-/* Rumo/veloc.: o militar preenche os dois campos e o livro recebe "130º 4,5'" (rumo em três algarismos; veloc. em nós, com vírgula) */
+/* Rumo/veloc.: o militar preenche os dois campos e o livro recebe "130º-4,5'" (rumo em três algarismos; veloc. em nós, com vírgula) */
 function lqcRvFormata(r,vl){
   r=String(r||'').trim().toUpperCase();
   vl=String(vl||'').trim().replace('.',',').replace(/[^\d,]/g,'');
   let rs='';
   if(r==='RP')rs='RP';
   else{const n=r.replace(/\D/g,''); if(n!=='')rs=String(Math.min(360,+n)).padStart(3,'0')+'º';}
-  return [rs,vl?vl+"'":''].filter(Boolean).join(' ');
+  return [rs,vl?vl+"'":''].filter(Boolean).join('-');
 }
 function lqcRvParse(v){
   const r=(String(v||'').match(/^(RP|\d+)º?/)||[])[1]||'', vl=(String(v||'').match(/([\d,]+)'$/)||[])[1]||'';
@@ -19428,7 +19428,7 @@ function lqcFaltasA(){
     if(!v){falta.push(it.n+'. '+it.nome);itens.push(it.n);return;}
     if(v==='—')return;
     const ruim=(it.tipo==='beaufort'&&!/^\d+-[A-Z]+$/.test(v))||
-      (it.tipo==='rumoveloc'&&!/^(RP|\d{3}º) [\d,]+'$/.test(v))||
+      (it.tipo==='rumoveloc'&&!/^(RP|\d{3}º)-[\d,]+'$/.test(v))||
       (it.tipo==='conjuntos'&&!/^[NSR]-[BM](, [NSR]-[BM])*$/.test(v));
     if(ruim){
       falta.push(it.n+'. '+it.nome+(it.tipo==='beaufort'?' (força e direção)':it.tipo==='rumoveloc'?' (rumo e veloc.)':' (amarração e espia)'));itens.push(it.n);
