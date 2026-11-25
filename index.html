@@ -3512,7 +3512,6 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
         <div style="flex:0 1 auto"><button class="btn ghost" id="obtSolRelBtn">Inserir Relatório</button>
           <input type="file" id="obtSolRelInput" accept="application/pdf" class="hidden"></div>
         <div style="flex:0 1 auto"><button class="btn" id="obtSolNova">Nova SOLEMP</button></div>
-        <div style="flex:0 1 auto"><button class="btn" id="obtSolCeBtn">Controle de entrega</button></div>
       </div>
       <div class="row" style="align-items:flex-end;margin-top:10px">
         <div style="flex:1 1 220px"><label>Natureza de Despesa</label><select id="obtSolNd"></select></div>
@@ -3525,10 +3524,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
       <div class="obtmeta" id="obtSolResumo" style="margin-top:10px"></div>
     </div>
 
-    <div class="card reveal hidden" id="obtSolCe">
+    <div class="card reveal" id="obtSolCe">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px">
         <h2 style="margin:0">Controle de entrega <span class="n" id="nObtCe">0</span></h2>
-        <button class="btn ghost" id="obtCeVolta">&larr; Voltar às SOLEMPs</button>
       </div>
       <p class="hint" style="margin:0 0 12px">Só entram as SOLEMPs <b>empenhadas</b>. Vermelho: a data prevista venceu. Amarelo: faltam até 5 dias úteis (sábado, domingo e feriado nacional não contam). Quando o material chega ou o serviço fica pronto, a SOLEMP passa sozinha para a etapa <b>Material entregue</b>.</p>
       <div class="cekpis" id="obtCeKpis"></div>
@@ -8314,6 +8312,7 @@ function renderSolemps(){
     ('Mostrando '+Math.min(lista.length,300)+' de '+lista.length+' · soma '+
      brl(lista.reduce((a,s)=>a+solTotal(s),0))):'';
   solLigaLista();
+  renderControleEntrega();
 }
 function solLigaLista(){
   $$('tr[data-sol]').forEach(tr=>tr.onclick=e=>{
@@ -8516,14 +8515,6 @@ const CE_KPIS=[
 const CE_ORDEM={atraso:0,perto:1,mudo:2,sem:3,trans:4,ok:5,fim:6};
 const ceDataBr=iso=>iso?iso.split('-').reverse().join('/'):'';
 
-function ceAbrirTela(sim){
-  const lst=$('#obtSolLista'), card=lst&&lst.closest('.card'), ce=$('#obtSolCe');
-  if(!card||!ce)return;
-  card.classList.toggle('hidden',!!sim); ce.classList.toggle('hidden',!sim);
-  if(sim)renderControleEntrega();
-  const alvo=sim?ce:card;
-  if(alvo.scrollIntoView)alvo.scrollIntoView({behavior:'smooth',block:'start'});
-}
 function renderControleEntrega(){
   if(!$('#obtCeLista'))return;
   const todas=(OBT.solemps||[]).filter(ceEntra);
@@ -8655,8 +8646,6 @@ function ceMudaSit(en,v,tipo){
   en.hist=(en.hist||[]).concat([{d:hoje(),txt:'Situação: '+(o?o.l:v)}]);
 }
 function ceLiga(){
-  const b=$('#obtSolCeBtn'); if(b)b.onclick=()=>ceAbrirTela(true);
-  const v=$('#obtCeVolta'); if(v)v.onclick=()=>ceAbrirTela(false);
   const bu=$('#obtCeBusca'); if(bu)bu.addEventListener('input',renderControleEntrega);
   const ce=$('#obtSolCe');
   if(ce)ce.addEventListener('click',e=>{
