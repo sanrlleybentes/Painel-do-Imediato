@@ -5212,6 +5212,20 @@ function agBkpFolha(spec,o){
   if(o.legenda)spec.rodape.forEach(r=>R.push({c:(r.c||[]).map(x=>({col:x.col,t:x.t,e:x.e,span:x.span||1}))}));
   return {nome:o.nome,larg:o.larg,linhas:R};
 }
+/* Coluna Resposta da planilha: o que respondeu a faina no mês.
+   - MSG vinculada do SECOM -> "Pela R012330Z/NOV/2026" (só a DTG, sem o assunto);
+   - texto escrito à mão em "Respondido por" -> sai do jeito que foi escrito;
+   - cumprida sem nada escrito -> "Cumprida em dd/mm/aaaa". */
+function agRespostaTxt(cp,h){
+  cp=cp||{};
+  const ev=String(cp.evid||'').trim();
+  if(cp.msg){
+    if(/^pela\s/i.test(ev))return ev;
+    const ref=ev?ev.split(/\s+[—–-]\s+/)[0].trim():String(cp.msg.dtg||'').trim();
+    if(ref)return 'Pela '+ref;
+  }
+  return ev||(cp.ok?'Cumprida em '+brDate(cp.em||h):'');
+}
 function agBkpModelo(){
   const spec=AGD.modelo||agModeloPadrao();
   const h=hoje(), a=Number(h.slice(0,4)), m=Number(h.slice(5,7));
@@ -5222,8 +5236,7 @@ function agBkpModelo(){
       const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
       const doMes=f==='MENSAL'||(f!=='EVENTUAL'&&(x.meses||[]).indexOf(m)>=0);
       const cor=cp.ok?'ok':(x.ativo===false?'na':(doMes?'pend':''));
-      /* Resposta: o que respondeu a faina no mês (MSG vinculada ou o texto do "Respondido por") */
-      const resposta=cp.evid||(cp.ok?'Cumprida em '+brDate(cp.em||h):'');
+      const resposta=agRespostaTxt(cp,h);
       const c=[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''];
       while(c.length<=spec.resp)c.push('');
       c[spec.resp]=resposta;
