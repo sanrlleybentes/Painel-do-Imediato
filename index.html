@@ -4265,7 +4265,7 @@ function fechaCal(){$('#calHost').innerHTML='';}
     const pop=$('#calHost .calpop'); if(!pop)return;
     const campo=$('#'+calIdAlvo+'Br'); if(!campo){fechaCal();return;}
     const r=campo.getBoundingClientRect();
-    const vh=document.documentElement.clientHeight;
+    const vh=telaAlt();
     if(r.bottom<-8||r.top>vh+8){fechaCal();return;}   /* o campo saiu da tela */
     posicionaCal(pop,campo);
   }
@@ -4273,8 +4273,15 @@ function fechaCal(){$('#calHost').innerHTML='';}
   window.addEventListener('scroll',agenda,true);
   window.addEventListener('resize',agenda);
 })();
+/* Tamanho da janela visível. O arquivo não tem <!DOCTYPE> e o navegador o abre
+   em modo de compatibilidade: aí documentElement.clientHeight devolve a altura
+   da PÁGINA inteira, não da janela. O calendário achava que sempre havia espaço
+   embaixo e abria para baixo mesmo no pé da tela, cortado. innerHeight é a
+   janela de verdade em qualquer modo. */
+function telaAlt(){return (window.visualViewport&&window.visualViewport.height)||window.innerHeight||document.documentElement.clientHeight;}
+function telaLarg(){const c=document.documentElement.clientWidth, i=window.innerWidth||c;return c&&c<=i?c:i;}
 function posicionaCal(pop,input){
-  const vw=document.documentElement.clientWidth, vh=document.documentElement.clientHeight;
+  const vw=telaLarg(), vh=telaAlt();
   /* tela estreita: folha ancorada embaixo, sempre inteira e ao alcance do polegar */
   if(vw<=560){
     pop.classList.add('calsheet');
