@@ -348,6 +348,9 @@ select.obtfase{min-width:210px;font-size:12px}
 .cechip.c-mudo3{color:#FFF;border-color:var(--terra);background:var(--terra)}
 .cechip.c-trans{color:#2F5D7A;border-color:#A9C3D4;background:#E9F1F6}
 .cechip.c-fim{color:#FFF;border-color:var(--bordo);background:var(--bordo)}
+.cechip.c-canc{color:#FFF;border-color:#8C5A4D;background:#8C5A4D}
+.cekpi.k-canc{border-left-color:#8C5A4D}
+.cetag.canc{background:#8C5A4D;color:#FFF;border-color:#8C5A4D}
 .cedata b{font-family:var(--mono);font-weight:500;font-size:13px}
 .cetag{display:inline-block;margin-top:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px}
 .cetag.atraso{background:var(--alert);color:#FFF} .cetag.perto{background:#C9971A;color:#2A2415} .cetag.ok{color:var(--bordo);padding-left:0}
@@ -360,9 +363,17 @@ select.obtfase{min-width:210px;font-size:12px}
 .ceop input{width:auto;margin-top:2px}
 .ceop:has(input:checked){border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
 .cebloco{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
-.cehist{list-style:none;padding:0;margin:8px 0 0;font-size:13px;max-height:220px;overflow:auto}
-.cehist li{padding:7px 0;border-bottom:1px dashed var(--line);display:flex;gap:10px}
-.cehist li b{font-family:var(--mono);font-weight:500;font-size:12px;min-width:86px;color:var(--muted)}
+.cehist{list-style:none;padding:0;margin:8px 0 0;font-size:13px;max-height:300px;overflow:auto}
+.cehist li{padding:0;border-bottom:1px dashed var(--line)}
+.cehist .cehl{display:flex;gap:10px;padding:7px 4px;cursor:pointer;align-items:baseline}
+.cehist .cehl:hover{background:rgba(204,162,90,.14)}
+.cehist .cehl b{font-family:var(--mono);font-weight:500;font-size:12px;min-width:86px;color:var(--muted)}
+.cehist .cehl i{margin-left:auto;font-style:normal;color:var(--brass);font-size:11px}
+.cehist li.aberto .cehl{background:rgba(204,162,90,.18)}
+.cehdet{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:0 4px 10px;padding:10px 12px;background:#FFF;border:1px solid var(--line);border-radius:5px;font-size:12.5px}
+.cehdet dt{color:var(--muted);font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;padding-top:2px}
+.cehdet dd{margin:0;word-break:break-word}
+.cehdet .velho{grid-column:1/-1;color:var(--muted);font-style:italic}
 @media (max-width:760px){.ceops{grid-template-columns:1fr}}
 .solitens{width:100%;margin:0 0 12px}
 .solitens td,.solitens th{font-size:12px;padding:6px 8px}
@@ -636,7 +647,9 @@ button.funChip:hover{border-color:var(--bordo);background:#E3EBD3}
 .funHist li .d{min-width:84px;color:var(--muted);font-variant-numeric:tabular-nums}
 .funHist li .a{min-width:56px;font-size:11px;letter-spacing:.05em;text-transform:uppercase}
 .funHist li .a.assume{color:var(--bordo)}.funHist li .a.passa{color:var(--terra)}
-.backdrop{position:fixed;inset:0;background:rgba(58,51,36,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.backdrop{position:fixed;inset:0;background:rgba(58,51,36,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:200}
+/* Janela aberta: a página de trás não rola. O cabeçalho fixo (z-index 60) passava por cima da janela (z-index 50). */
+html:has(.backdrop),html:has(.backdrop) body,html:has(.agmodal:not(.hidden)),html:has(.agmodal:not(.hidden)) body{overflow:hidden}
 .modal{background:rgba(255,255,255,.86);border:1px solid var(--line);border-top:3px solid var(--brass);border-radius:4px;width:100%;
   backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
   max-width:520px;padding:20px;max-height:90vh;overflow:auto}
@@ -646,7 +659,7 @@ button.funChip:hover{border-color:var(--bordo);background:#E3EBD3}
 .modal .actions{display:flex;gap:9px;margin-top:6px}
 .modal .actions .btn{flex:1}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#FFFFFF;border:1px solid var(--line);
-  border-left:3px solid var(--bordo);padding:11px 16px;border-radius:3px;font-size:13px;z-index:60;max-width:92vw}
+  border-left:3px solid var(--bordo);padding:11px 16px;border-radius:3px;font-size:13px;z-index:300;max-width:92vw}
 .toast.err{border-left-color:var(--alert)}
 
 /* Era position:absolute com z-index 70, posicionado em coordenadas de página.
@@ -1448,7 +1461,7 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
 }
 /* ===== fim da zona verde, módulos em texto e corda ===== */
 /* ===== Agenda: busca de MSG respondida (janela) ===== */
-.agmodal{position:fixed;left:0;top:0;right:0;bottom:0;z-index:60;background:rgba(10,12,10,.55)}
+.agmodal{position:fixed;left:0;top:0;right:0;bottom:0;z-index:200;background:rgba(10,12,10,.55)}
 .agmodal.hidden{display:none}
 .agmbox{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(760px,94%);background:rgba(252,247,236,.99);
   border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
@@ -8456,16 +8469,21 @@ const CE_SIT={
     {v:'mudo',   l:'Fornecedor não responde',c:'c-mudo'},
     {v:'mudo3',  l:'Fornecedor não respondeu após 3 tentativas',c:'c-mudo3'},
     {v:'transito',l:'Material em trânsito',c:'c-trans'},
-    {v:'fim',    l:'Material entregue',c:'c-fim'}],
+    {v:'fim',    l:'Material entregue',c:'c-fim'},
+    {v:'cancFalta',l:'Cancelado por falta de contato',c:'c-canc'},
+    {v:'cancPedido',l:'Cancelado a pedido do fornecedor',c:'c-canc'}],
   servico:[
     {v:'semData',l:'Prestador ciente da Nota de Empenho, mas sem data de início',c:'c-sem'},
     {v:'comData',l:'Prestador ciente da Nota de Empenho, com data de prontificação',c:'c-com'},
     {v:'mudo',   l:'Prestador não responde',c:'c-mudo'},
     {v:'mudo3',  l:'Prestador não respondeu após 3 tentativas',c:'c-mudo3'},
     {v:'transito',l:'Serviço em execução',c:'c-trans'},
-    {v:'fim',    l:'Serviço prontificado',c:'c-fim'}]
+    {v:'fim',    l:'Serviço prontificado',c:'c-fim'},
+    {v:'cancFalta',l:'Cancelado por falta de contato',c:'c-canc'},
+    {v:'cancPedido',l:'Cancelado a pedido do prestador',c:'c-canc'}]
 };
 const CE_MEIOS=['WhatsApp','E-mail','Telefone','Presencial'];
+const ceCancelada=v=>v==='cancFalta'||v==='cancPedido';
 let CE_FILTRO='', CE_ABA='todos';
 
 /* serviço é o que a natureza de despesa diz que é: 339036/37/39/40 */
@@ -8505,7 +8523,7 @@ function ceUteisEntre(a,b){
 /* prazo da linha: atraso (vermelho), perto (amarelo, até 5 dias úteis) ou ok */
 function cePrazo(s){
   const en=ceEnt(s);
-  if(!en.prev||en.sit==='fim')return null;
+  if(!en.prev||en.sit==='fim'||ceCancelada(en.sit))return null;
   const h=hoje();
   if(en.prev<h)return {cls:'atraso',n:ceUteisEntre(en.prev,h)};
   const n=ceUteisEntre(h,en.prev);
@@ -8520,6 +8538,7 @@ function ceSemResposta(en){
 function ceGrupo(s){
   const en=ceEnt(s), pz=cePrazo(s);
   if(en.sit==='fim')return 'fim';
+  if(ceCancelada(en.sit))return 'canc';
   if(pz&&pz.cls==='atraso')return 'atraso';
   if(pz&&pz.cls==='perto')return 'perto';
   if(en.sit==='mudo'||en.sit==='mudo3')return 'mudo';
@@ -8534,9 +8553,10 @@ const CE_KPIS=[
   {g:'sem',   l:'Sem data',d:'ciente sem prazo ou sem situação',c:'k-sem'},
   {g:'mudo',  l:'Sem resposta',d:'',c:'k-mudo'},
   {g:'trans', l:'Em trânsito / execução',d:'a caminho, sem data',c:'k-trans'},
-  {g:'fim',   l:'Entregues / prontos',d:'material entregue ou serviço pronto',c:'k-fim'}
+  {g:'fim',   l:'Entregues / prontos',d:'material entregue ou serviço pronto',c:'k-fim'},
+  {g:'canc',  l:'Canceladas',d:'sem contato ou a pedido',c:'k-canc'}
 ];
-const CE_ORDEM={atraso:0,perto:1,mudo:2,sem:3,trans:4,ok:5,fim:6};
+const CE_ORDEM={atraso:0,perto:1,mudo:2,sem:3,trans:4,ok:5,fim:6,canc:7};
 const ceDataBr=iso=>iso?iso.split('-').reverse().join('/'):'';
 
 function renderControleEntrega(){
@@ -8547,15 +8567,16 @@ function renderControleEntrega(){
   todas.forEach(s=>{cont[ceGrupo(s)]++;if(ceEnt(s).sit==='mudo3')mudo3++;});
   $('#obtCeKpis').innerHTML=CE_KPIS.map(k=>'<button type="button" class="cekpi '+k.c+'" data-cekpi="'+k.g+'" aria-pressed="'+(CE_FILTRO===k.g)+'">'+
     '<span>'+esc(k.l)+'</span><b>'+cont[k.g]+'</b><i>'+esc(k.g==='mudo'?(mudo3?mudo3+' já com 3 tentativas':'fornecedor calado'):k.d)+'</i></button>').join('');
-  const abas=[['todos','Todos'],['material','Material'],['servico','Serviço'],['pend','Pendentes'],['fim','Entregues']];
+  const abas=[['todos','Todos'],['material','Material'],['servico','Serviço'],['pend','Pendentes'],['fim','Entregues'],['canc','Canceladas']];
   $('#obtCeAbas').innerHTML=abas.map(a=>'<button type="button" class="chip" data-ceaba="'+a[0]+'" aria-pressed="'+(CE_ABA===a[0])+'">'+a[1]+'</button>').join('');
   const q=(($('#obtCeBusca')||{}).value||'').trim();
   const lista=todas.filter(s=>{
     const g=ceGrupo(s);
     if(CE_FILTRO&&g!==CE_FILTRO)return false;
     if(CE_ABA==='material'||CE_ABA==='servico'){if(ceTipo(s)!==CE_ABA)return false;}
-    else if(CE_ABA==='pend'){if(g==='fim')return false;}
+    else if(CE_ABA==='pend'){if(g==='fim'||g==='canc')return false;}
     else if(CE_ABA==='fim'){if(g!=='fim')return false;}
+    else if(CE_ABA==='canc'){if(g!=='canc')return false;}
     return solCasa(s,q);
   }).sort((a,b)=>{
     const ga=CE_ORDEM[ceGrupo(a)],gb=CE_ORDEM[ceGrupo(b)];
@@ -8575,6 +8596,7 @@ function ceLinhaHtml(s){
   const n=(s.itens||[]).length, primeiro=n?String(s.itens[0].desc||''):'—';
   let data;
   if(en.sit==='fim')data=(en.entregue?'<b>'+ceDataBr(en.entregue)+'</b><br>':'')+'<span class="cetag ok">'+(tipo==='servico'?'pronto':'entregue')+'</span>';
+  else if(ceCancelada(en.sit))data='<span class="cetag canc">cancelada</span>';
   else if(pz)data='<b>'+ceDataBr(en.prev)+'</b><br><span class="cetag '+pz.cls+'">'+
     (pz.cls==='atraso'?'atrasada '+pz.n+' '+(pz.n===1?'dia útil':'dias úteis')
      :pz.n===0?'vence hoje':(pz.cls==='perto'?'faltam ':'no prazo · ')+pz.n+' '+(pz.n===1?'dia útil':'dias úteis'))+'</span>';
@@ -8605,55 +8627,68 @@ function ceAbrirFicha(id){
   const tipo=ceTipo(s), host=$('#modalHost');
   const desenha=()=>{
     const ops=CE_SIT[tipo].map(o=>'<label class="ceop"><input type="radio" name="ceSit" value="'+o.v+'"'+(en.sit===o.v?' checked':'')+'> '+esc(o.l)+'</label>').join('');
-    const linhas=[].concat(
-      (en.contatos||[]).map(c=>({d:c.d,txt:c.meio+' · '+(c.resp==='sim'?'respondeu':'não respondeu')+(c.txt?' — '+c.txt:'')})),
-      en.hist||[]).sort((a,b)=>(b.d||'')<(a.d||'')?-1:(b.d||'')>(a.d||'')?1:0);
+    const linhas=ceLancamentos(en);
     host.innerHTML='<div class="backdrop"><div class="modal" style="max-width:780px">'+
       '<h3>'+(tipo==='servico'?'Prontificação':'Entrega')+' — SOLEMP '+esc(s.numero)+'</h3>'+
       '<p class="hint" style="margin:0 0 12px">'+esc([s.ne,s.fornecedor,(s.itens&&s.itens[0]?s.itens[0].desc:''),brl(solTotal(s))].filter(Boolean).join(' · '))+
         ' · <b>'+(tipo==='servico'?'Serviço':'Material')+'</b></p>'+
       '<label>Situação</label><div class="ceops">'+ops+'</div>'+
       '<div class="row">'+
-        '<div style="flex:1 1 170px"><label>'+(tipo==='servico'?'Data prevista de prontificação':'Data prevista de entrega')+'</label><input type="date" id="ceDtPrev" value="'+esc(en.prev||'')+'"></div>'+
-        '<div style="flex:1 1 170px"><label>'+(tipo==='servico'?'Data em que ficou pronto':'Data em que foi entregue')+'</label><input type="date" id="ceDtEnt" value="'+esc(en.entregue||'')+'"></div>'+
+        '<div style="flex:1 1 170px"><label>'+(tipo==='servico'?'Data prevista de prontificação':'Data prevista de entrega')+'</label><input type="hidden" id="ceDtPrev"><input type="text" id="ceDtPrevBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
+        '<div style="flex:1 1 170px"><label>'+(tipo==='servico'?'Data em que ficou pronto':'Data em que foi entregue')+'</label><input type="hidden" id="ceDtEnt"><input type="text" id="ceDtEntBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
         '<div style="flex:2 1 260px"><label>Observação</label><input type="text" id="ceObs" value="'+esc(en.obs||'')+'"></div></div>'+
       '<p class="hint" style="margin:6px 0 0">Com data prevista, a linha fica amarela a 5 dias úteis e vermelha depois de vencida. Ao marcar “'+
         esc(CE_SIT[tipo][5].l)+'”, a SOLEMP passa para a etapa “Material entregue”.</p>'+
       '<div class="cebloco"><label>Registrar tentativa de contato</label><div class="row">'+
-        '<div style="flex:0 1 150px"><input type="date" id="ceCtD" value="'+hoje()+'"></div>'+
+        '<div style="flex:0 1 150px"><input type="hidden" id="ceCtD"><input type="text" id="ceCtDBr" class="datebr" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" readonly></div>'+
         '<div style="flex:0 1 140px"><select id="ceCtMeio">'+CE_MEIOS.map(m=>'<option>'+m+'</option>').join('')+'</select></div>'+
         '<div style="flex:0 1 160px"><select id="ceCtResp"><option value="sim">Respondeu</option><option value="nao">Não respondeu</option></select></div>'+
         '<div style="flex:1 1 200px"><input type="text" id="ceCtTxt" placeholder="o que foi dito (opcional)"></div>'+
         '<div style="flex:0 1 auto"><button class="btn ghost" id="ceCtOk">Registrar</button></div></div>'+
         '<p class="hint" style="margin:6px 0 0">Três tentativas seguidas sem resposta mudam a situação para “não respondeu após 3 tentativas”. Uma resposta zera a contagem. O registro é gravado na hora.</p>'+
-        (linhas.length?'<ul class="cehist">'+linhas.map(l=>'<li><b>'+esc(ceDataBr(l.d)||'—')+'</b><span>'+esc(l.txt)+'</span></li>').join('')+'</ul>':'')+
+      '</div>'+
+      '<div class="cebloco"><label>Histórico <span class="n">'+linhas.length+'</span></label>'+
+        '<p class="hint" style="margin:2px 0 0">Todos os lançamentos deste item, do mais recente para o mais antigo. Clique num lançamento para ver tudo o que foi registrado, inclusive a observação.</p>'+
+        (linhas.length?'<ul class="cehist">'+linhas.map((l,i)=>
+          '<li><div class="cehl" data-hi="'+i+'"><b>'+esc(ceDataBr(l.d)||'—')+'</b><span>'+esc(ceLancResumo(l))+'</span><i>detalhes</i></div></li>').join('')+'</ul>'
+          :'<p class="hint" style="margin:8px 0 0">Nenhum lançamento ainda.</p>')+
       '</div>'+
       '<div class="actions"><button class="btn ghost" id="ceNo">Cancelar</button><button class="btn" id="ceOk">Gravar</button></div></div></div>';
+    /* calendário do SIGAB (DD/MM/AAAA), no lugar do seletor nativo do navegador */
+    [['ceDtPrev',en.prev],['ceDtEnt',en.entregue],['ceCtD',hoje()]].forEach(c=>{ligaCalDia(c[0]);setDataDia(c[0],c[1]||'');});
     const le=()=>{
       const r=host.querySelector('input[name="ceSit"]:checked');
       return {sit:r?r.value:en.sit,prev:$('#ceDtPrev').value,entregue:$('#ceDtEnt').value,obs:$('#ceObs').value.trim()};
     };
     /* marcar entregue sem data preenche hoje */
     host.querySelectorAll('input[name="ceSit"]').forEach(r=>r.onchange=()=>{
-      if(r.value==='fim'&&!$('#ceDtEnt').value)$('#ceDtEnt').value=hoje();
+      if(r.value==='fim'&&!$('#ceDtEnt').value)setDataDia('ceDtEnt',hoje());
     });
     $('#ceNo').onclick=()=>host.innerHTML='';
+    /* abre/fecha o detalhe no lugar, sem redesenhar a janela (não perde o que já foi digitado) */
+    host.querySelectorAll('.cehl').forEach(el=>el.onclick=()=>{
+      const li=el.parentNode, aberto=li.classList.contains('aberto');
+      const det=li.querySelector('.cehdet'); if(det)det.remove();
+      li.classList.toggle('aberto',!aberto);
+      el.querySelector('i').textContent=aberto?'detalhes':'fechar';
+      if(!aberto)li.insertAdjacentHTML('beforeend',ceLancDetalhe(linhas[Number(el.dataset.hi)],s,tipo));
+    });
     host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
     /* registra a tentativa de contato preenchida no bloco de baixo */
     const registraContato=()=>{
       const d=$('#ceCtD').value||hoje(), resp=$('#ceCtResp').value;
-      en.contatos=(en.contatos||[]).concat([{d,meio:$('#ceCtMeio').value,resp,txt:$('#ceCtTxt').value.trim()}]);
+      en.contatos=(en.contatos||[]).concat([Object.assign({d,ts:Date.now(),meio:$('#ceCtMeio').value,resp,txt:$('#ceCtTxt').value.trim()},ceFoto(en))]);
       const seguidas=ceSemResposta(en);
-      if(en.sit!=='fim'){
+      if(en.sit!=='fim'&&!ceCancelada(en.sit)){
         if(seguidas>=3)ceMudaSit(en,'mudo3',tipo);
         else if(seguidas>0&&!en.sit)ceMudaSit(en,'mudo',tipo);
         else if(resp==='sim'&&(en.sit==='mudo'||en.sit==='mudo3'))ceMudaSit(en,en.prev?'comData':'semData',tipo);
       }
     };
     $('#ceCtOk').onclick=async()=>{
-      const v=le();
+      const v=le(), ant=ceFoto(en);
       Object.assign(en,{prev:v.prev,entregue:v.entregue,obs:v.obs});
-      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo);
+      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo); else ceLancaAtualizacao(en,ant);
       registraContato();
       await ceGrava(s,JSON.parse(JSON.stringify(en)),'contato registrado');
       desenha();
@@ -8661,8 +8696,9 @@ function ceAbrirFicha(id){
     $('#ceOk').onclick=async()=>{
       const v=le();
       if(v.sit==='comData'&&!v.prev){toast('informe a data prevista',true);return;}
-      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo);
+      const ant=ceFoto(en);
       Object.assign(en,{prev:v.prev,entregue:v.sit==='fim'?(v.entregue||hoje()):v.entregue,obs:v.obs});
+      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo); else ceLancaAtualizacao(en,ant);
       /* Escreveu "o que foi dito" e foi direto no Gravar, sem clicar Registrar:
          antes o texto se perdia calado. Agora vira o registro do contato. */
       const pend=$('#ceCtTxt').value.trim();
@@ -8673,10 +8709,49 @@ function ceAbrirFicha(id){
   };
   desenha();
 }
+/* Cada lançamento do histórico leva a foto da ficha naquele momento (situação,
+   datas e observação), para o clique mostrar tudo o que foi lançado. Quem chama
+   deve aplicar prev/entregue/obs em `en` ANTES de mudar a situação. */
+function ceFoto(en){return {sit:en.sit||'',prev:en.prev||'',entregue:en.entregue||'',obs:en.obs||''};}
 function ceMudaSit(en,v,tipo){
   en.sit=v;
   const o=CE_SIT[tipo].find(x=>x.v===v);
-  en.hist=(en.hist||[]).concat([{d:hoje(),txt:'Situação: '+(o?o.l:v)}]);
+  en.hist=(en.hist||[]).concat([Object.assign({d:hoje(),ts:Date.now(),k:'sit',txt:'Situação: '+(o?o.l:v)},ceFoto(en))]);
+}
+/* mudou só data ou observação (sem mudar a situação): também é um lançamento */
+function ceLancaAtualizacao(en,ant){
+  const m=[];
+  if((ant.prev||'')!==(en.prev||''))m.push('data prevista');
+  if((ant.entregue||'')!==(en.entregue||''))m.push('data de entrega');
+  if((ant.obs||'')!==(en.obs||''))m.push('observação');
+  if(!m.length)return;
+  en.hist=(en.hist||[]).concat([Object.assign({d:hoje(),ts:Date.now(),k:'atu',txt:'Atualização: '+m.join(', ')},ceFoto(en))]);
+}
+/* junta contatos e histórico num só, do mais novo para o mais antigo */
+function ceLancamentos(en){
+  const l=[];
+  (en.contatos||[]).forEach(c=>l.push({k:'ct',d:c.d||'',ts:c.ts||0,r:c}));
+  (en.hist||[]).forEach(h=>l.push({k:h.k||'hist',d:h.d||'',ts:h.ts||0,r:h}));
+  l.forEach((x,i)=>x.seq=i);
+  return l.sort((a,b)=>(b.d<a.d?-1:b.d>a.d?1:0)||(b.ts-a.ts)||(b.seq-a.seq));
+}
+function ceLancResumo(x){
+  const r=x.r;
+  if(x.k==='ct')return r.meio+' · '+(r.resp==='sim'?'respondeu':'não respondeu')+(r.txt?' — '+r.txt:'');
+  return r.txt||'';
+}
+function ceLancDetalhe(x,s,tipo){
+  const r=x.r, lin=(t,v)=>'<dt>'+esc(t)+'</dt><dd>'+(v?esc(v):'<span class="obtfalta">—</span>')+'</dd>';
+  const tipoTxt={ct:'Tentativa de contato',sit:'Mudança de situação',atu:'Atualização da ficha',hist:'Anotação'}[x.k]||'Lançamento';
+  const rotSit=v=>{const o=CE_SIT[tipo].find(z=>z.v===v);return o?o.l:'';};
+  let h='<dl class="cehdet">'+lin('Data',ceDataBr(x.d))+lin('Tipo',tipoTxt);
+  if(x.k==='ct')h+=lin('Meio',r.meio)+lin('Resposta',r.resp==='sim'?'Respondeu':'Não respondeu')+lin('O que foi dito',r.txt);
+  else h+=lin('Registro',r.txt);
+  if('sit' in r){
+    h+=lin('Situação',rotSit(r.sit))+lin(tipo==='servico'?'Data prevista de prontificação':'Data prevista de entrega',ceDataBr(r.prev))+
+       lin(tipo==='servico'?'Data em que ficou pronto':'Data em que foi entregue',ceDataBr(r.entregue))+lin('Observação',r.obs);
+  }else h+='<dd class="velho">Lançamento anterior ao histórico detalhado: só a data e o texto foram guardados.</dd>';
+  return h+'</dl>';
 }
 function ceLiga(){
   const bu=$('#obtCeBusca'); if(bu)bu.addEventListener('input',renderControleEntrega);
