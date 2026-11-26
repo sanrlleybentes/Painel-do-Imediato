@@ -8639,10 +8639,9 @@ function ceAbrirFicha(id){
     });
     $('#ceNo').onclick=()=>host.innerHTML='';
     host.querySelector('.backdrop').onclick=e=>{if(e.target===host.querySelector('.backdrop'))host.innerHTML='';};
-    $('#ceCtOk').onclick=async()=>{
-      const v=le(), d=$('#ceCtD').value||hoje(), resp=$('#ceCtResp').value;
-      Object.assign(en,{prev:v.prev,entregue:v.entregue,obs:v.obs});
-      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo);
+    /* registra a tentativa de contato preenchida no bloco de baixo */
+    const registraContato=()=>{
+      const d=$('#ceCtD').value||hoje(), resp=$('#ceCtResp').value;
       en.contatos=(en.contatos||[]).concat([{d,meio:$('#ceCtMeio').value,resp,txt:$('#ceCtTxt').value.trim()}]);
       const seguidas=ceSemResposta(en);
       if(en.sit!=='fim'){
@@ -8650,6 +8649,12 @@ function ceAbrirFicha(id){
         else if(seguidas>0&&!en.sit)ceMudaSit(en,'mudo',tipo);
         else if(resp==='sim'&&(en.sit==='mudo'||en.sit==='mudo3'))ceMudaSit(en,en.prev?'comData':'semData',tipo);
       }
+    };
+    $('#ceCtOk').onclick=async()=>{
+      const v=le();
+      Object.assign(en,{prev:v.prev,entregue:v.entregue,obs:v.obs});
+      if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo);
+      registraContato();
       await ceGrava(s,JSON.parse(JSON.stringify(en)),'contato registrado');
       desenha();
     };
@@ -8658,8 +8663,12 @@ function ceAbrirFicha(id){
       if(v.sit==='comData'&&!v.prev){toast('informe a data prevista',true);return;}
       if(v.sit!==en.sit)ceMudaSit(en,v.sit,tipo);
       Object.assign(en,{prev:v.prev,entregue:v.sit==='fim'?(v.entregue||hoje()):v.entregue,obs:v.obs});
+      /* Escreveu "o que foi dito" e foi direto no Gravar, sem clicar Registrar:
+         antes o texto se perdia calado. Agora vira o registro do contato. */
+      const pend=$('#ceCtTxt').value.trim();
+      if(pend)registraContato();
       host.innerHTML='';
-      await ceGrava(s,en,'SOLEMP '+s.numero+': entrega atualizada');
+      await ceGrava(s,en,'SOLEMP '+s.numero+': entrega atualizada'+(pend?' e contato registrado':''));
     };
   };
   desenha();
