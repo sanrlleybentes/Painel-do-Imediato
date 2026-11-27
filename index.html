@@ -18704,16 +18704,14 @@ function secParseCorpo(t){
     if(cur&&!fimCab)campos[cur].push(x);
   }
   r.de=secLimpa(campos.DE.join(' '));r.para=secLimpa(campos.PARA.join(' '));r.info=secLimpa(campos.INFO.join(' '));
+  /* O BT final é o ponto final da MSG: fica no texto guardado, para o leitor militar ver onde ela termina.
+     (Antes era cortado na leitura e a MSG era gravada sem ele.) Só o BT do cabeçalho fica de fora. */
   let corpo='';
-  if(iBt!=null){
-    const resto=linhas.slice(iBt+1).join('\n');
-    const f=/(?:^|[ \t])BT[ \t]*$/m.exec(resto);   /* BT final: em linha própria ou no fim da última linha */
-    corpo=f?resto.slice(0,f.index):resto;
-  }
+  if(iBt!=null)corpo=linhas.slice(iBt+1).join('\n');
   r.corpo=corpo.trim();
   let classif=null,assunto=null;
   for(const l of r.corpo.split('\n')){
-    const x=l.trim(); if(!x)continue;
+    const x=l.trim(); if(!x||x==='BT')continue;
     if(SEC_CLASSIF.test(x)&&classif==null&&assunto==null){classif=x;continue;}
     assunto=x.replace(/\.+$/,'').trim();break;
   }
@@ -18725,7 +18723,9 @@ function secParseFicha(t){
   const r={precedencia:null,de:'',para:'',info:''};
   r.dtg_bruto=campo(/Data-Hora\s*\n?\s*(\S+)/s);
   const m=t.match(/De:\s*(.*?)\s*Para:\s*(.*?)\s*Info:\s*(.*?)\s*Assunto:\s*(.*?)\n\s*Texto:(.*?)(?:\nObserva[cç][oõ]es:|$)/s);
-  if(m){r.de=secLimpa(m[1]);r.para=secLimpa(m[2]);r.info=secLimpa(m[3]);r.assunto=secLimpa(m[4]);r.corpo=m[5].trim();}
+  if(m){r.de=secLimpa(m[1]);r.para=secLimpa(m[2]);r.info=secLimpa(m[3]);r.assunto=secLimpa(m[4]);r.corpo=m[5].trim();
+    /* a ficha do SIGDEM não imprime o BT; a MSG sempre termina nele */
+    if(r.corpo&&!/(^|\s)BT\s*$/.test(r.corpo))r.corpo+='\nBT';}
   const mp=t.match(/Precedência\s*\n?\s*Ação\s+Info\s*\n?\s*(\S+)\s+(\S+)/);
   if(mp)r.precedencia=mp[1].toUpperCase();
   r.classificacao=campo(/Sigilo\s*\n\s*(\S+)/s);
@@ -18777,6 +18777,8 @@ function secInterpreta(t,base,arquivo){
   }
   out.de=r.de||'';out.para=r.para||'';out.info=r.info||'';out.assunto=r.assunto||'';
   out.sigilo=secSigiloCanon(r.classificacao);out.corpo=r.corpo||'';out.precedencia=r.precedencia||'';
+  {const nr=secQtdRef(out.corpo);
+   if(nr)out.avisos.push(nr+(nr>1?' MSG de referência':' MSG de referência')+' abaixo da linha de separação: '+(nr>1?'serão gravadas':'será gravada')+' junto, como texto estendido da original.');}
   if(r.ficha&&Object.keys(r.ficha).length)out.ficha=r.ficha;
   const d=SEC_DTG.exec(r.dtg_bruto||'');
   if(d){
@@ -18968,9 +18970,15 @@ function secPz2(n){return String(n).padStart(2,'0');}
 /* data local (Date) → 'AAAA-MM-DDTHH:MM' */
 function secPzIso(d){return d.getFullYear()+'-'+secPz2(d.getMonth()+1)+'-'+secPz2(d.getDate())+'T'+secPz2(d.getHours())+':'+secPz2(d.getMinutes());}
 /* o que a MSG RX pede: devolve o controle sugerido (o usuário confere no Intérprete antes de gravar) */
+/* MSG de referência: o usuário cola, abaixo da MSG original, as MSG que deram origem a ela ou que somam
+   informação, separadas por uma linha de símbolos (=====, -----, *****...). Elas são gravadas JUNTAS, como
+   texto estendido da original. Para ler prazo e resposta, vale só a parte de cima (a MSG em si). */
+const SEC_SEP_REF=/^[ \t]*([=\-_*~#])\1{4,}[ \t]*$/m;
+function secCorpoPrincipal(c){const t=String(c||'');const m=SEC_SEP_REF.exec(t);return m?t.slice(0,m.index).trim():t;}
+function secQtdRef(c){return String(c||'').split('\n').filter(l=>SEC_SEP_REF.test(l)).length;}
 function secPrazoLe(m){
   if(!m||m.lado!=='RX')return null;
-  const T=secNorm((m.assunto||'')+' \n '+(m.corpo||'')).replace(/\s+/g,' ');
+  const T=secNorm((m.assunto||'')+' \n '+secCorpoPrincipal(m.corpo)).replace(/\s+/g,' ');
   const d=/^(\d{2})(\d{2})(\d{2})Z\/([A-Z]{3})\/(\d{4})$/.exec(String(m.dtg||'').toUpperCase());
   const baseAno=d?+d[5]:new Date().getFullYear(), baseMes=d?SEC_MESES.indexOf(d[4])+1:new Date().getMonth()+1;
   const base=d?new Date(Date.UTC(baseAno,baseMes-1,+d[1],+d[2],+d[3])):new Date();
@@ -19015,7 +19023,7 @@ const SEC_PZ_TIPO={obrigatoria:'Obrigatória',solicitacao:'Solicitação (CNS PS
 /* DTG citados na TX que batem com RX pendentes: são as que a TX responde */
 function secRespondeA(m){
   if(!m||m.lado!=='TX')return [];
-  const T=secNorm((m.assunto||'')+' '+(m.corpo||'')), proprio=String(m.dtg||'').slice(0,7);
+  const T=secNorm((m.assunto||'')+' '+secCorpoPrincipal(m.corpo)), proprio=String(m.dtg||'').slice(0,7);
   const out=[];
   for(const x of T.matchAll(/\b[A-Z]?-?(\d{6})Z(?:\s*\/\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)(?:\s*\/\s*(\d{4}))?)?/g)){
     if(x[1]+'Z'===proprio&&!x[2])continue;
