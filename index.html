@@ -3300,8 +3300,9 @@ section[id^="tab-"]>.hint,section[id^="tab-"]>p,.subtabs+.hint,.subtabs+p{color:
     <div id="agBkp-exportar">
       <div class="card reveal">
         <h2>Backup da Agenda ADM</h2>
-        <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão do Calendário de Expedientes: uma aba por periodicidade
-          (mensal, bimestral, trimestral, semestral, anual e eventual). Abre no LibreOffice Calc e no Excel.</p>
+        <p class="hint" style="margin:0 0 12px">Leva a Agenda inteira para um arquivo seu, no padrão do Calendário de Expedientes: uma aba por mês (JAN a DEZ do ano corrente),
+          com as fainas do mês em blocos (mensais, bimestrais, trimestrais, semestrais, anuais e eventuais) e, na coluna Resposta,
+          o que respondeu cada faina naquele mês. Abre no LibreOffice Calc e no Excel.</p>
         <div class="kpis" id="agBkpResumo" style="margin-bottom:14px"></div>
         <div class="row" style="align-items:center">
           <button class="btn" id="agBkpXlsx">Baixar planilha (.xlsx)</button>
@@ -5217,11 +5218,22 @@ function agBkpFolha(spec,o){
     if(!r.tit&&!String(r.t||'').trim()&&!r.e){R.push({c:[]});return;}
     R.push({c:[{t:r.tit?o.titulo:(r.t||''),e:r.e||AG_EST0,span:r.m?nc:1}]});
   });
-  R.push({c:ajusta(o.cab).map(t=>({t:t,e:spec.cab.e}))});
-  o.dados.forEach(d=>R.push({c:ajusta(d.c).map((t,i)=>{
+  const linhaDado=d=>R.push({c:ajusta(d.c).map((t,i)=>{
     const e=spec.linha[Math.min(i,spec.linha.length-1)]||AG_EST0;
     return {t:t,e:i===o.resp?Object.assign({},e,{bg:d.cor?spec.cores[d.cor]:''}):e};
-  })}));
+  })});
+  if(o.blocos){
+    /* aba do mês: um bloco por periodicidade, cada um com o seu título e o cabeçalho das colunas */
+    o.blocos.forEach((b,i)=>{
+      if(i)R.push({c:[]});
+      R.push({c:[{t:b.titulo,e:Object.assign({},spec.cab.e,{bg:'#E3DAC4',h:'center'}),span:nc}]});
+      R.push({c:ajusta(o.cab).map(t=>({t:t,e:spec.cab.e}))});
+      b.dados.forEach(linhaDado);
+    });
+  }else{
+    R.push({c:ajusta(o.cab).map(t=>({t:t,e:spec.cab.e}))});
+    o.dados.forEach(linhaDado);
+  }
   if(o.legenda)spec.rodape.forEach(r=>R.push({c:(r.c||[]).map(x=>({col:x.col,t:x.t,e:x.e,span:x.span||1}))}));
   return {nome:o.nome,larg:o.larg,linhas:R};
 }
@@ -5239,24 +5251,34 @@ function agRespostaTxt(cp,h){
   }
   return ev||(cp.ok?'Cumprida em '+brDate(cp.em||h):'');
 }
-function agBkpModelo(){
+/* Uma aba por mês (JAN…DEZ do ano corrente). Em cada aba, as fainas daquele mês em blocos por periodicidade:
+   MENSAIS (todas), BIMESTRAIS/TRIMESTRAIS/SEMESTRAIS/ANUAIS (só as que caem no mês) e EVENTUAIS (todas).
+   A coluna Resposta mostra o que respondeu a faina NAQUELE mês (MSG vinculada, texto escrito ou "Cumprida em").
+   Cores: verde cumprida; amarelo do mês, já chegou e não respondida; vermelho faina suspensa; mês futuro sem cor. */
+const AG_MES_EXT=['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+function agBkpModelo(ano){
   const spec=AGD.modelo||agModeloPadrao();
-  const h=hoje(), a=Number(h.slice(0,4)), m=Number(h.slice(5,7));
+  const h=hoje(), a=Number(ano)||Number(h.slice(0,4)), mHoje=Number(h.slice(5,7)), aHoje=Number(h.slice(0,4));
   const folhas=[], cab=spec.cab.t;
-  AG_FREQS.forEach(f=>{
-    const dados=agItens().filter(x=>x.freq===f).sort(agCmpPrazo).map(x=>{
-      const cp=(AGD.cumpr||{})[agCh(x.id,a,m)]||{};
-      const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
-      const doMes=f==='MENSAL'||(f!=='EVENTUAL'&&(x.meses||[]).indexOf(m)>=0);
-      const cor=cp.ok?'ok':(x.ativo===false?'na':(doMes?'pend':''));
-      const resposta=agRespostaTxt(cp,h);
-      const c=[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''];
-      while(c.length<=spec.resp)c.push('');
-      c[spec.resp]=resposta;
-      return {c:c,cor:cor};
+  for(let m=1;m<=12;m++){
+    const jaChegou=a<aHoje||(a===aHoje&&m<=mHoje);
+    const blocos=[];
+    AG_FREQS.forEach(f=>{
+      const doMes=x=>f==='MENSAL'||f==='EVENTUAL'||(x.meses||[]).indexOf(m)>=0;
+      const dados=agItens().filter(x=>x.freq===f&&doMes(x)).sort(agCmpPrazo).map(x=>{
+        const cp=(AGD.cumpr||{})[agCh(x.id,a,m)]||{};
+        const ref=f==='MENSAL'?'MENSAL':f==='EVENTUAL'?'EVENTUAL':(x.meses||[]).map(i=>AG_M3[i]).join(' · ');
+        const cor=cp.ok?'ok':(x.ativo===false?'na':(f!=='EVENTUAL'&&jaChegou?'pend':''));
+        const c=[ref,x.prazoTxt||'',x.tit||'',x.pub||'',x.dest||'',x.meio||'',x.resp||'',x.obs||''];
+        while(c.length<=spec.resp)c.push('');
+        c[spec.resp]=agRespostaTxt(cp,h);
+        return {c:c,cor:cor};
+      });
+      if(dados.length)blocos.push({titulo:AG_BKP_PLUR[f],dados:dados});
     });
-    folhas.push(agBkpFolha(spec,{nome:f,titulo:'CALENDÁRIO DE EXPEDIENTES '+AG_BKP_PLUR[f],cab:cab,larg:spec.larg,dados:dados,legenda:true,resp:spec.resp}));
-  });
+    folhas.push(agBkpFolha(spec,{nome:AG_M3[m],titulo:'CALENDÁRIO DE EXPEDIENTES — '+AG_MES_EXT[m]+' DE '+a,cab:cab,larg:spec.larg,
+      blocos:blocos,legenda:true,resp:spec.resp}));
+  }
   return folhas;
 }
 function agXml(t){return String(t==null?'':t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
