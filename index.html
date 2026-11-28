@@ -4240,15 +4240,16 @@ function ausenciasSemana(ref,modo){
   const fimJanela=(modo&&MODO_CFG[modo]&&!MODO_CFG[modo].temPorDoSolRotina)?ref:addDias(ref,6);
   const noPeriodo=(ini,fim)=>!(fim<ref||ini>fimJanela);
   /* férias, LTS, dispensa e paternidade tiram da escala: aparecem aqui com o rótulo do tipo */
-  const ROT_AUS={ferias:'FÉRIAS',lts:'LTS',dispensa:'DISPENSA',paternidade:'PATERNIDADE'};
+  const ROT_AUS={ferias:'FÉRIAS',lts:'LTS',dispensa:'DISPENSA',paternidade:'PATERNIDADE',transito:'TRÂNSITO'};
   const ferias=FER.periodos.filter(p=>ROT_AUS[p.tipo]&&p.status!=='cancelada'&&noPeriodo(p.ini,p.fim))
     .map(p=>{const x=milPorId(p.mil);
       return {mil:p.mil,ini:p.ini,txt:(x?rotulo(x):nomeDe(p.mil))+' ('+ROT_AUS[p.tipo]+' '+ddmmmCurto(p.ini)+' a '+ddmmmCurto(p.fim)+')'};});
-  const destaques=(EFE.eventos||[]).filter(e=>ausenciaTiraDaEscala(e)&&e.pend!=='encerrado'&&e.pend!=='dispensado'&&
-      noPeriodo(e.data,e.fim||'9999-12-31'))
-    .map(e=>{const x=milPorId(e.mil), rot=e.tipo==='curso_ida'?'CURSO/DST':'DST';
+  /* mesmo período da escala (ausenciaConflito): até o fim previsto ou a véspera do regresso */
+  const destaques=(EFE.eventos||[]).filter(e=>e.data&&ausenciaTiraDaEscala(e)&&
+      noPeriodo(e.data,movFimEfetivo(e)||'9999-12-31'))
+    .map(e=>{const x=milPorId(e.mil), rot=e.tipo==='curso_ida'?'CURSO/DST':'DST', fim=movFimEfetivo(e);
       return {mil:e.mil,ini:e.data,txt:(x?rotulo(x):nomeDe(e.mil))+' ('+rot+' '+ddmmmCurto(e.data)+
-        (e.fim?' a '+ddmmmCurto(e.fim):' em curso')+')'};});
+        (fim?' a '+ddmmmCurto(fim):' em curso')+')'};});
   /* ordem de antiguidade (posição do militar na lista da tripulação); no mesmo militar, pela data de início */
   return ferias.concat(destaques)
     .sort((a,b)=>ordemAtual(a.mil)-ordemAtual(b.mil)||a.ini.localeCompare(b.ini)).map(o=>o.txt);
@@ -13916,11 +13917,14 @@ function renderPendDest(){
         }else{
           CREW.militares=CREW.militares.filter(v=>v.id!==e.mil);
         }
+        /* a confirmação só ratifica: o movimento fechou de fato no fim do período, então o regresso
+           (ou a saída de quem é de outra OM) fica no dia seguinte ao fim — não no dia em que o
+           Imediato clicou. pendEm guarda o dia da ratificação. */
         e.pend='encerrado'; e.pendEm=hoje();
-        EFE.eventos.push({id:uid(),ts:Date.now(),data:hoje(),fim:'',
+        EFE.eventos.push({id:uid(),ts:Date.now(),data:e.fim?addDias(e.fim,1):hoje(),fim:'',
           tipo:proprio?(curso?'curso_volta':'destaque_volta'):'destaque_saida',
           mil:e.mil,posto:e.posto,nome:e.nome,nip:e.nip||'',
-          completo:e.completo||'',om:e.om||'',doc:'',msgref:'',curso:e.curso||'',
+          completo:e.completo||'',om:e.om||'',doc:'',msgref:'',curso:e.curso||'',ref:e.id,
           obs:'Encerramento automático '+(curso?'do curso':'do destaque')+' de '+brDate(e.data)+' a '+brDate(e.fim),
           por:'',pend:''});
         CREW.atualizado=Date.now();
@@ -14214,14 +14218,33 @@ function movFimDe(e){ return (tipoTemPeriodo(e.tipo)&&e.fim&&e.fim>=e.data)?e.fi
 /* Até quando o movimento vale de verdade. Vazio = ainda em curso (destaque ou curso sem prazo e sem
    regresso registrado): nunca expira. Se o militar voltou antes do fim previsto, vale até o dia
    anterior ao regresso. */
+/* Qual regresso fecha qual saída. Antes valia "o primeiro regresso com data >= início", e o regresso
+   que encerra um destaque podia cortar o destaque SEGUINTE quando os dois caem no mesmo dia (caso do
+   Queiroz: regresso da NPAPAM e saída para a NBTELO em 27/11 — o NBTELO acabava no dia em que começou).
+   Agora: o regresso que diz quem encerra (ref) fecha aquele; os demais, em ordem cronológica (data e,
+   no mesmo dia, ordem de registro), fecham a saída aberta mais recente do mesmo tipo. */
+function regressoDe(e){
+  const tv=e.tipo==='curso_ida'?'curso_volta':'destaque_volta', ti=e.tipo;
+  const evs=(EFE.eventos||[]).filter(x=>x.mil===e.mil&&x.data&&(x.tipo===ti||x.tipo===tv))
+    .sort((a,b)=>a.data.localeCompare(b.data)||(a.ts||0)-(b.ts||0));
+  const porRef={};
+  evs.forEach(v=>{if(v.tipo===tv&&v.ref)porRef[v.ref]=v;});
+  if(porRef[e.id])return porRef[e.id];
+  const abertas=[], par={};
+  evs.forEach(x=>{
+    if(x.tipo===ti){ if(!porRef[x.id])abertas.push(x); }
+    else if(!x.ref){ const ida=abertas.pop(); if(ida)par[ida.id]=x; }
+  });
+  return par[e.id]||null;
+}
 function movFimEfetivo(e){
   const comPer=tipoTemPeriodo(e.tipo);
   let fim=comPer?((e.fim&&e.fim>=e.data)?e.fim:''):e.data;
   if(e.tipo==='destaque_ida'||e.tipo==='curso_ida'){
-    const tv=e.tipo==='curso_ida'?'curso_volta':'destaque_volta';
-    const v=(EFE.eventos||[]).filter(x=>x.id!==e.id&&x.mil===e.mil&&x.tipo===tv&&x.data&&x.data>=e.data)
-      .sort((a,b)=>a.data.localeCompare(b.data))[0];
+    const v=regressoDe(e);
     if(v){const dv=v.data>e.data?addDias(v.data,-1):e.data; if(!fim||dv<fim)fim=dv;}
+    /* encerrado ou dispensado sem prazo e sem regresso: termina no dia em que foi encerrado */
+    if(!fim&&(e.pend==='encerrado'||e.pend==='dispensado'))fim=e.pendEm||e.data;
   }
   return fim;
 }
@@ -15822,8 +15845,9 @@ function semanaEmBranco(modo,ref){
  * Devolve o período de férias que cobre aquela data para o militar, ou null.
  * Usado para impedir escalar alguém de férias e para tirá-lo das escalas em curso.
  */
-/* férias, LTS, dispensa e paternidade tiram o militar da escala; trânsito não */
-const TIPOS_FORA_ESCALA=['ferias','lts','dispensa','paternidade'];
+/* férias, LTS, dispensa, paternidade e trânsito tiram o militar da escala */
+const TIPOS_FORA_ESCALA=['ferias','lts','dispensa','paternidade','transito'];
+const ROT_FORA_ESCALA={ferias:'férias',lts:'LTS',dispensa:'dispensa',paternidade:'paternidade',transito:'trânsito'};
 function feriasConflito(milId,dataISO){
   if(!milId||!dataISO||!FER||!FER.periodos)return null;
   return FER.periodos.find(p=>p.mil===milId&&TIPOS_FORA_ESCALA.indexOf(p.tipo)>=0&&p.status!=='cancelada'&&p.ini<=dataISO&&p.fim>=dataISO)||null;
@@ -15833,24 +15857,33 @@ function feriasConflito(milId,dataISO){
    destacamento, não o curso: estágio sem destacamento não entra nesta conta.
    O período é o do próprio movimento; quando ele é encerrado (na mão ou pelo
    card de pendências), o militar volta à escala sem ninguém mexer em nada. */
-function cursoConflito(milId,dataISO){
+/* Saída em destaque e curso com destacamento: o militar está servindo em outra OM e sai da escala.
+   Período = o do Controle Geral e do Painel: início do movimento até o fim previsto, ou até a véspera
+   do regresso, se ele voltou antes (movFimEfetivo). Uma régua só para as telas não discordarem. */
+function ausenciaConflito(milId,dataISO){
   if(!milId||!dataISO||!EFE||!EFE.eventos)return null;
-  return EFE.eventos.find(e=>e.mil===milId&&e.tipo==='curso_ida'&&e.destacado&&
-    e.pend!=='encerrado'&&e.pend!=='dispensado'&&
-    e.data<=dataISO&&(!e.fim||e.fim>=dataISO))||null;
+  return EFE.eventos.find(e=>e.mil===milId&&e.data&&ausenciaTiraDaEscala(e)&&
+    e.data<=dataISO&&(movFimEfetivo(e)||'9999-12-31')>=dataISO)||null;
 }
-/* o impedimento que vale para a escala, seja férias ou curso destacado */
+function cursoConflito(milId,dataISO){
+  const e=ausenciaConflito(milId,dataISO);
+  return e&&e.tipo==='curso_ida'?e:null;
+}
+/* o impedimento que vale para a escala: férias/LTS/dispensa/paternidade/trânsito, destaque ou curso destacado */
 function impedimento(milId,dataISO){
   const f=feriasConflito(milId,dataISO);
   if(f){
-    const rot=f.tipo==='ferias'?'férias':f.tipo==='lts'?'LTS':f.tipo==='dispensa'?'dispensa':'paternidade';
+    const rot=ROT_FORA_ESCALA[f.tipo]||f.tipo;
     return {tipo:f.tipo,rot:rot,ini:f.ini,fim:f.fim,
-      texto:'está de '+rot+' de '+brDate(f.ini)+' a '+brDate(f.fim)};
+      texto:(f.tipo==='transito'?'está em ':'está de ')+rot+' de '+brDate(f.ini)+' a '+brDate(f.fim)};
   }
-  const c=cursoConflito(milId,dataISO);
-  if(c)return {tipo:'curso',rot:'curso',ini:c.data,fim:c.fim||'',
-    texto:'está destacado'+(c.om?' na '+c.om:'')+' fazendo '+(c.curso||'curso')+
-      ' de '+brDate(c.data)+(c.fim?' a '+brDate(c.fim):' (sem prazo)')};
+  const c=ausenciaConflito(milId,dataISO);
+  if(c){
+    const fim=movFimEfetivo(c), curso=c.tipo==='curso_ida';
+    return {tipo:curso?'curso':'destaque',rot:curso?'curso':'destaque',ini:c.data,fim:fim||'',
+      texto:'está destacado'+(c.om?' na '+c.om:'')+(curso?' fazendo '+(c.curso||'curso'):'')+
+        ' de '+brDate(c.data)+(fim?' a '+brDate(fim):' (sem prazo)')};
+  }
   return null;
 }
 /* ═══════════ militares "acompanhando" ═══════════
@@ -15922,7 +15955,7 @@ function eligListHtml(servico,valorAtual,dataISO){
     /* destacado em curso não aparece na lista — não há como escalar quem não
        está no navio. Só continua visível se já estiver lançado nesta célula,
        para o lançamento antigo não sumir calado da tela. */
-    .filter(x=>x.id===valorAtual||!(dataISO&&cursoConflito(x.id,dataISO)));
+    .filter(x=>x.id===valorAtual||!(dataISO&&ausenciaConflito(x.id,dataISO)));
   let h='<option value="">—</option>';
   elegiveis.forEach(x=>{
     const imp=dataISO&&x.id!==valorAtual?impedimento(x.id,dataISO):null;
